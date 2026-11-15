@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Attributes Can Be Modified on an EC2 Regional RI? - ec2</title>
+    <meta name="description" content="An active Regional Reserved Instance in Amazon EC2 allows you to modify its scope to a specific Availability Zone, merge or split reservations, and change the instance size within the same instance family on Linux or Unix platforms with default tenancy. T">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-attributes-can-be-modified-on-an-ec-2-regional-ri">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Attributes Can Be Modified on an EC2 Regional RI? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-attributes-can-be-modified-on-an-ec-2-regional-ri" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An active Regional Reserved Instance in Amazon EC2 allows you to modify its scope to a specific Availability Zone, merge or split reservations, and change the instance size within the same instance family on Linux or Unix platforms with default tenancy. T" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-attributes-can-be-modified-on-an-ec2-regional-ri">What
+Attributes Can Be Modified on an EC2 Regional RI?</h1>
+<p>An active Regional Reserved Instance in Amazon EC2 allows you to
+modify its scope to a specific Availability Zone, merge or split
+reservations, and change the instance size within the same instance
+family on Linux or Unix platforms with default tenancy. This article
+details the modifiable attributes, the normalization factor rules that
+govern instance size adjustments, the platform restrictions that limit
+changes, and the attributes that remain permanently locked unless you
+use a Convertible Reserved Instance.</p>
+<h2
+id="modifiable-attributes-on-a-regional-reserved-instance">Modifiable
+Attributes on a Regional Reserved Instance</h2>
+<p>When you own an active Regional Reserved Instance, AWS permits
+several configuration adjustments at no additional charge. These
+modifications do not change the remaining term or the expiration date of
+your reservation.</p>
+<ol type="1">
+<li><strong>Scope Adjustment (Regional to Zonal):</strong> You can
+convert a Regional Reserved Instance into a Zonal Reserved Instance by
+pinning it to a specific Availability Zone within the same AWS Region.
+While a Regional Reserved Instance provides automatic instance size
+flexibility across all Availability Zones in the Region, switching to a
+Zonal Reserved Instance removes instance size flexibility in exchange
+for an explicit capacity reservation in the chosen Availability Zone.
+You can also switch a Zonal Reserved Instance back to a Regional scope
+at any time.</li>
+<li><strong>Instance Size Within the Same Instance Family:</strong> You
+can change the instance size of your reservation (for example, changing
+from <code>m5.xlarge</code> to <code>m5.large</code> or
+<code>m5.2xlarge</code>) provided the reservation remained in the same
+instance family (<code>m5</code>), runs on a Linux/Unix platform without
+SQL Server or SUSE/RHEL licensing constraints, and uses default tenancy.
+Note that Regional Reserved Instances already apply instance size
+flexibility automatically at billing time for eligible platforms, so
+manual size modification is primarily needed when you are simultaneously
+converting the reservation to a Zonal scope or reorganizing how your
+reservations are grouped.</li>
+<li><strong>Merging and Splitting Reservations:</strong> You can combine
+two or more identical or compatible Reserved Instances into a single
+reservation, or split an existing reservation with multiple instances
+into smaller separate reservations. Merging requires that the
+reservations share the same instance family, expiration date, offering
+class, tenancy, and platform.</li>
+</ol>
+<h2
+id="understanding-the-normalization-factor-for-size-modifications">Understanding
+the Normalization Factor for Size Modifications</h2>
+<p>When modifying the instance size or splitting and merging quantities
+within an instance family, the total compute footprint of the
+reservation must remain constant. AWS enforces this using a
+normalization factor assigned to each instance size.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Size</th>
+<th style="text-align: left;">Normalization Factor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>nano</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.25\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>micro</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.5\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>small</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(1\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>medium</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(2\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>large</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(4\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(8\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>2xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(16\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>4xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(32\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>8xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(64\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>12xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(96\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>16xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(128\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>24xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(192\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>32xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(256\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>For any size modification, the total normalization footprint before
+and after the change must satisfy the following equation:</p>
+<p><span class="math display">\[\text{Total Footprint} = \sum_{i=1}^{n}
+\left( N_i \times F_i \right)\]</span></p>
+<p>Where <span class="math inline">\(N_i\)</span> is the number of
+instances in reservation group <span class="math inline">\(i\)</span>
+and <span class="math inline">\(F_i\)</span> is the normalization factor
+of the corresponding instance size.</p>
+<p>For example, if you have one active <code>c5.2xlarge</code> Regional
+Reserved Instance (<span class="math inline">\(1 \times 16 = 16\)</span>
+units), you can modify it into:</p>
+<ul>
+<li>Two <code>c5.xlarge</code> instances (<span class="math inline">\(2
+\times 8 = 16\)</span> units)</li>
+<li>Four <code>c5.large</code> instances (<span class="math inline">\(4
+\times 4 = 16\)</span> units)</li>
+<li>One <code>c5.xlarge</code> instance and two <code>c5.large</code>
+instances (<span class="math inline">\((1 \times 8) + (2 \times 4) =
+16\)</span> units)</li>
+</ul>
+<p>You cannot modify a single <code>c5.large</code> (<span
+class="math inline">\(4\)</span> units) into a <code>c5.xlarge</code>
+(<span class="math inline">\(8\)</span> units) unless you merge it with
+another <code>c5.large</code> reservation that shares the exact same
+expiration timestamp and attributes.</p>
+<h2 id="attributes-that-cannot-be-modified">Attributes That Cannot Be
+Modified</h2>
+<p>Standard and Regional Reserved Instances have strict boundaries on
+what can be changed through the modification workflow. You cannot modify
+the following attributes on a Regional Reserved Instance:</p>
+<ul>
+<li><strong>Instance Family:</strong> You cannot change a reservation
+from one family to another (such as <code>m5</code> to <code>m6i</code>
+or <code>c5</code> to <code>r5</code>) through a modification. Changing
+the instance family requires a <strong>Convertible Reserved
+Instance</strong> and uses the <strong>Exchange</strong> process rather
+than a modification.</li>
+<li><strong>Operating System / Platform:</strong> You cannot alter the
+operating system (for example, changing from Windows to Linux/Unix, or
+Red Hat Enterprise Linux to SUSE Linux).</li>
+<li><strong>Tenancy:</strong> You cannot modify a reservation from
+<code>default</code> (shared) tenancy to <code>dedicated</code> tenancy,
+or vice versa.</li>
+<li><strong>AWS Region:</strong> Reservations are permanently bound to
+the AWS Region in which they were purchased.</li>
+<li><strong>Term Length and Payment Option:</strong> You cannot change a
+1-year term to a 3-year term, nor can you switch between No Upfront,
+Partial Upfront, and All Upfront payment options via modification.</li>
+<li><strong>Instance Size for Non-Eligible Platforms:</strong> If your
+Regional Reserved Instance runs Windows, Windows with SQL Server, RHEL,
+or SUSE Linux, or if it uses Dedicated tenancy, you cannot modify its
+instance size. For those configurations, the only permitted modification
+on a Regional Reserved Instance is changing its scope between Regional
+and a specific Availability Zone (or splitting/merging instance counts
+of the exact same size).</li>
+</ul>
+<h2
+id="prerequisites-and-rules-for-modifying-a-reserved-instance">Prerequisites
+and Rules for Modifying a Reserved Instance</h2>
+<p>Before submitting a modification request in the Amazon EC2 console or
+via the <code>modify-reserved-instances</code> AWS CLI command, verify
+that your reservation meets these operational requirements:</p>
+<ul>
+<li>The Reserved Instance must be in the <code>active</code> state
+(recently purchased reservations in the <code>payment-pending</code>
+state cannot be modified).</li>
+<li>The reservation cannot have another pending modification currently
+in the <code>processing</code> state.</li>
+<li>If you are changing the scope from Regional to a specific
+Availability Zone, the target Availability Zone must support the exact
+instance type of the reservation and cannot be a Local Zone or
+Wavelength Zone.</li>
+<li>All reservations being merged in a single modification request must
+have the exact same expiration date down to the second, as well as
+matching payment options and offering classes (<code>standard</code> vs.
+<code>convertible</code>).</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-attributes-can-be-modified-on-an-ec-2-regional-ri';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which AWS Service Tracks Licenses on EC2 Dedicated Hosts? - ec2</title>
+    <meta name="description" content="AWS License Manager is the primary service that automates the tracking of software license rules and host affinity on Amazon EC2 Dedicated Hosts. This article explores how AWS License Manager simplifies Bring Your Own License (BYOL) management, enforces v">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-aws-service-tracks-licenses-on-ec-2-dedicated-hosts">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which AWS Service Tracks Licenses on EC2 Dedicated Hosts? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-aws-service-tracks-licenses-on-ec-2-dedicated-hosts" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="AWS License Manager is the primary service that automates the tracking of software license rules and host affinity on Amazon EC2 Dedicated Hosts. This article explores how AWS License Manager simplifies Bring Your Own License (BYOL) management, enforces v" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="which-aws-service-tracks-licenses-on-ec2-dedicated-hosts">Which
+AWS Service Tracks Licenses on EC2 Dedicated Hosts?</h1>
+<p>AWS License Manager is the primary service that automates the
+tracking of software license rules and host affinity on Amazon EC2
+Dedicated Hosts. This article explores how AWS License Manager
+simplifies Bring Your Own License (BYOL) management, enforces vendor
+compliance rules such as minimum host residency periods, and integrates
+directly with Amazon EC2 to streamline physical server allocations and
+instance placements.</p>
+<h2 id="what-is-aws-license-manager">What is AWS License Manager?</h2>
+<p>When organizations migrate legacy enterprise workloads from
+on-premises data centers to the cloud, they often rely on Bring Your Own
+License (BYOL) agreements from vendors like Microsoft, Oracle, and SAP.
+Many of these agreements are strictly bound to physical processor cores
+or physical server sockets, requiring the use of Amazon EC2 Dedicated
+Hosts—physical servers with EC2 instance capacity fully dedicated to a
+single customer.</p>
+<p>Managing these licenses manually across a dynamic cloud environment
+can lead to accidental compliance violations or inefficient server
+utilization. AWS License Manager solves this problem by allowing
+administrators to codify the terms of their enterprise licensing
+agreements into centralized digital rules. Once configured, the service
+tracks usage automatically and prevents users from launching instances
+that violate specified license limits.</p>
+<h2 id="automating-license-rules-and-compliance">Automating License
+Rules and Compliance</h2>
+<p>Enterprise software vendors impose various constraints on how
+licenses are consumed. AWS License Manager allows administrators to
+configure license configurations based on the specific metric dictated
+by the vendor:</p>
+<ul>
+<li><strong>Physical Cores:</strong> Tracks licenses bound to the
+physical cores on an EC2 Dedicated Host.</li>
+<li><strong>Physical Sockets:</strong> Tracks licenses tied to the
+number of physical CPU sockets on a host.</li>
+<li><strong>Virtual CPUs (vCPUs):</strong> Tracks licenses based on the
+vCPU count of running EC2 instances.</li>
+<li><strong>Instances:</strong> Tracks licenses based on the total
+number of deployed instances regardless of size.</li>
+</ul>
+<p>When defining a license configuration, administrators can enforce
+hard or soft limits. If a hard limit is set and available licenses are
+exhausted, AWS License Manager automatically blocks the launch of new
+EC2 instances until additional licenses are provisioned or existing
+instances are terminated. If a soft limit is configured, the launch
+succeeds, but the service generates alerts via Amazon CloudWatch and AWS
+Systems Manager so administrators can address the overage.</p>
+<p>For capacity planning, the remaining available licenses (<span
+class="math inline">\(L_{\text{available}}\)</span>) at any given time
+can be expressed as:</p>
+<p><span class="math display">\[L_{\text{available}} = L_{\text{total}}
+- \sum_{i=1}^{n} C_i\]</span></p>
+<p>Where <span class="math inline">\(L_{\text{total}}\)</span> is the
+total license entitlement configured in the rule, <span
+class="math inline">\(n\)</span> is the number of active Dedicated Hosts
+or instances associated with the configuration, and <span
+class="math inline">\(C_i\)</span> represents the sockets, cores, or
+vCPUs consumed by the <span class="math inline">\(i\)</span>-th
+resource.</p>
+<h2 id="managing-host-affinity-and-license-mobility">Managing Host
+Affinity and License Mobility</h2>
+<p>One of the most complex aspects of physical server licensing is
+<strong>host affinity</strong> (also referred to as license mobility
+restrictions). Vendors such as Microsoft often mandate that once a
+license is assigned to a physical server, it cannot be reassigned to
+another physical server for a minimum period—commonly 90 days.</p>
+<p>On Amazon EC2 Dedicated Hosts, terminating an instance and
+immediately launching a replacement on a different physical host could
+inadvertently violate this 90-day reassignment rule, requiring the
+organization to pay for licenses on both the old and new hosts
+simultaneously.</p>
+<p>AWS License Manager automates the enforcement of host affinity rules
+through the following mechanisms:</p>
+<ol type="1">
+<li><strong>Cooling-Off Periods:</strong> Administrators can specify a
+minimum host affinity period (in days) within the license configuration.
+If an organization releases or reallocates a Dedicated Host before the
+required residency period expires, AWS License Manager tracks the
+violation or restricts the reassignment based on configured enforcement
+policies.</li>
+<li><strong>Instance-to-Host Binding:</strong> When an instance
+associated with a license configuration is stopped and restarted, EC2
+and License Manager work together to ensure the instance is placed back
+onto the same Dedicated Host whenever possible, maintaining strict
+affinity compliance.</li>
+</ol>
+<h2 id="seamless-dedicated-host-lifecycle-management">Seamless Dedicated
+Host Lifecycle Management</h2>
+<p>Traditionally, using EC2 Dedicated Hosts required administrators to
+manually allocate physical servers, monitor their capacity, and release
+them when no longer needed. AWS License Manager removes this operational
+overhead through integrated <strong>Host Resource Groups</strong>.</p>
+<p>By linking a license configuration to an AWS Resource Access Manager
+(RAM) shared group and an EC2 Host Resource Group, AWS License Manager
+completely automates the lifecycle of Dedicated Hosts:</p>
+<ul>
+<li><strong>Automatic Allocation:</strong> When a user launches an EC2
+instance tagged with a specific license configuration and no existing
+Dedicated Host has sufficient capacity, AWS License Manager
+automatically allocates a new Dedicated Host behind the scenes.</li>
+<li><strong>Intelligent Placement:</strong> The service automatically
+places incoming instances onto the most appropriate existing Dedicated
+Host to maximize core and socket utilization without breaching license
+caps.</li>
+<li><strong>Automatic Release:</strong> When instances are terminated
+and a Dedicated Host becomes completely empty, AWS License Manager can
+automatically release the physical host back to AWS (provided host
+affinity rules allow it), preventing the customer from paying for idle
+dedicated hardware.</li>
+<li><strong>Automatic Recovery:</strong> If an underlying physical host
+experiences a hardware failure, AWS automatically migrates the instances
+to a replacement Dedicated Host and updates the tracking records in AWS
+License Manager, ensuring continuous compliance during infrastructure
+recovery events.</li>
+</ul>
+<h2
+id="key-benefits-of-using-aws-license-manager-with-dedicated-hosts">Key
+Benefits of Using AWS License Manager with Dedicated Hosts</h2>
+<p>Integrating AWS License Manager with Amazon EC2 Dedicated Hosts
+provides several operational and financial advantages:</p>
+<ul>
+<li><strong>Audit Readiness:</strong> Built-in dashboards and historical
+usage reports provide clear evidence of license compliance, including
+exact timestamps of host allocations, instance launches, and affinity
+adherence.</li>
+<li><strong>Cost Optimization:</strong> By packing instances efficiently
+onto allocated Dedicated Hosts and releasing empty hosts automatically,
+organizations avoid over-provisioning expensive dedicated
+infrastructure.</li>
+<li><strong>Cross-Account Governance:</strong> Through integration with
+AWS Organizations, a central IT or procurement team can define license
+rules and share Host Resource Groups across multiple AWS accounts,
+pooling licenses globally while maintaining strict centralized
+control.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-aws-service-tracks-licenses-on-ec-2-dedicated-hosts';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

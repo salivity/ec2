@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does Amazon VPC Relate to Amazon EC2 Networking? - ec2</title>
+    <meta name="description" content="An Amazon Virtual Private Cloud provides the foundational, isolated virtual network environment in which Amazon Elastic Compute Cloud instances operate. Every EC2 instance launches into a designated VPC subnet, inheriting its IP addressing scheme, routing">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-amazon-vpc-relate-to-amazon-ec-2-networking">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does Amazon VPC Relate to Amazon EC2 Networking? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-amazon-vpc-relate-to-amazon-ec-2-networking" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon Virtual Private Cloud provides the foundational, isolated virtual network environment in which Amazon Elastic Compute Cloud instances operate. Every EC2 instance launches into a designated VPC subnet, inheriting its IP addressing scheme, routing" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-amazon-vpc-relate-to-amazon-ec2-networking">How Does
+Amazon VPC Relate to Amazon EC2 Networking?</h1>
+<p>An Amazon Virtual Private Cloud provides the foundational, isolated
+virtual network environment in which Amazon Elastic Compute Cloud
+instances operate. Every EC2 instance launches into a designated VPC
+subnet, inheriting its IP addressing scheme, routing rules, and security
+boundaries directly from the VPC configuration. Without a VPC, an EC2
+instance has no network layer to communicate with other AWS resources,
+on-premises systems, or the public internet.</p>
+<h2 id="the-core-architectural-relationship">The Core Architectural
+Relationship</h2>
+<p>Amazon VPC acts as the software-defined data center network, while
+Amazon EC2 instances act as the virtual servers plugged into that
+network. When you provision an EC2 instance, it does not possess
+standalone networking capabilities. Instead, it attaches to the VPC
+through one or more virtual network cards called Elastic Network
+Interfaces (ENIs).</p>
+<p>This relationship governs several critical aspects of instance
+connectivity:</p>
+<ol type="1">
+<li><strong>IP Addressing</strong>: The VPC defines a Classless
+Inter-Domain Routing (CIDR) block, which is subdivided into smaller
+subnets. An EC2 instance receives its private IPv4 and optional IPv6
+addresses from the specific subnet in which it resides.</li>
+<li><strong>Traffic Routing</strong>: Instances rely on subnet route
+tables to determine where network packets are sent, whether to another
+instance in the same VPC, across a VPN connection, or out to the
+internet.</li>
+<li><strong>Network Isolation</strong>: By default, resources in one VPC
+cannot communicate with resources in another VPC unless explicitly
+connected via VPC Peering or AWS Transit Gateway.</li>
+</ol>
+<h2 id="subnets-and-ip-address-allocation">Subnets and IP Address
+Allocation</h2>
+<p>A VPC spans an entire AWS Region, whereas subnets are bound to
+specific Availability Zones (AZs). When launching an EC2 instance,
+selecting a subnet simultaneously determines both the physical
+Availability Zone hosting the instance and the pool of IP addresses
+available to it.</p>
+<p>For a subnet with a prefix length of <span
+class="math inline">\(n\)</span>, the total number of theoretical IPv4
+addresses is calculated as:</p>
+<p><span class="math display">\[\text{Total IPs} = 2^{32 -
+n}\]</span></p>
+<p>However, AWS reserves 5 IP addresses in every subnet CIDR block for
+internal networking functions (network address, VPC router, DNS mapping,
+future use, and broadcast address). Therefore, the number of usable
+private IP addresses available for EC2 Elastic Network Interfaces in a
+subnet is:</p>
+<p><span class="math display">\[\text{Usable IPs} = 2^{32 - n} -
+5\]</span></p>
+<p>Depending on how the subnet's route table is configured, an EC2
+instance experiences one of two networking environments:</p>
+<ul>
+<li><strong>Public Subnet Environment</strong>: The subnet route table
+includes a direct route (<span class="math inline">\(0.0.0.0/0\)</span>)
+to an Internet Gateway (IGW). If the EC2 instance is assigned a public
+IPv4 address or an Elastic IP address, it can send and receive traffic
+directly over the internet.</li>
+<li><strong>Private Subnet Environment</strong>: The subnet route table
+lacks a direct route to an Internet Gateway. EC2 instances placed here
+cannot be reached directly from the internet. To initiate outbound
+internet connections (such as downloading software patches), traffic
+must be routed through a Network Address Translation (NAT) Gateway or
+NAT instance located in a public subnet.</li>
+</ul>
+<h2 id="elastic-network-interfaces-as-the-bridge">Elastic Network
+Interfaces as the Bridge</h2>
+<p>The physical link between the VPC and the EC2 instance is abstracted
+as an Elastic Network Interface (ENI). Every instance has a primary ENI
+(<code>eth0</code>) that cannot be detached from the instance.</p>
+<p>An ENI encapsulates the network attributes allocated by the VPC:</p>
+<ul>
+<li>A primary private IPv4 address from the subnet's IPv4 CIDR
+range</li>
+<li>One or more secondary private IPv4 addresses</li>
+<li>One Elastic IP or public IPv4 address per private IPv4 address</li>
+<li>One or more IPv6 addresses</li>
+<li>One or more Security Groups</li>
+<li>A MAC address</li>
+<li>A source/destination check flag</li>
+</ul>
+<p>Because additional secondary ENIs can be created within a subnet and
+attached to or moved between EC2 instances, network identities and
+configurations remain decoupled from the underlying compute lifecycle.
+If an EC2 instance fails, a secondary ENI can be detached and reattached
+to a standby instance in the same Availability Zone to rapidly reroute
+traffic.</p>
+<h2 id="layered-network-security">Layered Network Security</h2>
+<p>The relationship between a VPC and an EC2 instance uses a
+defense-in-depth model divided into two distinct firewall layers:</p>
+<h3 id="network-access-control-lists-nacls">Network Access Control Lists
+(NACLs)</h3>
+<p>NACLs operate at the <strong>subnet level</strong> within the VPC.
+They act as a stateless perimeter firewall inspecting traffic entering
+and leaving the subnet before it ever reaches the EC2 instance. Because
+NACLs are stateless, both inbound and outbound rules must be explicitly
+defined to allow return traffic, and rules are evaluated in numerical
+order.</p>
+<h3 id="security-groups">Security Groups</h3>
+<p>Security Groups operate at the <strong>instance (ENI) level</strong>.
+Even though Security Groups are created and scoped within a specific
+VPC, they are attached directly to the ENIs of an EC2 instance. Unlike
+NACLs, Security Groups are stateful: if an inbound request is permitted
+to reach the EC2 instance, the outbound response is automatically
+allowed regardless of outbound rules. Security Groups only support allow
+rules and evaluate all rules simultaneously before deciding whether to
+permit traffic.</p>
+<h2 id="dns-resolution-and-internal-communication">DNS Resolution and
+Internal Communication</h2>
+<p>Beyond packet routing and security filtering, the VPC controls how
+EC2 instances resolve domain names. Each VPC has two core attributes
+that dictate the DNS behavior of its hosted instances:</p>
+<ul>
+<li><code>enableDnsSupport</code>: Determines whether the Amazon Route
+53 Resolver server (located at the VPC base CIDR plus two) resolves
+public DNS hostnames to IP addresses for instances inside the VPC.</li>
+<li><code>enableDnsHostnames</code>: Determines whether EC2 instances
+launched in the VPC receive public DNS hostnames corresponding to their
+public IP addresses.</li>
+</ul>
+<p>When two EC2 instances communicate using their private IP addresses
+within the same VPC, traffic stays entirely on the AWS private network
+backbone, regardless of whether they are in the same subnet or across
+different Availability Zones. The VPC's implicit router handles this
+local traffic automatically via the default <code>local</code> route
+present in every VPC route table.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-amazon-vpc-relate-to-amazon-ec-2-networking';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

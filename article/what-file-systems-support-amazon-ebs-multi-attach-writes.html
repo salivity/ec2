@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What File Systems Support Amazon EBS Multi-Attach Writes? - ec2</title>
+    <meta name="description" content="Amazon Elastic Block Store Multi-Attach allows a single provisioned IOPS SSD volume to be attached to up to sixteen Amazon EC2 instances in the same Availability Zone simultaneously. Standard local file systems such as XFS, ext4, and NTFS are not designed">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-file-systems-support-amazon-ebs-multi-attach-writes">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What File Systems Support Amazon EBS Multi-Attach Writes? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-file-systems-support-amazon-ebs-multi-attach-writes" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Elastic Block Store Multi-Attach allows a single provisioned IOPS SSD volume to be attached to up to sixteen Amazon EC2 instances in the same Availability Zone simultaneously. Standard local file systems such as XFS, ext4, and NTFS are not designed" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-file-systems-support-amazon-ebs-multi-attach-writes">What
+File Systems Support Amazon EBS Multi-Attach Writes?</h1>
+<p>Amazon Elastic Block Store Multi-Attach allows a single provisioned
+IOPS SSD volume to be attached to up to sixteen Amazon EC2 instances in
+the same Availability Zone simultaneously. Standard local file systems
+such as XFS, ext4, and NTFS are not designed for shared block storage
+and will rapidly cause severe data corruption if multiple instances
+write to the volume at the same time. To safely coordinate concurrent
+writes across multiple EC2 instances using EBS Multi-Attach, you must
+use a cluster-aware file system such as Red Hat Global File System 2 or
+Oracle Cluster File System version 2, which implement distributed
+locking mechanisms and cache coherency protocols to keep metadata and
+file blocks synchronized across all attached nodes.</p>
+<h2 id="why-standard-file-systems-fail-with-ebs-multi-attach">Why
+Standard File Systems Fail with EBS Multi-Attach</h2>
+<p>Amazon EBS Multi-Attach operates strictly at the raw block storage
+layer. When you attach an <code>io1</code> or <code>io2</code> volume
+with Multi-Attach enabled to <span class="math inline">\(N\)</span>
+instances (where <span class="math inline">\(1 \le N \le 16\)</span>),
+the underlying EBS service exposes the exact same logical block
+addresses to each attached EC2 instance without any built-in file-level
+or block-level write coordination.</p>
+<p>Standard local file systems—including <code>ext4</code>,
+<code>XFS</code>, <code>Btrfs</code>, and Windows
+<code>NTFS</code>—assume exclusive control over the block device. They
+rely on local in-memory caches for file system metadata, allocation
+bitmaps, directory structures, and journal entries:</p>
+<ol type="1">
+<li><strong>In-Memory Metadata Caching:</strong> Instance A reads the
+block allocation bitmap into its local RAM and allocates block <span
+class="math inline">\(B_k\)</span> for a new file. Before or even after
+Instance A flushes this change to disk, Instance B reads its own cached
+version of the allocation bitmap, sees block <span
+class="math inline">\(B_k\)</span> as free, and overwrites it with
+completely different data.</li>
+<li><strong>Uncoordinated Journaling:</strong> Each instance maintains
+or replays a journal assuming no other writer exists. Concurrent updates
+to the superblock and inode tables result in immediate structural
+corruption.</li>
+<li><strong>Buffer Cache Incoherency:</strong> Even if only one instance
+writes and other instances mount the volume read-only, standard file
+systems do not automatically invalidate their local page caches when the
+underlying disk blocks change externally. Readers see stale or partially
+updated metadata.</li>
+</ol>
+<h2
+id="required-cluster-aware-file-systems-for-concurrent-writes">Required
+Cluster-Aware File Systems for Concurrent Writes</h2>
+<p>To enable safe, concurrent read-write operations across <span
+class="math inline">\(N\)</span> attached EC2 instances, you must format
+the volume with a shared-disk, cluster-aware file system. These file
+systems embed a Distributed Lock Manager (DLM) that coordinates access
+across all nodes over the network before committing reads or writes to
+the block device.</p>
+<h3 id="1-gfs2-global-file-system-2">1. GFS2 (Global File System 2)</h3>
+<p>GFS2 is the most widely deployed native Linux cluster file system for
+EBS Multi-Attach workloads. Available in Red Hat Enterprise Linux (RHEL)
+through the Resilient Storage Add-On, Rocky Linux, AlmaLinux, and
+Ubuntu, GFS2 allows all nodes in a Pacemaker and Corosync cluster to
+mount the same EBS volume concurrently in read-write mode.</p>
+<ul>
+<li><strong>Locking Mechanism:</strong> Uses the Linux kernel's
+Distributed Lock Manager (<code>dlm</code>) over TCP/IP or SCTP between
+EC2 instances.</li>
+<li><strong>Journaling:</strong> Allocates a dedicated journal on the
+shared disk for each participating node. If a cluster has <span
+class="math inline">\(N\)</span> nodes, the file system creates <span
+class="math inline">\(N\)</span> journals (<code>journal0</code> through
+<code>journalN-1</code>), allowing crashed nodes to have their journals
+replayed by surviving nodes after fencing.</li>
+<li><strong>Cache Coherency:</strong> Implemented via <em>glocks</em>
+(GFS2 locks), which synchronize both DLM lock states and local VFS page
+cache invalidation across nodes.</li>
+</ul>
+<h3 id="2-ocfs2-oracle-cluster-file-system-version-2">2. OCFS2 (Oracle
+Cluster File System Version 2)</h3>
+<p>OCFS2 is a general-purpose, extent-based shared-disk file system
+integrated into the mainline Linux kernel and heavily supported on
+Oracle Linux, SUSE Linux Enterprise Server (SLES), and Ubuntu.</p>
+<ul>
+<li><strong>Locking Mechanism:</strong> Includes a built-in cluster
+stack (<code>o2cb</code>) with an integrated DLM, or can integrate with
+Pacemaker and Corosync (<code>pcmk</code>).</li>
+<li><strong>Use Cases:</strong> Originally designed for Oracle Real
+Application Clusters (RAC) datafiles, archive logs, and shared
+configuration files, it also serves general POSIX workloads such as
+shared web roots, media processing pipelines, and high-availability
+application state.</li>
+<li><strong>Block Allocation:</strong> Uses global bitmaps paired with
+node-local allocation windows to minimize lock contention when multiple
+EC2 instances create files simultaneously.</li>
+</ul>
+<h3 id="3-vmware-vmfs-and-veritas-infoscale-cluster-file-system">3.
+VMware VMFS and Veritas InfoScale (Cluster File System)</h3>
+<p>In specialized enterprise environments on AWS:</p>
+<ul>
+<li><strong>Veritas Cluster File System (VxFS / InfoScale):</strong>
+Enterprise commercial shared file system that provides high-performance
+distributed locking, fast failover, and multi-node concurrent read/write
+support on EC2.</li>
+<li><strong>Application-Managed Raw Block Storage:</strong> Databases
+such as Oracle RAC (using Oracle Automatic Storage Management, or ASM)
+bypass traditional OS file systems entirely, managing raw block locking,
+striping, and cache fusion directly within the database cluster
+layer.</li>
+</ul>
+<h2
+id="architectural-requirements-for-running-a-cluster-file-system-on-ec2">Architectural
+Requirements for Running a Cluster File System on EC2</h2>
+<p>Formatting an EBS Multi-Attach volume with GFS2 or OCFS2 is only one
+part of a safe deployment. A complete cluster file system architecture
+requires three core components:</p>
+<h3 id="distributed-lock-management-overhead">Distributed Lock
+Management Overhead</h3>
+<p>Every metadata modification—and any overlapping data block
+write—requires inter-node lock negotiation over the VPC network. In an
+<span class="math inline">\(N\)</span>-node cluster, the worst-case lock
+coordination message traffic scales with the number of active nodes:</p>
+<p><span class="math display">\[\text{Communication Paths} = \frac{N(N -
+1)}{2}\]</span></p>
+<p>To keep lock acquisition latency low, all attached EC2 instances must
+reside in the same Availability Zone (a hard requirement of EBS
+Multi-Attach) and should ideally be placed in a Cluster Placement Group
+for low-latency, non-blocking network communication.</p>
+<h3 id="node-fencing-stonith">Node Fencing (STONITH)</h3>
+<p>If an EC2 instance loses network connectivity to the Corosync/DLM
+cluster ring but retains connectivity to the EBS storage fabric, it
+might continue writing buffered I/O to the EBS volume while surviving
+nodes assume it is dead and replay its journal. To prevent split-brain
+corruption, the cluster must enforce <strong>fencing</strong> (Shoot The
+Other Node In The Head, or STONITH).</p>
+<p>Because Amazon EBS volumes (<code>io1</code> and <code>io2</code>)
+<strong>do not support SCSI-3 Persistent Reservations (SCSI-3
+PR)</strong> for I/O fencing, cluster file systems on EC2 must use
+API-level power fencing:</p>
+<ul>
+<li><strong><code>fence_aws</code> Fencing Agent:</strong> Configured in
+Pacemaker to call the AWS EC2 API (<code>StopInstances</code> or
+<code>RebootInstances</code>) via an IAM role whenever a node becomes
+unresponsive, guaranteeing that all in-flight I/O from the failed
+instance is terminated before any surviving node replays its
+journal.</li>
+</ul>
+<h3 id="ebs-volume-constraints-to-keep-in-mind">EBS Volume Constraints
+to Keep in Mind</h3>
+<p>When planning a cluster file system on EBS Multi-Attach, account for
+these platform constraints:</p>
+<ul>
+<li><strong>Supported Volume Types:</strong> Only Provisioned IOPS SSD
+(<code>io1</code> and <code>io2</code>) volumes support Multi-Attach.
+General Purpose SSD (<code>gp2</code>, <code>gp3</code>) and magnetic
+volumes do not support it.</li>
+<li><strong>Instance Support:</strong> Attachable only to Nitro-based
+EC2 instances within a single Availability Zone.</li>
+<li><strong>Aggregate Throughput and IOPS Limits:</strong> Total volume
+performance is shared across all attached instances. If a volume is
+provisioned for <span class="math inline">\(I_{\text{max}}\)</span> IOPS
+and <span class="math inline">\(N\)</span> instances perform equal
+concurrent workloads, the average IOPS available per instance is:</li>
+</ul>
+<p><span class="math display">\[I_{\text{instance}} =
+\frac{I_{\text{max}}}{N}\]</span></p>
+<p>Furthermore, each individual EC2 instance remains bound by its own
+instance-level EBS bandwidth and IOPS limits.</p>
+<h2
+id="comparison-of-storage-options-for-concurrent-ec2-access">Comparison
+of Storage Options for Concurrent EC2 Access</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Storage / File System</th>
+<th style="text-align: left;">Concurrent Read/Write Safety</th>
+<th style="text-align: left;">Lock Coordination Layer</th>
+<th style="text-align: left;">Best Use Case on AWS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>GFS2 on EBS
+Multi-Attach</strong></td>
+<td style="text-align: left;">Safe</td>
+<td style="text-align: left;">Kernel DLM + Pacemaker/Corosync</td>
+<td style="text-align: left;">Low-latency shared block storage on RHEL,
+Rocky, or Ubuntu</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>OCFS2 on EBS
+Multi-Attach</strong></td>
+<td style="text-align: left;">Safe</td>
+<td style="text-align: left;"><code>o2cb</code> or Pacemaker DLM</td>
+<td style="text-align: left;">Oracle workloads, SLES/Oracle Linux HA
+clusters</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Oracle ASM on EBS
+Multi-Attach</strong></td>
+<td style="text-align: left;">Safe</td>
+<td style="text-align: left;">Oracle Clusterware</td>
+<td style="text-align: left;">Oracle RAC database storage on
+raw/unformatted block devices</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>ext4 / XFS on EBS
+Multi-Attach</strong></td>
+<td style="text-align: left;">Unsafe (Corrupts Data)</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Active/Passive failover only (strictly one
+node mounts at a time)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Amazon EFS (NFSv4.1)</strong></td>
+<td style="text-align: left;">Safe</td>
+<td style="text-align: left;">Managed by AWS Service</td>
+<td style="text-align: left;">Multi-AZ shared file storage without
+managing cluster software</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Amazon FSx for NetApp ONTAP /
+Lustre</strong></td>
+<td style="text-align: left;">Safe</td>
+<td style="text-align: left;">Managed by AWS Service</td>
+<td style="text-align: left;">High-throughput shared POSIX/SMB storage
+with zero fencing overhead</td>
+</tr>
+</tbody>
+</table>
+<h2 id="when-to-use-managed-shared-file-systems-instead">When to Use
+Managed Shared File Systems Instead</h2>
+<p>Setting up GFS2 or OCFS2 on EBS Multi-Attach requires configuring
+Corosync, Pacemaker, DLM, <code>fence_aws</code> IAM permissions, and
+custom kernel modules. Unless your application specifically requires
+sub-millisecond raw block latency or direct block device semantics
+within a single Availability Zone, AWS recommends using a managed shared
+file system such as <strong>Amazon EFS</strong> or <strong>Amazon
+FSx</strong> (for Lustre, NetApp ONTAP, or OpenZFS), which handle
+concurrent write locks natively across multiple Availability Zones
+without cluster management overhead.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-file-systems-support-amazon-ebs-multi-attach-writes';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

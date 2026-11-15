@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Is Amazon EC2 Instance Store Data Permanently Erased? - ec2</title>
+    <meta name="description" content="An Amazon EC2 instance store provides temporary block-level storage that is physically attached to the host computer running your virtual machine. Data on an instance store volume is permanently erased whenever the instance stops, hibernates, or terminate">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-is-amazon-ec-2-instance-store-data-permanently-erased">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When Is Amazon EC2 Instance Store Data Permanently Erased? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-is-amazon-ec-2-instance-store-data-permanently-erased" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon EC2 instance store provides temporary block-level storage that is physically attached to the host computer running your virtual machine. Data on an instance store volume is permanently erased whenever the instance stops, hibernates, or terminate" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="when-is-amazon-ec2-instance-store-data-permanently-erased">When
+Is Amazon EC2 Instance Store Data Permanently Erased?</h1>
+<p>An Amazon EC2 instance store provides temporary block-level storage
+that is physically attached to the host computer running your virtual
+machine. Data on an instance store volume is permanently erased whenever
+the instance stops, hibernates, or terminates, as well as when the
+underlying physical drive fails. Conversely, data persists across
+operating system reboots and while the instance remains in the running
+state. Understanding these specific lifecycle transitions is critical
+for preventing unintended data loss in cloud architectures.</p>
+<h2 id="how-amazon-ec2-instance-store-volumes-work">How Amazon EC2
+Instance Store Volumes Work</h2>
+<p>An instance store consists of one or more physical disks, such as
+Non-Volatile Memory Express (NVMe) SSDs, solid-state drives (SSDs), or
+hard disk drives (HDDs), directly attached to the physical hypervisor
+host where your EC2 instance resides. Unlike Amazon Elastic Block Store
+(EBS) volumes, which are network-attached storage devices managed
+independently from the compute host, instance store volumes are tightly
+coupled to the lifecycle of the underlying hardware allocation.</p>
+<p>Because the storage is physically located on the host server,
+instance store volumes deliver very high random input/output operations
+per second (IOPS) and low latency. However, this physical dependency
+means the storage is ephemeral. The data exists only for the duration of
+the specific instance allocation on that exact physical host.</p>
+<h2 id="lifecycle-transitions-that-erase-instance-store-data">Lifecycle
+Transitions That Erase Instance Store Data</h2>
+<p>Data stored on an Amazon EC2 instance store volume is permanently
+lost whenever an instance undergoes a transition that deallocates it
+from its current physical host server or powers down the local storage
+media.</p>
+<h3 id="stopping-an-instance">Stopping an Instance</h3>
+<p>When you transition an EBS-backed instance from the
+<code>running</code> state to the <code>stopping</code> and
+<code>stopped</code> states, Amazon EC2 shuts down the virtual machine
+and releases the underlying physical host resources back into the
+available pool of AWS infrastructure. When you start the instance again
+later, AWS typically provisions it on a completely different physical
+host server. Because the instance store volumes were physically attached
+to the original host server, the new host has its own blank local
+storage, and the previous instance store blocks are cryptographically
+erased before being allocated to any other customer.</p>
+<h3 id="hibernating-an-instance">Hibernating an Instance</h3>
+<p>When an instance enters the hibernation process
+(<code>stopping</code> to <code>stopped</code> via hibernation), Amazon
+EC2 signals the operating system to save the contents of the instance
+memory (RAM) to the root Amazon EBS volume before powering down the
+virtual machine. Once the RAM state is written to the root EBS volume,
+the instance is deallocated from the physical host just like a standard
+stop operation. Although the contents of RAM and attached EBS volumes
+are preserved and restored upon resuming the instance, any data residing
+on the instance store volumes is permanently lost because the instance
+loses its binding to the physical host.</p>
+<h3 id="terminating-an-instance">Terminating an Instance</h3>
+<p>When an instance transitions to the <code>shutting-down</code> and
+<code>terminated</code> states, the virtual machine is permanently
+deleted and all associated host resources are released. Any instance
+store volumes attached to that instance are immediately unmounted and
+wiped. Whether termination is initiated manually by an administrator,
+triggered by an Amazon EC2 Auto Scaling group scale-in event, or caused
+by an EC2 Spot Instance interruption configured to terminate, all data
+on the instance store is permanently destroyed.</p>
+<h3 id="underlying-hardware-or-disk-failure">Underlying Hardware or Disk
+Failure</h3>
+<p>Although not a user-initiated state transition, a failure of the
+underlying physical disk or the host server itself will also result in
+the permanent loss of instance store data. Unlike Amazon EBS volumes,
+which automatically replicate data across multiple servers within an
+Availability Zone to protect against single-drive failures, instance
+store volumes have no built-in redundancy unless you manually configure
+a software RAID array across multiple instance store volumes attached to
+the same instance. Even with software RAID, a complete host motherboard
+or power failure that forces the instance to be stopped and restarted on
+healthy hardware will erase all local instance store volumes.</p>
+<h2
+id="lifecycle-transitions-that-preserve-instance-store-data">Lifecycle
+Transitions That Preserve Instance Store Data</h2>
+<p>Not every power or state change results in data loss. Instance store
+data remains intact as long as the instance maintains its reservation on
+the same physical host hardware.</p>
+<h3 id="rebooting-an-instance">Rebooting an Instance</h3>
+<p>Rebooting an instance—whether initiated through the AWS Management
+Console, the <code>RebootInstances</code> API call, the AWS CLI, or from
+within the guest operating system using commands like
+<code>sudo reboot</code> or <code>shutdown -r</code>—preserves all data
+on instance store volumes. During a reboot, the instance remains in the
+<code>running</code> state from the perspective of the AWS control
+plane, never relinquishes its physical host server, and keeps all local
+storage mappings intact.</p>
+<h2 id="summary-of-instance-lifecycle-transitions">Summary of Instance
+Lifecycle Transitions</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Lifecycle Action</th>
+<th style="text-align: left;">EC2 State Transition</th>
+<th style="text-align: left;">Physical Host Allocation</th>
+<th style="text-align: left;">Instance Store Data Fate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Reboot (OS or API)</strong></td>
+<td style="text-align: left;"><code>running</code> <span
+class="math inline">\(\rightarrow\)</span> <code>running</code></td>
+<td style="text-align: left;">Retained on the same host</td>
+<td style="text-align: left;"><strong>Preserved</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Stop</strong></td>
+<td style="text-align: left;"><code>running</code> <span
+class="math inline">\(\rightarrow\)</span> <code>stopping</code> <span
+class="math inline">\(\rightarrow\)</span> <code>stopped</code></td>
+<td style="text-align: left;">Released (moves to new host on start)</td>
+<td style="text-align: left;"><strong>Permanently Erased</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hibernate</strong></td>
+<td style="text-align: left;"><code>running</code> <span
+class="math inline">\(\rightarrow\)</span> <code>stopping</code> <span
+class="math inline">\(\rightarrow\)</span> <code>stopped</code></td>
+<td style="text-align: left;">Released (RAM saved to root EBS)</td>
+<td style="text-align: left;"><strong>Permanently Erased</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Terminate</strong></td>
+<td style="text-align: left;"><code>running</code> <span
+class="math inline">\(\rightarrow\)</span> <code>shutting-down</code>
+<span class="math inline">\(\rightarrow\)</span>
+<code>terminated</code></td>
+<td style="text-align: left;">Permanently released</td>
+<td style="text-align: left;"><strong>Permanently Erased</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Underlying Drive
+Failure</strong></td>
+<td style="text-align: left;">Varies (often <code>running</code> <span
+class="math inline">\(\rightarrow\)</span> impaired)</td>
+<td style="text-align: left;">Local disk becomes inaccessible</td>
+<td style="text-align: left;"><strong>Permanently Erased</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="best-practices-for-using-instance-store-volumes">Best Practices
+for Using Instance Store Volumes</h2>
+<p>Because any stop, hibernate, or terminate transition wipes the
+volume, you should never rely on an EC2 instance store for persistent,
+critical, or un-replicated data. Instead, use instance store volumes
+exclusively for the following workloads:</p>
+<ul>
+<li><strong>Temporary scratch space:</strong> Swap files, staging
+directories, intermediate video rendering files, or large
+data-processing shuffle files.</li>
+<li><strong>Caches and buffers:</strong> Local read/write caches that
+can be easily rebuilt from a primary database or Amazon S3 bucket if the
+instance stops.</li>
+<li><strong>Replicated distributed systems:</strong> Databases,
+distributed file systems, or worker nodes (such as Apache Kafka,
+Elasticsearch, or Hadoop clusters) where data is actively replicated
+across a fleet of multiple independent instances, ensuring that the loss
+of a single node's local disk does not result in cluster-wide data
+loss.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-is-amazon-ec-2-instance-store-data-permanently-erased';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

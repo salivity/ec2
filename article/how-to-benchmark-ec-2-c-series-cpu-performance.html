@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Benchmark EC2 C-Series CPU Performance? - ec2</title>
+    <meta name="description" content="Benchmarking single-threaded versus multi-threaded performance across Amazon EC2 C-series generations requires isolating processor architectures, standardizing operating system configurations, and executing synthetic and application-level workloads under">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-benchmark-ec-2-c-series-cpu-performance">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Benchmark EC2 C-Series CPU Performance? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-benchmark-ec-2-c-series-cpu-performance" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Benchmarking single-threaded versus multi-threaded performance across Amazon EC2 C-series generations requires isolating processor architectures, standardizing operating system configurations, and executing synthetic and application-level workloads under" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-benchmark-ec2-c-series-cpu-performance">How to Benchmark
+EC2 C-Series CPU Performance?</h1>
+<p>Benchmarking single-threaded versus multi-threaded performance across
+Amazon EC2 C-series generations requires isolating processor
+architectures, standardizing operating system configurations, and
+executing synthetic and application-level workloads under controlled
+conditions. By testing instances such as C5, C6i, C6g, C7i, and C7g with
+tools like Sysbench, Stress-ng, and CoreMark, engineers can quantify IPC
+improvements, evaluate Simultaneous Multithreading scaling, and
+determine the optimal price-performance ratio for compute-intensive
+applications.</p>
+<h2
+id="understanding-amazon-ec2-c-series-architecture-differences">Understanding
+Amazon EC2 C-Series Architecture Differences</h2>
+<p>Amazon EC2 compute-optimized instances span multiple processor
+generations and instruction set architectures. Before running
+benchmarks, you must account for how each family maps virtual CPUs to
+physical cores, how turbo boost behaves under single-core versus
+all-core loads, and how cache hierarchies differ.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Family</th>
+<th style="text-align: left;">Processor Architecture</th>
+<th style="text-align: left;">Instruction Set</th>
+<th style="text-align: left;">vCPU to Physical Core Mapping</th>
+<th style="text-align: left;">All-Core Turbo Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">C5 / C5n</td>
+<td style="text-align: left;">Intel Xeon Scalable (Skylake / Cascade
+Lake)</td>
+<td style="text-align: left;">x86_64</td>
+<td style="text-align: left;">2 vCPUs per physical core (SMT
+enabled)</td>
+<td style="text-align: left;">Clock frequency drops under heavy all-core
+AVX-512 or multi-threaded load</td>
+</tr>
+<tr>
+<td style="text-align: left;">C6i</td>
+<td style="text-align: left;">Intel Xeon Scalable (Ice Lake)</td>
+<td style="text-align: left;">x86_64</td>
+<td style="text-align: left;">2 vCPUs per physical core (SMT
+enabled)</td>
+<td style="text-align: left;">Higher sustained all-core turbo than C5
+and improved per-core L2 cache</td>
+</tr>
+<tr>
+<td style="text-align: left;">C6a</td>
+<td style="text-align: left;">AMD EPYC (Milan)</td>
+<td style="text-align: left;">x86_64</td>
+<td style="text-align: left;">2 vCPUs per physical core (SMT
+enabled)</td>
+<td style="text-align: left;">Consistent frequency scaling across CCX
+complexes</td>
+</tr>
+<tr>
+<td style="text-align: left;">C6g</td>
+<td style="text-align: left;">AWS Graviton2 (Neoverse N1)</td>
+<td style="text-align: left;">ARM64</td>
+<td style="text-align: left;">1 vCPU per physical core (No SMT)</td>
+<td style="text-align: left;">Fixed clock frequency regardless of
+single-threaded or multi-threaded load</td>
+</tr>
+<tr>
+<td style="text-align: left;">C7i</td>
+<td style="text-align: left;">Intel Xeon Scalable (Sapphire Rapids)</td>
+<td style="text-align: left;">x86_64</td>
+<td style="text-align: left;">2 vCPUs per physical core (SMT
+enabled)</td>
+<td style="text-align: left;">Dynamic frequency scaling with Advanced
+Matrix Extensions support</td>
+</tr>
+<tr>
+<td style="text-align: left;">C7a</td>
+<td style="text-align: left;">AMD EPYC (Genoa)</td>
+<td style="text-align: left;">x86_64</td>
+<td style="text-align: left;">1 vCPU per physical core (SMT disabled by
+default on EC2)</td>
+<td style="text-align: left;">High linear multi-threaded scaling due to
+dedicated physical cores</td>
+</tr>
+<tr>
+<td style="text-align: left;">C7g</td>
+<td style="text-align: left;">AWS Graviton3 (Neoverse V1)</td>
+<td style="text-align: left;">ARM64</td>
+<td style="text-align: left;">1 vCPU per physical core (No SMT)</td>
+<td style="text-align: left;">Static clock frequency with wider
+execution pipelines and DDR5 memory</td>
+</tr>
+</tbody>
+</table>
+<p>Understanding vCPU topology is critical when comparing
+single-threaded and multi-threaded metrics. On Intel-based C5, C6i, and
+C7i instances, a single vCPU is a hardware thread sharing execution
+resources with a sibling thread on the same physical core. On AWS
+Graviton (C6g, C7g) and AMD Genoa (C7a) instances, every vCPU
+corresponds to an independent physical core.</p>
+<h2 id="standardizing-the-benchmarking-environment">Standardizing the
+Benchmarking Environment</h2>
+<p>To produce repeatable results across generations and architectures,
+the software stack and kernel parameters must be identical across all
+test instances.</p>
+<h3 id="operating-system-and-compiler-parity">Operating System and
+Compiler Parity</h3>
+<p>Provision all instances with the same Linux distribution and kernel
+version, such as Amazon Linux 2023 or Ubuntu 24.04 LTS. When compiling
+benchmarks from source, use the same GCC or Clang version across both
+<code>x86_64</code> and <code>aarch64</code> builds. Use
+architecture-specific optimization flags
+(<code>-march=native -O3</code>) so that each C-series generation can
+utilize its supported vector instructions (such as AVX-512 on C6i/C7i
+and SVE on C7g).</p>
+<h3 id="instance-sizing-and-noisy-neighbor-mitigation">Instance Sizing
+and Noisy Neighbor Mitigation</h3>
+<p>Avoid benchmarking on <code>large</code> or <code>xlarge</code>
+instance sizes when evaluating generational scaling, as smaller
+instances share the underlying physical host and last-level cache with
+other tenants. Use <code>8xlarge</code>, <code>12xlarge</code>,
+<code>16xlarge</code>, or <code>.metal</code> sizes to minimize noisy
+neighbor interference and observe NUMA topology effects.</p>
+<h3 id="cpu-governor-and-topology-verification">CPU Governor and
+Topology Verification</h3>
+<p>Verify the CPU topology and ensure the operating system scaling
+governor is set to <code>performance</code> where supported:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect physical cores, sockets, and threads per core</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">lscpu</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Set CPU frequency governor to performance if cpupower is available</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> cpupower frequency-set <span class="at">-g</span> performance</span></code></pre></div>
+<h2 id="measuring-single-threaded-vs-multi-threaded-scaling">Measuring
+Single-Threaded vs. Multi-Threaded Scaling</h2>
+<p>To analyze how an instance transitions from single-threaded execution
+to full multi-threaded saturation, run tests across two distinct thread
+counts: <span class="math inline">\(N = 1\)</span> and <span
+class="math inline">\(N = \text{Total vCPUs}\)</span>. Additionally, on
+x86 instances with Simultaneous Multithreading, testing at <span
+class="math inline">\(N = \frac{\text{Total vCPUs}}{2}\)</span> isolates
+physical core scaling before hyper-threading contention begins.</p>
+<p>The theoretical speedup <span class="math inline">\(S(N)\)</span>
+according to Amdahl's Law is defined as:</p>
+<p><span class="math display">\[S(N) = \frac{1}{(1 - P) +
+\frac{P}{N}}\]</span></p>
+<p>Where <span class="math inline">\(P\)</span> is the parallelizable
+fraction of the workload and <span class="math inline">\(N\)</span> is
+the number of threads. In real-world EC2 benchmarking, we measure the
+empirical Parallel Scaling Efficiency <span
+class="math inline">\(E(N)\)</span> and the Multiprocessing Multiplier
+<span class="math inline">\(M\)</span>:</p>
+<p><span class="math display">\[M =
+\frac{\text{Score}_{\text{Multi-Threaded}}}{\text{Score}_{\text{Single-Threaded}}}\]</span></p>
+<p><span class="math display">\[E(N) = \frac{M}{N} \times
+100\%\]</span></p>
+<p>On Graviton instances (C6g, C7g) and C7a, where each vCPU is a
+physical core and clock frequencies remain flat under load, <span
+class="math inline">\(E(N)\)</span> for compute-bound tasks typically
+approaches <span class="math inline">\(95\%\)</span> to <span
+class="math inline">\(99\%\)</span>. On SMT-enabled instances (C5, C6i,
+C7i), running a single thread utilizes the full physical core and
+achieves peak single-core turbo frequency, whereas saturating all vCPUs
+splits physical core resources between sibling threads and reduces the
+clock multiplier, often resulting in <span
+class="math inline">\(E(N)\)</span> values between <span
+class="math inline">\(55\%\)</span> and <span
+class="math inline">\(70\%\)</span>.</p>
+<h2 id="executing-synthetic-cpu-benchmarks">Executing Synthetic CPU
+Benchmarks</h2>
+<p>Use a combination of integer, floating-point, cryptographic, and
+memory-latency benchmarks to capture a complete performance profile.</p>
+<h3 id="1-sysbench-cpu-benchmark">1. Sysbench CPU Benchmark</h3>
+<p>Sysbench calculates prime numbers up to a specified value, testing
+64-bit integer division and branching performance.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Install sysbench and numactl</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> sysbench numactl</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Single-threaded execution pinned to physical core 0</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">numactl</span> <span class="at">--physcpubind</span><span class="op">=</span>0 sysbench cpu <span class="at">--cpu-max-prime</span><span class="op">=</span>50000 <span class="at">--threads</span><span class="op">=</span>1 <span class="at">--time</span><span class="op">=</span>60 run</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Half-vCPU execution (Physical core count on x86 SMT instances)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a> <span class="ex">sysbench</span> cpu <span class="at">--cpu-max-prime</span><span class="op">=</span>50000 <span class="at">--threads</span><span class="op">=</span><span class="va">$(($(</span><span class="fu">nproc</span><span class="va">)</span> <span class="op">/</span> <span class="dv">2</span><span class="va">))</span> <span class="at">--time</span><span class="op">=</span>60 run</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Full multi-threaded execution across all vCPUs</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="ex">sysbench</span> cpu <span class="at">--cpu-max-prime</span><span class="op">=</span>50000 <span class="at">--threads</span><span class="op">=</span><span class="va">$(</span><span class="fu">nproc</span><span class="va">)</span> <span class="at">--time</span><span class="op">=</span>60 run</span></code></pre></div>
+<p>Record the <code>events per second</code> metric and the
+<code>95th percentile latency</code> from each run.</p>
+<h3 id="2-stress-ng-matrix-and-cpu-methods">2. Stress-ng Matrix and CPU
+Methods</h3>
+<p><code>stress-ng</code> provides hundreds of specific CPU stressor
+methods (<code>bogo ops/s</code>) to test floating-point, vector, and
+integer units independently.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Install stress-ng</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> stress-ng</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Single-threaded 64-bit floating-point matrix product test</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">taskset</span> <span class="at">-c</span> 0 stress-ng <span class="at">--matrix</span> 1 <span class="at">--matrix-size</span> 256 <span class="at">--timeout</span> 60s <span class="at">--metrics-brief</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Multi-threaded 64-bit floating-point matrix product test across all vCPUs</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="ex">stress-ng</span> <span class="at">--matrix</span> <span class="va">$(</span><span class="fu">nproc</span><span class="va">)</span> <span class="at">--matrix-size</span> 256 <span class="at">--timeout</span> 60s <span class="at">--metrics-brief</span></span></code></pre></div>
+<h3 id="3-openssl-speed-benchmark">3. OpenSSL Speed Benchmark</h3>
+<p>Cryptographic hashing and TLS throughput highlight generational
+instruction set enhancements (such as VAES on Ice Lake/Sapphire Rapids
+and crypto extensions on Graviton3).</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Single-threaded SHA256 and AES-256-GCM throughput</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">taskset</span> <span class="at">-c</span> 0 openssl speed <span class="at">-elapsed</span> <span class="at">-evp</span> aes-256-gcm</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Multi-threaded throughput across all available vCPUs</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> speed <span class="at">-elapsed</span> <span class="at">-multi</span> <span class="va">$(</span><span class="fu">nproc</span><span class="va">)</span> <span class="at">-evp</span> aes-256-gcm</span></code></pre></div>
+<h2 id="controlling-thread-affinity-and-testing-without-smt">Controlling
+Thread Affinity and Testing Without SMT</h2>
+<p>When comparing an 8-vCPU C7i (<code>c7i.2xlarge</code>, 4 physical
+cores with 2 threads each) against an 8-vCPU C7g
+(<code>c7g.2xlarge</code>, 8 physical cores with 1 thread each), you
+must test how the x86 instance performs when threads are pinned strictly
+to physical cores without sibling thread contention.</p>
+<p>You can disable SMT dynamically inside the Linux guest OS to
+benchmark physical core parity:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Disable SMT dynamically to test physical cores only</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> off <span class="kw">|</span> <span class="fu">sudo</span> tee /sys/devices/system/cpu/smt/control</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify active vCPU count</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">nproc</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-enable SMT after testing</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> on <span class="kw">|</span> <span class="fu">sudo</span> tee /sys/devices/system/cpu/smt/control</span></code></pre></div>
+<p>Alternatively, inspect which vCPUs share the same physical core so
+you can bind multi-threaded workloads cleanly:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Display vCPU to Core mapping</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">lscpu</span> <span class="at">-e</span><span class="op">=</span>CPU,CORE,SOCKET,NODE</span></code></pre></div>
+<p>On EC2 Intel instances, the first half of the vCPU IDs (<span
+class="math inline">\(0\)</span> to <span
+class="math inline">\(\frac{N}{2}-1\)</span>) typically map to the
+primary threads on physical cores, while the second half (<span
+class="math inline">\(\frac{N}{2}\)</span> to <span
+class="math inline">\(N-1\)</span>) map to the sibling
+hyper-threads.</p>
+<h2 id="automating-cross-generation-sweeps">Automating Cross-Generation
+Sweeps</h2>
+<p>To eliminate cold-start variance and collect statistically
+significant data across thread counts, use an automated bash harness
+that steps through thread counts from <span
+class="math inline">\(1\)</span> up to <code>$(nproc)</code>:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-euo</span> pipefail</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="va">INSTANCE_TYPE</span><span class="op">=</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-s</span> http://169.254.169.254/latest/meta-data/instance-type <span class="kw">||</span> <span class="bu">echo</span> <span class="st">&quot;unknown&quot;</span><span class="va">)</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="va">MAX_THREADS</span><span class="op">=</span><span class="va">$(</span><span class="fu">nproc</span><span class="va">)</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="va">OUTPUT_FILE</span><span class="op">=</span><span class="st">&quot;benchmark_</span><span class="va">${INSTANCE_TYPE}</span><span class="st">.csv&quot;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;instance_type,threads,events_per_sec,avg_latency_ms,p95_latency_ms&quot;</span> <span class="op">&gt;</span> <span class="st">&quot;</span><span class="va">$OUTPUT_FILE</span><span class="st">&quot;</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> THREADS <span class="kw">in</span> 1 2 4 <span class="va">$((MAX_THREADS</span> <span class="op">/</span> <span class="dv">2</span><span class="va">))</span> <span class="va">$MAX_THREADS</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Deduplicate thread counts if instance has few vCPUs</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">[</span> <span class="st">&quot;</span><span class="va">$THREADS</span><span class="st">&quot;</span> <span class="ot">-gt</span> <span class="st">&quot;</span><span class="va">$MAX_THREADS</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">||</span> <span class="bu">[</span> <span class="st">&quot;</span><span class="va">$THREADS</span><span class="st">&quot;</span> <span class="ot">-lt</span> 1 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">fi</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="st">&quot;</span><span class="va">$THREADS</span><span class="st">&quot;</span> <span class="ot">-eq</span> 1 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>        <span class="va">CMD_PREFIX</span><span class="op">=</span><span class="st">&quot;taskset -c 0&quot;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>        <span class="va">CMD_PREFIX</span><span class="op">=</span><span class="st">&quot;&quot;</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">fi</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="va">RESULT</span><span class="op">=</span><span class="va">$($CMD_PREFIX</span> sysbench cpu <span class="at">--cpu-max-prime</span><span class="op">=</span>50000 <span class="at">--threads</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$THREADS</span><span class="st">&quot;</span> <span class="at">--time</span><span class="op">=</span>30 run<span class="va">)</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="va">EPS</span><span class="op">=</span><span class="va">$(</span><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$RESULT</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="fu">awk</span> <span class="st">&#39;/events per second:/ {print $4}&#39;</span><span class="va">)</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="va">AVG_LAT</span><span class="op">=</span><span class="va">$(</span><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$RESULT</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="fu">awk</span> <span class="st">&#39;/avg:/ {print $2}&#39;</span><span class="va">)</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="va">P95_LAT</span><span class="op">=</span><span class="va">$(</span><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$RESULT</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="fu">awk</span> <span class="st">&#39;/95th percentile:/ {print $3}&#39;</span><span class="va">)</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">${INSTANCE_TYPE}</span><span class="st">,</span><span class="va">${THREADS}</span><span class="st">,</span><span class="va">${EPS}</span><span class="st">,</span><span class="va">${AVG_LAT}</span><span class="st">,</span><span class="va">${P95_LAT}</span><span class="st">&quot;</span> <span class="op">&gt;&gt;</span> <span class="st">&quot;</span><span class="va">$OUTPUT_FILE</span><span class="st">&quot;</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span></code></pre></div>
+<h2 id="calculating-price-performance-normalization">Calculating
+Price-Performance Normalization</h2>
+<p>Raw performance numbers across C-series generations must be
+normalized against instance hourly on-demand or savings plan pricing to
+guide architectural decisions.</p>
+<p>Compute two key metrics for each instance type:</p>
+<p><span class="math display">\[\text{Single-Thread Cost Efficiency} =
+\frac{\text{Score}_{\text{1 Thread}}}{\text{Instance Hourly Price
+(\$)}}\]</span></p>
+<p><span class="math display">\[\text{Multi-Thread Throughput per
+Dollar} = \frac{\text{Score}_{\text{All vCPUs}}}{\text{Instance Hourly
+Price (\$)}}\]</span></p>
+<p>When evaluating workloads bound by single-thread latency—such as
+Redis, single-threaded Node.js processes, or sequential build
+steps—compare the single-thread throughput along with the per-vCPU
+hourly rate. When evaluating horizontally or vertically scalable
+workloads—such as video encoding, high-concurrency web servers, or batch
+analytics—use the Multi-Thread Throughput per Dollar metric at 80% to
+100% CPU utilization to identify the most cost-effective C-series
+generation.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-benchmark-ec-2-c-series-cpu-performance';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

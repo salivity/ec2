@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Enforce EBS Encryption by Default in an AWS Region? - ec2</title>
+    <meta name="description" content="Enforcing Amazon Elastic Block Store encryption by default is a native regional account setting in Amazon EC2 that automatically encrypts all newly created EBS volumes and snapshot copies without requiring explicit encryption parameters during creation. W">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-enforce-ebs-encryption-by-default-in-an-aws-region">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Enforce EBS Encryption by Default in an AWS Region? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-enforce-ebs-encryption-by-default-in-an-aws-region" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Enforcing Amazon Elastic Block Store encryption by default is a native regional account setting in Amazon EC2 that automatically encrypts all newly created EBS volumes and snapshot copies without requiring explicit encryption parameters during creation. W" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-enforce-ebs-encryption-by-default-in-an-aws-region">How
+to Enforce EBS Encryption by Default in an AWS Region?</h1>
+<p>Enforcing Amazon Elastic Block Store encryption by default is a
+native regional account setting in Amazon EC2 that automatically
+encrypts all newly created EBS volumes and snapshot copies without
+requiring explicit encryption parameters during creation. When you
+enable this setting in a specific AWS Region, Amazon EC2 ensures that
+every new volume launched in that region is encrypted using either the
+AWS managed key for EBS or a customer managed AWS Key Management Service
+key that you specify as the regional default. This article covers how
+default EBS encryption works, how to enable and configure it using the
+AWS Management Console, AWS CLI, and Terraform, and how to use
+organizational guardrails to prevent users from disabling the
+setting.</p>
+<h2 id="how-ebs-encryption-by-default-works">How EBS Encryption by
+Default Works</h2>
+<p>Amazon EBS encryption by default applies to the specific AWS account
+and AWS Region where it is configured. Because it is a regional setting,
+you must enable it individually in every region where your workloads
+operate.</p>
+<p>Once enabled, the setting governs the following behaviors:</p>
+<ul>
+<li><strong>New Blank Volumes:</strong> Any new EBS volume created in
+the region is automatically encrypted, even if the
+<code>Encrypted</code> parameter is omitted or set to false in the API
+request (unless overridden by specific internal migration flows, though
+standard creation APIs enforce encryption).</li>
+<li><strong>Volumes Created from Unencrypted Snapshots:</strong>
+Launching an EC2 instance or creating a volume from an unencrypted
+snapshot (including public AMI snapshots) automatically results in an
+encrypted volume on the fly.</li>
+<li><strong>Copied Snapshots:</strong> Copying an unencrypted snapshot
+within or into the region automatically encrypts the resulting snapshot
+copy.</li>
+<li><strong>Existing Resources:</strong> Enabling default encryption
+does not retroactively encrypt existing unencrypted EBS volumes or
+existing snapshots.</li>
+</ul>
+<h3 id="default-kms-key-selection">Default KMS Key Selection</h3>
+<p>When you enable encryption by default, AWS uses the default KMS key
+configured for EBS in that region (<code>alias/aws/ebs</code>) unless
+you specify a custom default KMS key. You can change the default KMS key
+to a symmetric customer managed KMS key when you need custom key
+rotation policies, cross-account snapshot sharing capabilities, or
+fine-grained KMS key policies.</p>
+<h2
+id="enabling-default-ebs-encryption-via-the-aws-management-console">Enabling
+Default EBS Encryption via the AWS Management Console</h2>
+<p>To configure default EBS encryption for a region using the AWS
+Management Console:</p>
+<ol type="1">
+<li>Sign in to the AWS Management Console and open the <strong>Amazon
+EC2 console</strong>.</li>
+<li>In the top navigation bar, select the <strong>AWS Region</strong>
+where you want to enforce encryption.</li>
+<li>In the navigation pane, under <strong>Account attributes</strong>
+(or in the <strong>EC2 Dashboard</strong> under <strong>Account
+attributes</strong>), choose <strong>EBS encryption</strong> (or
+<strong>Data protection and security</strong>).</li>
+<li>Click <strong>Manage</strong>.</li>
+<li>Select the checkbox for <strong>Always encrypt new EBS
+volumes</strong>.</li>
+<li>For <strong>Default encryption key</strong>, select either the
+<strong>aws/ebs</strong> default key or choose a <strong>Customer
+managed key</strong> from the dropdown list.</li>
+<li>Click <strong>Update EBS encryption</strong> to apply the
+setting.</li>
+</ol>
+<h2 id="enabling-default-ebs-encryption-via-the-aws-cli">Enabling
+Default EBS Encryption via the AWS CLI</h2>
+<p>You can automate and verify the configuration across regions using
+the AWS Command Line Interface (AWS CLI).</p>
+<h3 id="1-check-current-encryption-status">1. Check Current Encryption
+Status</h3>
+<p>Run the <code>get-ebs-encryption-by-default</code> command to verify
+whether default encryption is currently active in the target region:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 get-ebs-encryption-by-default <span class="at">--region</span> us-east-1</span></code></pre></div>
+<h3 id="2-enable-encryption-by-default">2. Enable Encryption by
+Default</h3>
+<p>Run the <code>enable-ebs-encryption-by-default</code> command to
+enforce encryption for all new volumes and snapshot copies in the
+specified region:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 enable-ebs-encryption-by-default <span class="at">--region</span> us-east-1</span></code></pre></div>
+<h3 id="3-configure-a-custom-default-kms-key-optional">3. Configure a
+Custom Default KMS Key (Optional)</h3>
+<p>If you want to use a customer managed KMS key instead of the AWS
+managed key (<code>alias/aws/ebs</code>), use the
+<code>modify-ebs-default-kms-key-id</code> command:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-ebs-default-kms-key-id <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--kms-key-id</span> arn:aws:kms:us-east-1:123456789012:key/abcd1234-5678-90ef-ghij-klmnopqrstuv <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--region</span> us-east-1</span></code></pre></div>
+<h3 id="4-enable-across-all-active-regions-with-a-script">4. Enable
+Across All Active Regions with a Script</h3>
+<p>Because the setting is regional, you can loop through all enabled
+regions in your account to enforce encryption globally:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> region <span class="kw">in</span> <span class="va">$(</span><span class="ex">aws</span> ec2 describe-regions <span class="at">--filters</span> <span class="st">&quot;Name=opt-in-status,Values=opt-in-not-required,opted-in&quot;</span> <span class="at">--query</span> <span class="st">&quot;Regions[].RegionName&quot;</span> <span class="at">--output</span> text<span class="va">)</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="bu">echo</span> <span class="st">&quot;Enabling EBS encryption by default in </span><span class="va">$region</span><span class="st">&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">aws</span> ec2 enable-ebs-encryption-by-default <span class="at">--region</span> <span class="st">&quot;</span><span class="va">$region</span><span class="st">&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span></code></pre></div>
+<h2 id="enforcing-default-ebs-encryption-with-terraform">Enforcing
+Default EBS Encryption with Terraform</h2>
+<p>If you manage your cloud infrastructure as code using Terraform, use
+the <code>aws_ebs_encryption_by_default</code> and
+<code>aws_ebs_default_kms_key</code> resources:</p>
+<pre class="hcl"><code>resource &quot;aws_ebs_encryption_by_default&quot; &quot;enabled&quot; {
+  enabled = true
+}
+
+resource &quot;aws_kms_key&quot; &quot;ebs_default&quot; {
+  description             = &quot;Customer managed default KMS key for EBS&quot;
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+}
+
+resource &quot;aws_ebs_default_kms_key&quot; &quot;custom_default&quot; {
+  key_arn = aws_kms_key.ebs_default.arn
+}</code></pre>
+<h2 id="preventing-users-from-disabling-default-encryption">Preventing
+Users from Disabling Default Encryption</h2>
+<p>Enabling the EC2 regional setting ensures new volumes are encrypted,
+but IAM principals with sufficient EC2 permissions could still run
+<code>DisableEbsEncryptionByDefault</code> or
+<code>ResetEbsDefaultKmsKeyId</code>. In a multi-account AWS
+Organizations environment, you should apply a Service Control Policy
+(SCP) to prevent anyone from turning off default encryption:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;2012-10-17&quot;</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Statement&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;PreventDisablingDefaultEBSEncryption&quot;</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Deny&quot;</span><span class="fu">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;ec2:DisableEbsEncryptionByDefault&quot;</span><span class="ot">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;ec2:ResetEbsDefaultKmsKeyId&quot;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;*&quot;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Additionally, you can deploy the AWS Config managed rule
+<code>ec2-ebs-encryption-by-default</code> across all regions and
+accounts to continuously audit compliance and trigger automated
+remediation if a new region or account does not yet have the setting
+enabled.</p>
+<h2 id="important-considerations-for-kms-key-policies">Important
+Considerations for KMS Key Policies</h2>
+<p>If you configure a customer managed KMS key as the default EBS
+encryption key and your account uses Amazon EC2 Auto Scaling groups or
+AWS Spot Fleet, you must ensure the KMS key policy grants access to the
+<strong>AWS Service-Linked Role</strong> used by Auto Scaling
+(<code>AWSServiceRoleForAutoScaling</code>). Without permission to
+<code>kms:CreateGrant</code> and cryptographic actions
+(<code>kms:Encrypt</code>, <code>kms:Decrypt</code>,
+<code>kms:ReEncrypt*</code>, <code>kms:GenerateDataKey*</code>,
+<code>kms:DescribeKey</code>), Auto Scaling instances will fail to
+launch when attempting to attach encrypted root or data volumes.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-enforce-ebs-encryption-by-default-in-an-aws-region';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

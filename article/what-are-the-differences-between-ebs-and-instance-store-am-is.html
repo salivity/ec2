@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Are the Differences Between EBS and Instance Store AMIs? - ec2</title>
+    <meta name="description" content="Amazon Elastic Compute Cloud instances rely on Amazon Machine Images to define the initial software and root storage configuration required to launch a virtual server. The primary distinction between Elastic Block Store backed images and instance store ba">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-are-the-differences-between-ebs-and-instance-store-am-is">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Are the Differences Between EBS and Instance Store AMIs? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-are-the-differences-between-ebs-and-instance-store-am-is" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Elastic Compute Cloud instances rely on Amazon Machine Images to define the initial software and root storage configuration required to launch a virtual server. The primary distinction between Elastic Block Store backed images and instance store ba" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-are-the-differences-between-ebs-and-instance-store-amis">What
+Are the Differences Between EBS and Instance Store AMIs?</h1>
+<p>Amazon Elastic Compute Cloud instances rely on Amazon Machine Images
+to define the initial software and root storage configuration required
+to launch a virtual server. The primary distinction between Elastic
+Block Store backed images and instance store backed images lies in where
+the root volume resides and how data persistence, instance lifecycle
+states, and launch speeds are handled. While Elastic Block Store backed
+images use persistent network-attached block storage that survives
+instance reboots and stops, instance store backed images utilize
+ephemeral local storage physically attached to the host computer,
+offering temporary storage that is wiped when the instance
+terminates.</p>
+<h2 id="understanding-ebs-backed-amis">Understanding EBS-Backed
+AMIs</h2>
+<p>An Amazon EBS-backed AMI launches an EC2 instance whose root device
+is an Amazon Elastic Block Store volume created from an Amazon EBS
+snapshot. Because EBS volumes are network-attached storage independent
+of the physical host running the compute instance, they provide
+long-term durability and flexibility.</p>
+<h3 id="key-characteristics-of-ebs-backed-instances">Key Characteristics
+of EBS-Backed Instances</h3>
+<ul>
+<li><strong>Boot Speed:</strong> Instances launched from an EBS-backed
+AMI typically boot much faster (usually under a minute) because the root
+volume does not need to be downloaded from Amazon S3 in its entirety
+before booting begins.</li>
+<li><strong>Instance Lifecycle:</strong> EBS-backed instances support
+the <code>Running</code>, <code>Stopped</code>, <code>Hibernate</code>,
+and <code>Terminated</code> states. When you stop an EBS-backed
+instance, the virtual machine shuts down and you stop incurring compute
+charges, but the root EBS volume remains intact so you can restart the
+instance later.</li>
+<li><strong>Upgradability:</strong> Because the instance can be stopped
+without losing root volume data, you can easily change the instance
+type, update kernel parameters, or modify volume attributes while the
+instance is in the <code>Stopped</code> state.</li>
+<li><strong>Data Persistence:</strong> By default, the root EBS volume
+is deleted when the instance is terminated, though you can configure the
+<code>DeleteOnTermination</code> attribute to <code>false</code> to
+preserve the root volume even after termination. Any secondary EBS
+volumes attached to the instance persist by default upon
+termination.</li>
+</ul>
+<h2 id="understanding-instance-store-backed-amis">Understanding Instance
+Store-Backed AMIs</h2>
+<p>An instance store-backed AMI launches an EC2 instance whose root
+device is an ephemeral storage volume created from a template stored in
+Amazon Simple Storage Service (Amazon S3). Instance store volumes reside
+on disks that are physically attached to the underlying host computer
+(such as NVMe SSDs or SATA HDDs).</p>
+<h3 id="key-characteristics-of-instance-store-backed-instances">Key
+Characteristics of Instance Store-Backed Instances</h3>
+<ul>
+<li><strong>Boot Speed:</strong> Booting an instance store-backed AMI
+takes longer than an EBS-backed AMI because the entire root volume image
+bundle must be copied from Amazon S3 to the local storage on the host
+server before the instance can finish booting.</li>
+<li><strong>Instance Lifecycle:</strong> Instance store-backed instances
+only support <code>Running</code> and <code>Terminated</code> states
+(along with rebooting). They cannot be placed in a <code>Stopped</code>
+state. If the instance were stopped and started again, it would likely
+be placed on a different physical host, leaving the local disk
+behind.</li>
+<li><strong>Data Persistence:</strong> Data on an instance store volume
+persists only during the lifetime of the associated instance. While data
+survives guest operating system reboots, it is permanently lost if the
+underlying disk drive fails, the instance stops (in scenarios of host
+hardware degradation), or the instance terminates.</li>
+<li><strong>Volume Size Limit:</strong> The root volume of an instance
+store-backed AMI has a strict maximum size limit of <span
+class="math inline">\(10\text{ GiB}\)</span>.</li>
+</ul>
+<h2 id="side-by-side-comparison">Side-by-Side Comparison</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">EBS-Backed AMI</th>
+<th style="text-align: left;">Instance Store-Backed AMI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Root Device Storage</strong></td>
+<td style="text-align: left;">Amazon EBS Volume (Network-attached)</td>
+<td style="text-align: left;">Ephemeral Instance Store
+(Host-attached)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Template Storage
+Location</strong></td>
+<td style="text-align: left;">Amazon EBS Snapshot</td>
+<td style="text-align: left;">Amazon S3 Bundle</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Maximum Root Size</strong></td>
+<td style="text-align: left;">Up to <span class="math inline">\(16\text{
+TiB}\)</span> (depending on EBS type)</td>
+<td style="text-align: left;"><span class="math inline">\(10\text{
+GiB}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Boot Time</strong></td>
+<td style="text-align: left;">Fast (seconds to a minute)</td>
+<td style="text-align: left;">Slower (commonly several minutes)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Can Be Stopped?</strong></td>
+<td style="text-align: left;">Yes (<code>Stop</code>,
+<code>Start</code>, <code>Hibernate</code> supported)</td>
+<td style="text-align: left;">No (Only <code>Reboot</code> and
+<code>Terminate</code> supported)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Type
+Changes</strong></td>
+<td style="text-align: left;">Supported while in the
+<code>Stopped</code> state</td>
+<td style="text-align: left;">Not supported (must launch a new
+instance)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Data Persistence</strong></td>
+<td style="text-align: left;">Persists across stops; configurable on
+termination</td>
+<td style="text-align: left;">Ephemeral; lost on termination or hardware
+failure</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Billing</strong></td>
+<td style="text-align: left;">Charged for compute, EBS storage, and
+snapshots</td>
+<td style="text-align: left;">Charged for compute and S3 AMI
+storage</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>AMI Creation Process</strong></td>
+<td style="text-align: left;">Simple API call
+(<code>CreateImage</code>)</td>
+<td style="text-align: left;">Requires bundling volume and uploading to
+S3</td>
+</tr>
+</tbody>
+</table>
+<h2 id="differences-in-ami-creation-and-management">Differences in AMI
+Creation and Management</h2>
+<p>Creating an EBS-backed AMI is straightforward. You can generate a new
+AMI from a running or stopped instance using a single command or console
+action. AWS automatically takes a point-in-time snapshot of the root
+volume and registers the image.</p>
+<p>Creating an instance store-backed AMI requires significantly more
+effort. You must use specific AMI tools on the running instance to
+bundle the root volume into compressed, encrypted parts, upload those
+parts to an Amazon S3 bucket, and then register the manifest file
+(<code>image.manifest.xml</code>) with EC2 to create the AMI.</p>
+<h2 id="when-to-use-each-ami-type">When to Use Each AMI Type</h2>
+<h3 id="use-ebs-backed-amis-for">Use EBS-Backed AMIs For:</h3>
+<ul>
+<li><strong>Almost All Standard Workloads:</strong> AWS recommends
+EBS-backed AMIs for the vast majority of use cases due to their
+reliability, ease of management, and fast boot times.</li>
+<li><strong>Cost Optimization via Stopping:</strong> Environments such
+as development, testing, or staging servers that need to be stopped
+outside of business hours to save on EC2 compute costs while retaining
+their state.</li>
+<li><strong>Vertical Scaling:</strong> Applications where you anticipate
+needing to resize the instance type (CPU/RAM) or scale the storage size
+and IOPS dynamically.</li>
+</ul>
+<h3 id="use-instance-store-backed-amis-for">Use Instance Store-Backed
+AMIs For:</h3>
+<ul>
+<li><strong>Stateless Distributed Architectures:</strong> Workloads
+where every node is completely disposable and replicates data across a
+cluster, or pulls configuration dynamically on startup.</li>
+<li><strong>Strict Ephemeral Security Requirements:</strong> Scenarios
+where regulations dictate that no persistent root storage snapshots or
+residual network block volumes remain after an instance shuts down.</li>
+</ul>
+<p>Note that if you require the high I/O performance of local NVMe
+instance store disks, you do not need to use an instance store-backed
+AMI. You can launch an EBS-backed AMI on an instance type that includes
+local instance store volumes (such as the <code>i3</code>,
+<code>i4i</code>, or <code>c6id</code> families), using EBS for the
+persistent <span class="math inline">\(8\text{ GiB}\)</span> to <span
+class="math inline">\(100\text{ GiB}\)</span> root OS drive while
+mounting the local instance store volumes for high-speed scratch data,
+caches, and temporary buffers.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-are-the-differences-between-ebs-and-instance-store-am-is';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

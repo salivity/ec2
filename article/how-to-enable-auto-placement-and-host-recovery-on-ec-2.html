@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Enable Auto Placement and Host Recovery on EC2? - ec2</title>
+    <meta name="description" content="This article explains how an administrator can enable automatic instance placement and host recovery on an Amazon EC2 Dedicated Host. It outlines the functional purposes of both settings and provides step-by-step instructions for configuring them during i">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-enable-auto-placement-and-host-recovery-on-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Enable Auto Placement and Host Recovery on EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-enable-auto-placement-and-host-recovery-on-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explains how an administrator can enable automatic instance placement and host recovery on an Amazon EC2 Dedicated Host. It outlines the functional purposes of both settings and provides step-by-step instructions for configuring them during i" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-enable-auto-placement-and-host-recovery-on-ec2">How to
+Enable Auto Placement and Host Recovery on EC2?</h1>
+<p>This article explains how an administrator can enable automatic
+instance placement and host recovery on an Amazon EC2 Dedicated Host. It
+outlines the functional purposes of both settings and provides
+step-by-step instructions for configuring them during initial host
+allocation or on an existing Dedicated Host using the AWS Management
+Console, the AWS Command Line Interface, and AWS CloudFormation.</p>
+<h2
+id="understanding-automatic-instance-placement-and-host-recovery">Understanding
+Automatic Instance Placement and Host Recovery</h2>
+<p>Amazon EC2 Dedicated Hosts are physical servers with EC2 instance
+capacity fully dedicated to a single customer's use. When managing
+Dedicated Hosts, two key configuration settings help streamline
+operations and improve resiliency:</p>
+<ul>
+<li><strong>Instance auto-placement</strong>: Controls whether
+untargeted instance launches (instances configured with
+<code>host</code> tenancy that do not specify a particular Dedicated
+Host ID) can be automatically placed onto the Dedicated Host. When set
+to <code>on</code>, Amazon EC2 can automatically launch matching
+instances onto the host. When set to <code>off</code>, instances can
+only be launched onto the host if their launch configuration explicitly
+references the Host ID.</li>
+<li><strong>Host recovery</strong>: Automatically restarts your
+instances onto a new, replacement Dedicated Host if the underlying
+physical server experiences an unexpected hardware failure. The
+replacement host is allocated on your behalf at no additional charge
+beyond the standard Dedicated Host rate, and the newly allocated host
+retains the same instance type or family configuration as the failed
+host.</li>
+</ul>
+<h2 id="prerequisites-and-limitations">Prerequisites and
+Limitations</h2>
+<p>Before configuring these settings, verify the following operational
+parameters:</p>
+<ol type="1">
+<li><strong>Supported Instance Types</strong>: Host recovery is
+supported for most Dedicated Host configurations, though specific bare
+metal instances or specialized hardware families may have
+restrictions.</li>
+<li><strong>Capacity Calculation</strong>: A Dedicated Host must have
+available capacity to accept auto-placed instances. If a host supports
+<span class="math inline">\(C_{total}\)</span> total vCPUs or sockets
+and currently utilizes <span class="math inline">\(C_{used}\)</span>,
+the remaining capacity <span class="math inline">\(C_{rem}\)</span> is
+given by: <span class="math display">\[C_{rem} = C_{total} -
+C_{used}\]</span> For single-instance-type Dedicated Hosts, instances
+must match the exact instance type configured on the host. For
+multiple-instance-type Dedicated Hosts, instances must belong to the
+same instance family.</li>
+<li><strong>Storage Requirements</strong>: Host recovery is only
+supported for Amazon EBS-backed instances. Instances backed by instance
+store volumes are not eligible for automatic host recovery.</li>
+</ol>
+<h2 id="method-1-using-the-aws-management-console">Method 1: Using the
+AWS Management Console</h2>
+<p>Administrators can enable both settings either when allocating a new
+Dedicated Host or by modifying an existing one.</p>
+<h3 id="during-new-host-allocation">During New Host Allocation</h3>
+<ol type="1">
+<li>Open the Amazon EC2 console.</li>
+<li>In the navigation pane, choose <strong>Dedicated
+Hosts</strong>.</li>
+<li>Select <strong>Allocate Dedicated Host</strong>.</li>
+<li>Configure the <strong>Instance family</strong> and <strong>Instance
+type</strong> settings according to your workload requirements.</li>
+<li>Locate <strong>Instance auto-placement</strong> and select
+<strong>Enable</strong>.</li>
+<li>Locate <strong>Host recovery</strong> and select
+<strong>Enable</strong>.</li>
+<li>Specify the desired quantity and click
+<strong>Allocate</strong>.</li>
+</ol>
+<h3 id="modifying-an-existing-dedicated-host">Modifying an Existing
+Dedicated Host</h3>
+<ol type="1">
+<li>Open the Amazon EC2 console and navigate to <strong>Dedicated
+Hosts</strong>.</li>
+<li>Select the target Dedicated Host from the list.</li>
+<li>Click the <strong>Actions</strong> dropdown menu and choose
+<strong>Modify host</strong>.</li>
+<li>Check the box or select <strong>Enable</strong> for <strong>Instance
+auto-placement</strong>.</li>
+<li>Check the box or select <strong>Enable</strong> for <strong>Host
+recovery</strong>.</li>
+<li>Select <strong>Save</strong> to apply the changes immediately.</li>
+</ol>
+<h2 id="method-2-using-the-aws-cli">Method 2: Using the AWS CLI</h2>
+<p>You can automate the configuration of Dedicated Hosts using the AWS
+Command Line Interface (AWS CLI).</p>
+<h3
+id="allocating-a-new-host-with-auto-placement-and-host-recovery">Allocating
+a New Host with Auto-Placement and Host Recovery</h3>
+<p>Use the <code>allocate-hosts</code> command and pass
+<code>--auto-placement on</code> and
+<code>--host-recovery on</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 allocate-hosts <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--availability-zone</span> us-east-1a <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> m5.xlarge <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--quantity</span> 1 <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--auto-placement</span> on <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--host-recovery</span> on</span></code></pre></div>
+<p>To allow multiple instance types within the same family on the host
+while enabling both features, specify <code>--instance-family</code>
+instead of <code>--instance-type</code>:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 allocate-hosts <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--availability-zone</span> us-east-1a <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-family</span> m5 <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--quantity</span> 1 <span class="dt">\</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--auto-placement</span> on <span class="dt">\</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--host-recovery</span> on</span></code></pre></div>
+<h3 id="modifying-an-existing-dedicated-host-1">Modifying an Existing
+Dedicated Host</h3>
+<p>If the Dedicated Host is already allocated, use the
+<code>modify-hosts</code> command along with the target Host ID:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-hosts <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--host-ids</span> h-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--auto-placement</span> on <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--host-recovery</span> on</span></code></pre></div>
+<h3 id="verifying-the-host-configuration">Verifying the Host
+Configuration</h3>
+<p>To confirm that both settings are active, run the
+<code>describe-hosts</code> command:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-hosts <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--host-ids</span> h-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">&quot;Hosts[*].{HostId:HostId,AutoPlacement:AutoPlacement,HostRecovery:HostRecovery,State:State}&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output</span> table</span></code></pre></div>
+<h2 id="method-3-using-aws-cloudformation">Method 3: Using AWS
+CloudFormation</h2>
+<p>For infrastructure-as-code deployments, define an
+<code>AWS::EC2::Host</code> resource in your CloudFormation template and
+set <code>AutoPlacement</code> and <code>HostRecovery</code> to
+<code>on</code>:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Resources</span><span class="kw">:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">ProductionDedicatedHost</span><span class="kw">:</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">Type</span><span class="kw">:</span><span class="at"> AWS::EC2::Host</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">Properties</span><span class="kw">:</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">AvailabilityZone</span><span class="kw">:</span><span class="at"> us-east-1a</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">InstanceType</span><span class="kw">:</span><span class="at"> c5.large</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">AutoPlacement</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;on&quot;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">HostRecovery</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;on&quot;</span></span></code></pre></div>
+<h2 id="launching-instances-to-utilize-auto-placement">Launching
+Instances to Utilize Auto-Placement</h2>
+<p>Once automatic placement is enabled on a Dedicated Host, instances
+launched with a tenancy of <code>host</code> that do not specify a
+<code>HostId</code> will automatically be placed on any available
+Dedicated Host with <code>AutoPlacement</code> set to <code>on</code> in
+the target Availability Zone:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> m5.xlarge <span class="dt">\</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--placement</span> Tenancy=host,AvailabilityZone=us-east-1a</span></code></pre></div></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-enable-auto-placement-and-host-recovery-on-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

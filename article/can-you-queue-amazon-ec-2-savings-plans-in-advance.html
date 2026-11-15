@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can You Queue Amazon EC2 Savings Plans in Advance? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 Savings Plans can be queued in advance so that a new plan automatically starts when an expiring plan ends. AWS allows you to schedule future Savings Plan purchases up to three years in advance by specifying a future start date and time dur">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-you-queue-amazon-ec-2-savings-plans-in-advance">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can You Queue Amazon EC2 Savings Plans in Advance? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-you-queue-amazon-ec-2-savings-plans-in-advance" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 Savings Plans can be queued in advance so that a new plan automatically starts when an expiring plan ends. AWS allows you to schedule future Savings Plan purchases up to three years in advance by specifying a future start date and time dur" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="can-you-queue-amazon-ec2-savings-plans-in-advance">Can You Queue
+Amazon EC2 Savings Plans in Advance?</h1>
+<p>Yes, Amazon EC2 Savings Plans can be queued in advance so that a new
+plan automatically starts when an expiring plan ends. AWS allows you to
+schedule future Savings Plan purchases up to three years in advance by
+specifying a future start date and time during the purchase process or
+by enabling automatic renewal on an existing plan. This capability
+ensures uninterrupted discount coverage for your compute workloads
+without requiring manual intervention at the exact moment a current
+commitment expires, preventing temporary spikes in On-Demand billing and
+eliminating the risk of overlapping commitments.</p>
+<h2 id="how-queuing-savings-plans-works">How Queuing Savings Plans
+Works</h2>
+<p>When you queue a Savings Plan in AWS Cost Explorer, through the AWS
+Command Line Interface (CLI), or via the AWS SDK, you are placing an
+order in the <code>queued</code> state. A queued plan does not apply
+discounts or incur charges until its scheduled start time arrives.</p>
+<p>When your existing Savings Plan reaches its expiration timestamp, its
+state changes to <code>retired</code>, and the queued plan transitions
+to <code>active</code> at its designated start time. To ensure seamless
+coverage without a billing gap or double-billing overlap, you set the
+start time of the new queued plan to match the exact end time (down to
+the second, in UTC) of the expiring plan.</p>
+<h2 id="two-ways-to-seamless-transition-between-plans">Two Ways to
+Seamless Transition Between Plans</h2>
+<p>AWS provides two distinct mechanisms to ensure a new Savings Plan
+takes over immediately when an old one expires: Manual Queuing and
+Automatic Renewal.</p>
+<h3 id="1-queuing-a-custom-savings-plan-manually">1. Queuing a Custom
+Savings Plan Manually</h3>
+<p>Manual queuing is ideal when your architecture or compute spend has
+changed and you want the replacement plan to have a different hourly
+commitment, term length, payment option, or plan type (for example,
+switching from an EC2 Instance Savings Plan to a Compute Savings
+Plan).</p>
+<p>To manually queue a Savings Plan in the AWS Management Console:</p>
+<ol type="1">
+<li>Open the AWS Billing and Cost Management console.</li>
+<li>Navigate to <strong>Savings Plans</strong> in the left navigation
+pane and select <strong>Inventory</strong> to view your active
+plans.</li>
+<li>Note the exact <strong>End date</strong> (including the timestamp in
+UTC) of the plan you wish to replace.</li>
+<li>Choose <strong>Purchase Savings Plans</strong> from the navigation
+menu.</li>
+<li>Configure your new plan parameters (Savings Plan type, 1-year or
+3-year term, hourly commitment, and payment option).</li>
+<li>In the <strong>Start date (UTC)</strong> section, select
+<strong>Specify a future date</strong> and enter the exact expiration
+date and time of your current plan.</li>
+<li>Add the plan to your cart and complete the order.</li>
+</ol>
+<p>Once submitted, the plan appears in your Savings Plans inventory with
+a status of <strong>Queued</strong>.</p>
+<h3 id="2-enabling-automatic-renewal">2. Enabling Automatic Renewal</h3>
+<p>If you want to maintain the exact same Savings Plan configuration
+(same type, hourly commitment, term length, and payment option), you can
+use the built-in renewal feature instead of manually creating a queued
+purchase.</p>
+<p>When you enable auto-renewal on an active Savings Plan, AWS
+automatically queues an identical replacement plan 30 days before your
+current plan expires. You can toggle auto-renewal on or off in the
+Savings Plans inventory console at any time up until the current plan
+expires.</p>
+<h2 id="billing-and-commitment-continuity">Billing and Commitment
+Continuity</h2>
+<p>To maintain a continuous commitment without gaps or overlaps, the
+transition time <span class="math inline">\(t_{\text{start}}\)</span> of
+the queued plan must equal the expiration time <span
+class="math inline">\(t_{\text{end}}\)</span> of the active plan:</p>
+<p><span class="math display">\[t_{\text{start, new}} = t_{\text{end,
+current}}\]</span></p>
+<p>If <span class="math inline">\(t_{\text{start, new}} &lt;
+t_{\text{end, current}}\)</span>, your hourly commitments will stack
+during the overlap period <span class="math inline">\(\Delta t =
+t_{\text{end, current}} - t_{\text{start, new}}\)</span>, meaning you
+will be billed for the sum of both commitments:</p>
+<p><span class="math display">\[C_{\text{total}} = C_{\text{current}} +
+C_{\text{new}}\]</span></p>
+<p>Conversely, if <span class="math inline">\(t_{\text{start, new}} &gt;
+t_{\text{end, current}}\)</span>, your instances will temporarily revert
+to On-Demand rates during the gap unless covered by another active
+commitment.</p>
+<h2 id="payment-timing-and-canceling-queued-plans">Payment Timing and
+Canceling Queued Plans</h2>
+<p>How and when you are billed for a queued Savings Plan depends on the
+payment option selected:</p>
+<ul>
+<li><strong>All Upfront and Partial Upfront:</strong> Upfront charges
+are not billed when you place the order in the queue. Instead, the
+upfront invoice is generated when the queued plan transitions to the
+<code>active</code> state on its scheduled start date. recurring monthly
+charges (for Partial Upfront) also begin once the plan activates.</li>
+<li><strong>No Upfront:</strong> Monthly recurring charges begin
+accruing at the scheduled start time.</li>
+</ul>
+<p>Because payment and commitment activation do not occur until the
+scheduled start time, you retain full flexibility to modify your plans
+before they go live. You can delete a queued Savings Plan at any time
+prior to its scheduled start date and time without penalty. Once the
+start timestamp passes and the plan enters the <code>active</code>
+state, the commitment is locked in and cannot be canceled.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-you-queue-amazon-ec-2-savings-plans-in-advance';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do EC2 I-Series NVMe SSDs Achieve Low Latency and IOPS? - ec2</title>
+    <meta name="description" content="Local NVMe SSD storage on Amazon EC2 I-series instances delivers low latency and high random IOPS by attaching solid-state drives directly to the host server PCIe bus, bypassing network storage fabrics entirely. Paired with the AWS Nitro System and custom">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-ec-2-i-series-nv-me-ss-ds-achieve-low-latency-and-iops">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do EC2 I-Series NVMe SSDs Achieve Low Latency and IOPS? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-ec-2-i-series-nv-me-ss-ds-achieve-low-latency-and-iops" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Local NVMe SSD storage on Amazon EC2 I-series instances delivers low latency and high random IOPS by attaching solid-state drives directly to the host server PCIe bus, bypassing network storage fabrics entirely. Paired with the AWS Nitro System and custom" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-ec2-i-series-nvme-ssds-achieve-low-latency-and-iops">How
+Do EC2 I-Series NVMe SSDs Achieve Low Latency and IOPS?</h1>
+<p>Local NVMe SSD storage on Amazon EC2 I-series instances delivers low
+latency and high random IOPS by attaching solid-state drives directly to
+the host server PCIe bus, bypassing network storage fabrics entirely.
+Paired with the AWS Nitro System and custom AWS Nitro SSD controllers,
+these instances eliminate virtualization overhead, network hops, and
+queuing delays. This architecture provides direct hardware access with
+up to 64,000 queues per device, enabling massive parallelism and
+consistent sub-millisecond response times for demanding database and
+analytics workloads.</p>
+<h2 id="direct-pcie-attachment-vs-network-attached-storage">Direct PCIe
+Attachment vs Network-Attached Storage</h2>
+<p>To understand the performance profile of Amazon EC2 I-series
+instances (such as I3, I3en, I4i, and I4g), it helps to contrast local
+Instance Store volumes with network-attached storage like Amazon Elastic
+Block Store (EBS). While EBS provides durable, persistent block storage
+over the network, every I/O request must traverse the host network
+interface, travel across the data center network fabric, and be
+processed by distributed storage servers before reaching the underlying
+media.</p>
+<p>Local NVMe SSDs on I-series instances reside physically inside the
+same server enclosure as the compute CPU and memory. They communicate
+directly with the processor via the Peripheral Component Interconnect
+Express (PCIe) bus. Removing the network layer eliminates serialization
+delays, packet switching latency, and shared network bandwidth
+contention. Consequently, the total I/O service time (<span
+class="math inline">\(T_{\text{service}}\)</span>) can be modeled simply
+as:</p>
+<p><span class="math display">\[T_{\text{service}} = T_{\text{OS}} +
+T_{\text{PCIe}} + T_{\text{controller}} + T_{\text{NAND}}\]</span></p>
+<p>By zeroing out network transit and remote storage processing times,
+I-series local storage brings average random read and write latencies
+down into the tens or hundreds of microseconds.</p>
+<h2 id="the-non-volatile-memory-express-nvme-protocol">The Non-Volatile
+Memory Express (NVMe) Protocol</h2>
+<p>Legacy storage protocols such as SATA and SAS were designed in the
+era of spinning magnetic disks, where mechanical seek times dominated
+performance. Those older protocols rely on the Advanced Host Controller
+Interface (AHCI), which supports only a single command queue capable of
+holding 32 commands at once. While sufficient for a physical read/write
+head that can only be in one place at a time, a single queue creates a
+severe software bottleneck for modern solid-state drives made of
+parallel NAND flash dies.</p>
+<p>The NVMe protocol was engineered specifically for non-volatile memory
+connected over PCIe. Instead of a single bottlenecked queue, the NVMe
+specification supports up to 64,000 independent submission and
+completion queues, with each queue supporting up to 64,000 pending
+commands.</p>
+<p>In a multi-core EC2 I-series instance, the operating system assigns
+dedicated submission and completion queue pairs to individual vCPUs.
+This design yields several major performance advantages:</p>
+<ul>
+<li><strong>Lockless Parallelism:</strong> Each vCPU can submit I/O
+operations to its own queue without acquiring cross-core spinlocks or
+waiting on other threads.</li>
+<li><strong>MSI-X Interrupt Steering:</strong> Completion interrupts are
+routed back to the exact vCPU core that initiated the request via
+Message Signaled Interrupts-Extended (MSI-X), preserving CPU cache
+locality and avoiding inter-processor interrupts.</li>
+<li><strong>Streamlined Register Access:</strong> NVMe reduces the
+number of uncacheable PCIe register reads required per command compared
+to AHCI, cutting down CPU cycles spent per I/O operation.</li>
+</ul>
+<h2 id="hardware-offloading-with-the-aws-nitro-system">Hardware
+Offloading with the AWS Nitro System</h2>
+<p>In traditional virtualized environments, a software hypervisor
+intercepts every guest I/O request, translates it, and forwards it to
+the physical storage device. At ratusan of thousands or millions of
+IOPS, this software emulation layer consumes massive amounts of host CPU
+cycles and introduces unpredictable latency jitter.</p>
+<p>EC2 I-series instances are built on the AWS Nitro System, which
+offloads virtualization functions to dedicated hardware cards (Nitro
+Cards for Local NVMe Storage) and a lightweight hypervisor. Using Single
+Root I/O Virtualization (SR-IOV), the Nitro controller presents the
+local NVMe drives directly to the guest operating system as bare-metal
+PCIe devices.</p>
+<p>When an application running on an I-series instance issues a read or
+write call, the guest OS NVMe driver writes directly to the hardware
+queues mapped into its memory space. The Nitro hardware handles
+line-rate AES-256 encryption and namespace isolation in dedicated
+silicon with zero impact on host CPU resources or I/O latency.</p>
+<h2 id="custom-aws-nitro-ssds-in-modern-i-series-instances">Custom AWS
+Nitro SSDs in Modern I-Series Instances</h2>
+<p>Starting with the I4i and I4g instance families, AWS introduced
+custom-designed AWS Nitro SSDs to address one of the hardest challenges
+in flash storage: tail latency (<span
+class="math inline">\(P_{99}\)</span> and <span
+class="math inline">\(P_{99.9}\)</span>).</p>
+<p>Standard commercial SSDs rely on internal Flash Translation Layers
+(FTL) that perform background housekeeping tasks, most notably
+<strong>garbage collection</strong> and <strong>wear leveling</strong>.
+Because NAND flash pages cannot be overwritten in place—they must first
+be erased in large blocks—an SSD under heavy random write pressure must
+periodically read valid pages from fragmented blocks, write them to a
+new block, and erase the old block. When this garbage collection kicks
+in, incoming application I/O requests get stalled behind internal flash
+operations, causing sudden latency spikes.</p>
+<p>AWS Nitro SSDs mitigate these spikes through tight integration
+between the drive controller firmware and the Nitro System:</p>
+<ul>
+<li><strong>Optimized Garbage Collection Scheduling:</strong> The custom
+firmware coordinates background flash management so it does not collide
+with peak foreground I/O bursts, reducing I/O latency variability by up
+to 75% compared to previous-generation I3 instances.</li>
+<li><strong>Dedicated Over-Provisioning:</strong> A reserved portion of
+raw NAND capacity is kept hidden from the user namespace, giving the
+controller ample free blocks to absorb sustained random writes without
+triggering immediate block erasures.</li>
+<li><strong>Real-Time Telemetry and Rapid Firmware Updates:</strong>
+Hardware-level integration allows AWS to monitor wear patterns and
+optimize flash media timing parameters across the fleet without
+disrupting running workloads.</li>
+</ul>
+<h2 id="how-queue-depth-drives-high-random-iops">How Queue Depth Drives
+High Random IOPS</h2>
+<p>To achieve the millions of random IOPS advertised on larger I-series
+instances, workloads must take advantage of the internal parallelism of
+the NAND flash architecture. A single NVMe SSD contains multiple flash
+channels, and each channel connects to multiple NAND dies capable of
+executing operations simultaneously.</p>
+<p>The relationship between throughput (<span
+class="math inline">\(\text{IOPS}\)</span>), average latency (<span
+class="math inline">\(L\)</span>), and concurrency or queue depth (<span
+class="math inline">\(QD\)</span>) is governed by Little's Law:</p>
+<p><span class="math display">\[\text{IOPS} = \frac{QD}{L}\]</span></p>
+<p>If a single 4 KB random read takes <span class="math inline">\(L =
+100\ \mu\text{s}\)</span> (<span class="math inline">\(0.0001\text{
+seconds}\)</span>), a single-threaded application issuing one request at
+a time (<span class="math inline">\(QD = 1\)</span>) will achieve at
+most:</p>
+<p><span class="math display">\[\text{IOPS} = \frac{1}{0.0001\text{ s}}
+= 10,000\text{ IOPS}\]</span></p>
+<p>When an application increases its concurrency—by using asynchronous
+I/O engines such as Linux <code>io_uring</code> or <code>libaio</code>
+across multiple threads—it keeps dozens of requests in flight
+simultaneously (<span class="math inline">\(QD &gt; 32\)</span>). The
+NVMe controller distributes these concurrent requests across separate
+flash channels and dies in parallel, scaling total throughput to
+hundreds of thousands of IOPS per drive while keeping individual request
+latencies low.</p>
+<h2
+id="operating-system-and-application-tuning-for-maximum-performance">Operating
+System and Application Tuning for Maximum Performance</h2>
+<p>Hardware capability alone is only part of the equation; the guest
+operating system and application stack must be configured to avoid
+reintroducing software bottlenecks:</p>
+<ol type="1">
+<li><strong>Use Asynchronous Polling or <code>io_uring</code>:</strong>
+At very high IOPS rates, handling hardware interrupts for every
+completed 4 KB I/O consumes excessive CPU time in context switches.
+Modern Linux kernels support <code>io_uring</code> and NVMe polling
+(<code>io_poll</code>), allowing threads to check completion queues
+directly in user space without context switching.</li>
+<li><strong>Disable Heavy I/O Schedulers:</strong> Traditional Linux I/O
+schedulers designed to sort requests for spinning disks add unnecessary
+lock contention on NVMe devices. Setting the scheduler to
+<code>none</code> (or <code>noop</code>) allows requests to pass
+straight to the NVMe multi-queue (<code>blk-mq</code>) layer.</li>
+<li><strong>Align Filesystems and Block Sizes:</strong> Formatting local
+NVMe volumes with XFS or ext4 using the <code>-E nodiscard</code> (or
+<code>discard</code> mount options managed carefully) and aligning
+partition boundaries to 4 KB physical sector sizes prevents
+read-modify-write penalties inside the flash controller.</li>
+<li><strong>Stripe Across Multiple Drives with RAID 0:</strong> Larger
+I-series instances provide multiple physical NVMe devices. Combining
+them into a RAID 0 array using Linux <code>mdadm</code> or logical
+volume management aggregates the PCIe lanes and flash channels across
+all drives into a single high-throughput mount point.</li>
+</ol>
+<h2 id="ephemeral-architecture-trade-offs">Ephemeral Architecture
+Trade-offs</h2>
+<p>The extreme performance of EC2 I-series local NVMe storage comes with
+an architectural trade-off: <strong>ephemerality</strong>. Unlike EBS
+volumes, local Instance Store data is tied to the lifecycle of the
+physical host. Data persists across guest OS reboots, but it is
+permanently lost if the instance is stopped, hibernated, or terminated,
+or if the underlying hardware drive fails.</p>
+<p>Because of this characteristic, I-series instances are purpose-built
+for workloads that either replicate data at the application layer or
+treat local storage as a high-speed scratchpad. Distributed NoSQL
+databases (such as Apache Cassandra, ScyllaDB, and DynamoDB-compatible
+engines), clustered search engines (Elasticsearch and OpenSearch),
+real-time analytics platforms (ClickHouse and Apache Spark), and
+high-frequency transactional caches rely on built-in quorum replication
+across multiple Availability Zones for durability, leaving the local
+NVMe SSDs free to deliver uncompromising raw I/O speed.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-ec-2-i-series-nv-me-ss-ds-achieve-low-latency-and-iops';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

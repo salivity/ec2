@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Is an Amazon Machine Image and Its Role in Amazon EC2? - ec2</title>
+    <meta name="description" content="An Amazon Machine Image, commonly referred to as an AMI, is a master template used to create virtual servers known as Amazon Elastic Compute Cloud instances within the Amazon Web Services environment. This article explains the fundamental components of an">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-an-amazon-machine-image-and-its-role-in-amazon-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Is an Amazon Machine Image and Its Role in Amazon EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-an-amazon-machine-image-and-its-role-in-amazon-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon Machine Image, commonly referred to as an AMI, is a master template used to create virtual servers known as Amazon Elastic Compute Cloud instances within the Amazon Web Services environment. This article explains the fundamental components of an" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-is-an-amazon-machine-image-and-its-role-in-amazon-ec2">What
+Is an Amazon Machine Image and Its Role in Amazon EC2?</h1>
+<p>An Amazon Machine Image, commonly referred to as an AMI, is a master
+template used to create virtual servers known as Amazon Elastic Compute
+Cloud instances within the Amazon Web Services environment. This article
+explains the fundamental components of an Amazon Machine Image, how it
+functions as the foundational blueprint for deploying cloud compute
+resources, the lifecycle of creating and managing images, and the
+specific configurations it provides when launching an instance.</p>
+<h2 id="core-components-of-an-amazon-machine-image">Core Components of
+an Amazon Machine Image</h2>
+<p>An AMI encapsulates all the software specifications required to spin
+up and boot a functional virtual server in the cloud. Rather than
+configuring an operating system and installing core dependencies
+manually every time a server is provisioned, cloud engineers use an AMI
+to replicate a standardized environment. Every AMI consists of three
+primary components:</p>
+<ol type="1">
+<li><strong>Root Volume Template</strong>: A snapshot or template for
+the root volume of the instance, which contains the operating system
+(such as Linux, Unix, or Windows Server), an application server, and any
+pre-installed applications or system utilities.</li>
+<li><strong>Launch Permissions</strong>: Access control rules that
+determine which AWS accounts are authorized to use the AMI to launch EC2
+instances. An image can be kept private to a single account, shared with
+specific AWS accounts, or made public to the entire AWS community.</li>
+<li><strong>Block Device Mapping</strong>: A configuration schema that
+specifies the storage volumes to attach to the instance when it is
+launched. This includes Amazon Elastic Block Store (EBS) volumes and
+instance store volumes, defining their sizes, volume types, and
+encryption statuses.</li>
+</ol>
+<h2 id="the-role-of-an-ami-when-launching-an-ec2-instance">The Role of
+an AMI When Launching an EC2 Instance</h2>
+<p>When you launch an Amazon EC2 instance, specifying an AMI is the
+mandatory first step. The AMI acts as the blueprint that dictates the
+initial software state of the server before any user-level runtime
+scripts are executed.</p>
+<h3 id="provisioning-the-root-storage-device">Provisioning the Root
+Storage Device</h3>
+<p>During the launch sequence, Amazon EC2 reads the block device mapping
+defined in the AMI. For EBS-backed instances, the service creates a new
+Amazon EBS root volume from the snapshot referenced in the AMI and
+attaches it to the newly allocated virtual hardware. For instance
+store-backed AMIs, EC2 copies the template from Amazon Simple Storage
+Service (S3) directly to the host hardware's ephemeral storage.</p>
+<h3
+id="bootstrapping-the-operating-system-and-architecture">Bootstrapping
+the Operating System and Architecture</h3>
+<p>The AMI determines the processor architecture of the instance, such
+as 64-bit x86 (<code>x86_64</code>) or 64-bit ARM (<code>arm64</code>),
+as well as the virtualization type (Hardware Virtual Machine).
+Consequently, the chosen AMI restricts which EC2 instance types you can
+select during launch, as the underlying hardware must be compatible with
+the operating system kernel and architecture packaged inside the
+image.</p>
+<h3 id="enabling-rapid-scaling-and-immutable-infrastructure">Enabling
+Rapid Scaling and Immutable Infrastructure</h3>
+<p>Because a single AMI can be used to launch thousands of identical
+instances simultaneously, it serves as the backbone for Auto Scaling
+groups. When traffic spikes require additional compute capacity, EC2
+Auto Scaling references the designated AMI in a launch template to
+provision pre-configured servers in seconds, eliminating the latency of
+downloading and compiling software during boot time. If an application
+requires <span class="math inline">\(N\)</span> identical servers to
+handle load, all <span class="math inline">\(N\)</span> instances can be
+instantiated from a single golden AMI to guarantee environment
+parity.</p>
+<h2 id="categories-of-storage-backed-amis">Categories of Storage-Backed
+AMIs</h2>
+<p>AMIs are categorized based on how their root device is stored and
+managed:</p>
+<ul>
+<li><strong>Amazon EBS-Backed AMIs</strong>: Instances launched from
+these images use an Amazon EBS volume as their root device. The root
+volume is created from an EBS snapshot. These instances can be stopped
+and restarted without losing the data stored on the root volume, as the
+storage persists independently of the compute host.</li>
+<li><strong>Instance Store-Backed AMIs</strong>: Instances launched from
+these images use ephemeral storage physically attached to the host
+computer. The root device is created from a template stored in Amazon
+S3. These instances cannot be placed in a stopped state; they can only
+be rebooted or terminated, and all data on the instance store volume is
+lost once the instance is terminated.</li>
+</ul>
+<h2 id="sources-and-lifecycle-of-an-ami">Sources and Lifecycle of an
+AMI</h2>
+<p>Users can obtain or create AMIs through several avenues depending on
+their operational needs:</p>
+<ul>
+<li><strong>AWS Provided AMIs</strong>: Amazon maintains official,
+pre-configured images for common operating systems, as well as
+specialized images like Deep Learning AMIs and Amazon ECS-Optimized
+AMIs.</li>
+<li><strong>AWS Marketplace</strong>: Third-party vendors offer
+commercial and open-source software pre-packaged into AMIs, allowing
+users to deploy appliances such as firewalls, databases, and enterprise
+platforms directly.</li>
+<li><strong>Custom Golden AMIs</strong>: Organizations frequently launch
+a base AMI, customize it with proprietary application code, security
+hardening, and monitoring agents, and then capture a new image from that
+running instance. Alternatively, services like EC2 Image Builder
+automate the pipeline of building, testing, and distributing updated
+AMIs across multiple AWS Regions.</li>
+</ul>
+<p>Once an AMI is no longer needed or has been superseded by a newer
+patch version, it can be deregistered. Deregistering an AMI prevents it
+from being used to launch new instances, though it does not affect any
+instances that were already launched from that image, nor does it
+automatically delete the underlying EBS snapshots, which must be removed
+separately to cease storage charges.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-an-amazon-machine-image-and-its-role-in-amazon-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

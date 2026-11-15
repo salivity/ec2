@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens If EC2 Source/Destination Check Stays Enabled? - ec2</title>
+    <meta name="description" content="When an Amazon EC2 instance attempts to route traffic as a virtual NAT device or firewall while the Source/Destination Check remains enabled, Amazon VPC immediately drops any network packets where the instance is neither the original sender nor the final">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-if-ec-2-source-destination-check-stays-enabled">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens If EC2 Source/Destination Check Stays Enabled? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-if-ec-2-source-destination-check-stays-enabled" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When an Amazon EC2 instance attempts to route traffic as a virtual NAT device or firewall while the Source/Destination Check remains enabled, Amazon VPC immediately drops any network packets where the instance is neither the original sender nor the final" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-if-ec2-sourcedestination-check-stays-enabled">What
+Happens If EC2 Source/Destination Check Stays Enabled?</h1>
+<p>When an Amazon EC2 instance attempts to route traffic as a virtual
+NAT device or firewall while the Source/Destination Check remains
+enabled, Amazon VPC immediately drops any network packets where the
+instance is neither the original sender nor the final intended
+recipient. This built-in security mechanism ensures that standard
+instances cannot spoof IP addresses or intercept traffic meant for other
+hosts. Consequently, all transit traffic passing through the virtual
+appliance fails to reach its destination, resulting in complete
+connectivity loss for downstream resources relying on that instance for
+routing, network address translation, or traffic inspection.</p>
+<h2 id="understanding-the-ec2-sourcedestination-check">Understanding the
+EC2 Source/Destination Check</h2>
+<p>Every Elastic Network Interface (ENI) attached to an Amazon EC2
+instance comes with an attribute called the Source/Destination Check. By
+default, AWS enables this attribute on all new network interfaces to
+maintain strict network isolation and security within a Virtual Private
+Cloud (VPC).</p>
+<p>When this setting is active, the underlying AWS Nitro or Xen
+hypervisor inspects the IP headers of every packet entering and leaving
+the instance. Specifically, the VPC SDN (Software-Defined Networking)
+layer verifies two conditions:</p>
+<ol type="1">
+<li>For outbound traffic leaving the instance, the source IP address in
+the packet header must match one of the private IP addresses assigned to
+the instance's ENI.</li>
+<li>For inbound traffic arriving at the instance, the destination IP
+address in the packet header must match one of the private IP addresses
+assigned to the instance's ENI.</li>
+</ol>
+<p>We can express the hypervisor validation rule for an instance with a
+set of assigned IP addresses <span
+class="math inline">\(I_{ENI}\)</span> processing a packet with source
+address <span class="math inline">\(S_{pkt}\)</span> and destination
+address <span class="math inline">\(D_{pkt}\)</span> as follows:</p>
+<p><span class="math display">\[\text{Valid Packet} \iff (S_{pkt} \in
+I_{ENI}) \lor (D_{pkt} \in I_{ENI})\]</span></p>
+<p>If neither condition is met, the VPC fabric silently discards the
+packet before it can traverse the network or reach the guest operating
+system.</p>
+<h2 id="why-virtual-nats-and-firewalls-trigger-drops">Why Virtual NATs
+and Firewalls Trigger Drops</h2>
+<p>Standard servers only communicate on their own behalf, meaning they
+only receive packets addressed to them and send packets originating from
+their own IP address. However, network appliances such as virtual
+routers, firewalls, VPN endpoints, and Network Address Translation (NAT)
+instances operate differently. Their primary function is to forward
+transit traffic between separate subnets, VPCs, or on-premises
+networks.</p>
+<h3 id="inbound-transit-traffic-failure">Inbound Transit Traffic
+Failure</h3>
+<p>Consider a scenario where an EC2 instance in a private subnet (<span
+class="math inline">\(10.0.1.50\)</span>) wants to reach an external
+server on the internet (<span
+class="math inline">\(203.0.113.10\)</span>). The private subnet's route
+table directs all internet-bound traffic (<span
+class="math inline">\(0.0.0.0/0\)</span>) to the ENI of a custom EC2 NAT
+or firewall instance (<span
+class="math inline">\(10.0.0.10\)</span>).</p>
+<p>When the private instance sends a packet to <span
+class="math inline">\(203.0.113.10\)</span>, the VPC routing fabric
+attempts to deliver that packet to the firewall's network interface.
+Before the packet even reaches the firewall's operating system, the AWS
+hypervisor inspects the packet header:</p>
+<ul>
+<li><strong>Packet Source IP:</strong> <span
+class="math inline">\(10.0.1.50\)</span></li>
+<li><strong>Packet Destination IP:</strong> <span
+class="math inline">\(203.0.113.10\)</span></li>
+<li><strong>Firewall ENI IP:</strong> <span
+class="math inline">\(10.0.0.10\)</span></li>
+</ul>
+<p>Because <span class="math inline">\(203.0.113.10 \neq
+10.0.0.10\)</span>, the hypervisor sees that the packet is not addressed
+to the firewall instance. With the Source/Destination Check enabled, the
+VPC fabric drops the packet immediately. If you run a packet capture
+utility like <code>tcpdump</code> on the firewall instance, you will not
+even see the incoming packet arrive at the network interface.</p>
+<h3 id="outbound-routing-failure-without-snat">Outbound Routing Failure
+(Without SNAT)</h3>
+<p>Now consider a transparent firewall or virtual router that forwards
+traffic between two internal subnets without performing Source Network
+Address Translation (SNAT). Even if a packet somehow originated from or
+passed through the appliance toward another internal host while
+preserving the original client's source IP address (<span
+class="math inline">\(10.0.1.50\)</span>), the outbound check would
+fail.</p>
+<p>When the appliance tries to transmit a packet where the source IP is
+<span class="math inline">\(10.0.1.50\)</span> rather than its own IP
+(<span class="math inline">\(10.0.0.10\)</span>), the VPC fabric blocks
+the transmission as suspected IP spoofing.</p>
+<h2 id="symptoms-of-an-enabled-sourcedestination-check">Symptoms of an
+Enabled Source/Destination Check</h2>
+<p>When administrators deploy a third-party firewall, OpenVPN server, or
+custom Linux NAT instance and forget to disable this check, several
+distinct symptoms appear during troubleshooting:</p>
+<ul>
+<li><strong>Complete blackholing of transit traffic:</strong> Ping
+requests (<code>ICMP</code>) and TCP connections from private subnets
+time out completely when routed through the appliance.</li>
+<li><strong>Direct connections still succeed:</strong> You can still SSH
+directly into the NAT or firewall instance, and the firewall instance
+itself can still access the internet or ping other hosts directly,
+because traffic originating from or addressed directly to the appliance
+satisfies the check.</li>
+<li><strong>Empty packet captures on the appliance:</strong> Running
+<code>tcpdump</code> on the virtual appliance shows zero incoming
+packets from the client instances for non-local destinations, leading
+engineers to mistakenly blame VPC route tables or Security Groups.</li>
+<li><strong>VPC Flow Logs show <code>REJECT</code> records:</strong> If
+VPC Flow Logs are enabled on the network interface, transit traffic
+rejected by the hypervisor or security boundaries may not appear on the
+target ENI as <code>ACCEPT</code>, making path tracing stop abruptly at
+the source.</li>
+</ul>
+<h2 id="how-to-disable-the-sourcedestination-check">How to Disable the
+Source/Destination Check</h2>
+<p>To allow an EC2 instance to function properly as a NAT device,
+router, or firewall, you must disable the Source/Destination Check on
+the specific Elastic Network Interface handling transit traffic. Notice
+that this setting is applied per ENI, not globally at the instance
+level, though single-ENI instances expose it directly in the instance
+actions menu.</p>
+<h3 id="using-the-aws-management-console">Using the AWS Management
+Console</h3>
+<ol type="1">
+<li>Open the Amazon EC2 Console and navigate to
+<strong>Instances</strong>.</li>
+<li>Select the NAT or firewall instance from the list.</li>
+<li>Click <strong>Actions</strong>, navigate to
+<strong>Networking</strong>, and select <strong>Change
+source/destination check</strong>.</li>
+<li>In the dialog box, uncheck the <strong>Enable</strong> box (or
+select <strong>Stop</strong> depending on the console version) to
+disable the check.</li>
+<li>Click <strong>Save</strong>.</li>
+</ol>
+<p>If your virtual firewall has multiple network interfaces (for
+example, <code>eth0</code> for untrusted public traffic and
+<code>eth1</code> for trusted private traffic), you must navigate to the
+<strong>Network Interfaces</strong> section in the EC2 console and
+disable the check on each interface that forwards transit packets.</p>
+<h3 id="using-the-aws-cli">Using the AWS CLI</h3>
+<p>You can disable the check programmatically using the
+<code>modify-instance-attribute</code> command for the primary
+interface, or <code>modify-network-interface-attribute</code> for
+specific ENIs:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-instance-attribute <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-id</span> i-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--no-source-dest-check</span></span></code></pre></div>
+<p>To target a specific Elastic Network Interface directly:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-network-interface-attribute <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--network-interface-id</span> eni-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--no-source-dest-check</span></span></code></pre></div>
+<h3 id="using-terraform">Using Terraform</h3>
+<p>When provisioning virtual network appliances via Infrastructure as
+Code, always set the <code>source_dest_check</code> argument to
+<code>false</code>:</p>
+<pre class="hcl"><code>resource &quot;aws_instance&quot; &quot;nat_firewall&quot; {
+  ami               = &quot;ami-0c55b159cbfafe1f0&quot;
+  instance_type     = &quot;t3.micro&quot;
+  subnet_id         = aws_subnet.public.id
+  source_dest_check = false
+}</code></pre>
+<p>Once the Source/Destination Check is disabled, the VPC fabric stops
+filtering transit headers on that ENI, allowing packets with foreign
+source and destination IP addresses to reach the instance's operating
+system for IP forwarding, NAT masquerading, or deep packet
+inspection.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-if-ec-2-source-destination-check-stays-enabled';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

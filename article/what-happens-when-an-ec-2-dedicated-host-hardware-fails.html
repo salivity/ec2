@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When an EC2 Dedicated Host Hardware Fails? - ec2</title>
+    <meta name="description" content="When the underlying physical hardware of an Amazon EC2 Dedicated Host experiences an unexpected failure, AWS automatically responds depending on whether Host Recovery is enabled. With Host Recovery enabled, AWS automatically allocates a new replacement De">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-dedicated-host-hardware-fails">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When an EC2 Dedicated Host Hardware Fails? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-dedicated-host-hardware-fails" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When the underlying physical hardware of an Amazon EC2 Dedicated Host experiences an unexpected failure, AWS automatically responds depending on whether Host Recovery is enabled. With Host Recovery enabled, AWS automatically allocates a new replacement De" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-an-ec2-dedicated-host-hardware-fails">What
+Happens When an EC2 Dedicated Host Hardware Fails?</h1>
+<p>When the underlying physical hardware of an Amazon EC2 Dedicated Host
+experiences an unexpected failure, AWS automatically responds depending
+on whether Host Recovery is enabled. With Host Recovery enabled, AWS
+automatically allocates a new replacement Dedicated Host and restarts
+your affected EC2 instances on the new hardware while retaining their
+configuration, metadata, and storage volumes. If Host Recovery is
+disabled, the Dedicated Host enters a permanent failed state, running
+instances become unreachable or stop, and administrators must manually
+allocate a new host and relaunch or migrate the instances.</p>
+<h2 id="how-aws-detects-dedicated-host-hardware-failures">How AWS
+Detects Dedicated Host Hardware Failures</h2>
+<p>Amazon EC2 continuously monitors the health of the physical servers
+backing Dedicated Hosts. Hardware failures can stem from motherboard
+faults, memory errors, network interface card malfunctions, power supply
+failures, or underlying hypervisor issues.</p>
+<p>When AWS detects an unrecoverable hardware fault on a Dedicated
+Host:</p>
+<ol type="1">
+<li><strong>Health Status Updates</strong>: The state of the Dedicated
+Host transitions to an impaired or failed status in the Amazon EC2
+console and API.</li>
+<li><strong>AWS Health Dashboard Notifications</strong>: AWS publishes
+an event to the AWS Health Dashboard and emits an event via Amazon
+EventBridge (formerly CloudWatch Events) alerting you to the host
+degradation or failure.</li>
+<li><strong>Instance State Impact</strong>: Instances running on the
+impaired physical server stop responding to network traffic and fail
+Instance Status Checks and System Status Checks.</li>
+</ol>
+<h2 id="automatic-recovery-with-host-recovery-enabled">Automatic
+Recovery with Host Recovery Enabled</h2>
+<p><strong>Host Recovery</strong> is a feature enabled by default on
+newly allocated Dedicated Hosts for most supported instance families. It
+minimizes downtime by automating the replacement of failed physical
+servers.</p>
+<h3 id="the-host-recovery-process">The Host Recovery Process</h3>
+<p>When an unexpected hardware failure occurs on a host with Host
+Recovery enabled, AWS performs the following sequence:</p>
+<ol type="1">
+<li><strong>Replacement Host Allocation</strong>: AWS automatically
+provisions a new Dedicated Host of the same instance family and
+configuration within the same Availability Zone.</li>
+<li><strong>Instance Restart</strong>: Affected instances are
+automatically rebooted onto the new replacement Dedicated Host.</li>
+<li><strong>Configuration Preservation</strong>: The recovered instances
+retain their original:
+<ul>
+<li>Instance ID</li>
+<li>Private IPv4 and IPv6 addresses</li>
+<li>Elastic IP addresses</li>
+<li>Amazon EBS volume attachments</li>
+<li>Instance metadata and tags</li>
+</ul></li>
+<li><strong>Old Host Retirement</strong>: The failed Dedicated Host is
+automatically released from your account once recovery completes,
+ensuring you are not billed for the impaired hardware.</li>
+</ol>
+<p>Note that the new replacement Dedicated Host receives a <strong>new
+Dedicated Host ID</strong>, while the instances themselves keep their
+existing Instance IDs.</p>
+<h3 id="limitations-of-host-recovery">Limitations of Host Recovery</h3>
+<p>While Host Recovery automates continuity, there are specific
+constraints to consider:</p>
+<ul>
+<li><strong>Instance Store Volumes</strong>: Any data stored on
+ephemeral NVMe or HDD instance store volumes is lost during hardware
+failure because instance store media is physically attached to the
+failed host. Only data on Amazon EBS volumes persists.</li>
+<li><strong>Host Capacity Availability</strong>: Recovery depends on the
+availability of spare physical capacity for that specific instance
+family in the target Availability Zone. If AWS lacks sufficient capacity
+at the exact moment of failure, automatic recovery may be delayed until
+capacity becomes available.</li>
+<li><strong>Unsupported Configurations</strong>: Host Recovery is not
+supported for Dedicated Hosts configured to support multiple instance
+types within the same instance family unless supported by the specific
+hardware generation, nor is it supported on certain bare metal
+(<code>metal</code>) or macOS Dedicated Hosts.</li>
+</ul>
+<h2 id="what-happens-when-host-recovery-is-disabled">What Happens When
+Host Recovery Is Disabled</h2>
+<p>If Host Recovery is turned off, or if the Dedicated Host type does
+not support automatic recovery, AWS does not allocate a replacement host
+automatically.</p>
+<ol type="1">
+<li><strong>Instance Interruption</strong>: Running EBS-backed instances
+on the failed host transition to a <code>stopped</code> state or remain
+stuck in a <code>running</code> state while failing status checks.
+Instance store-backed instances are terminated.</li>
+<li><strong>Manual Replacement</strong>: You must manually allocate a
+new Dedicated Host in your account using the EC2 console, AWS CLI, or
+SDK.</li>
+<li><strong>Changing Affinity and Starting Instances</strong>:
+<ul>
+<li>If the instances had their affinity set to a specific <strong>Host
+ID</strong>, you must modify the instance placement attributes to point
+to the newly allocated Host ID before starting them.</li>
+<li>If the instances belong to a <strong>Host Resource Group</strong>
+and have affinity set at the group level, starting the stopped instances
+will automatically place them onto any available host within that
+resource group.</li>
+</ul></li>
+<li><strong>Releasing the Failed Host</strong>: You must manually
+release the impaired Dedicated Host once your instances have been
+migrated off it (or AWS will eventually retire and decommission the
+failed host after sending retirement notifications).</li>
+</ol>
+<h2 id="impact-on-software-licensing">Impact on Software Licensing</h2>
+<p>Organizations typically use EC2 Dedicated Hosts to satisfy Bring Your
+Own License (BYOL) requirements bound to physical cores or sockets (such
+as Windows Server, SQL Server, Oracle, or RHEL).</p>
+<p>When a host fails and is replaced:</p>
+<ul>
+<li><strong>New Host ID</strong>: Because the replacement server is a
+different physical machine, it has a new Host ID.</li>
+<li><strong>AWS License Manager Integration</strong>: If you manage your
+Dedicated Hosts using <strong>AWS License Manager</strong> and
+<strong>Host Resource Groups</strong>, License Manager automatically
+tracks the release of the failed host and associates licenses with the
+newly allocated replacement host.</li>
+<li><strong>License Mobility and Re-binding</strong>: If your software
+licensing is strictly bound to hardware identifiers (like UUIDs or
+physical MAC addresses) rather than core/socket counts tracked via AWS
+License Manager, you may need to reactivate or re-bind the license on
+the replacement host.</li>
+</ul>
+<h2 id="availability-and-recovery-time-calculations">Availability and
+Recovery Time Calculations</h2>
+<p>When designing high-availability architectures on Dedicated Hosts,
+engineers account for the recovery time of a single host vs. multi-AZ
+deployments. If a single Dedicated Host has an annual failure rate
+producing an availability <span class="math inline">\(A_{host}\)</span>,
+the probability of simultaneous failure across <span
+class="math inline">\(n\)</span> independent Dedicated Hosts in separate
+Availability Zones is given by:</p>
+<p><span class="math display">\[P(\text{all fail}) = (1 -
+A_{host})^n\]</span></p>
+<p>Consequently, overall cluster availability <span
+class="math inline">\(A_{cluster}\)</span> across <span
+class="math inline">\(n\)</span> redundant hosts is:</p>
+<p><span class="math display">\[A_{cluster} = 1 - (1 -
+A_{host})^n\]</span></p>
+<p>Because Host Recovery requires cold-booting instances onto a new
+physical server, the Recovery Time Objective (RTO) for a single host
+failure typically ranges from several minutes to 15 minutes. Workloads
+requiring near-zero RTO should distribute instances across multiple
+Dedicated Hosts in different Availability Zones rather than relying
+solely on single-host recovery.</p>
+<h2 id="best-practices-for-dedicated-host-resiliency">Best Practices for
+Dedicated Host Resiliency</h2>
+<p>To minimize disruption from unexpected physical hardware failures on
+EC2 Dedicated Hosts:</p>
+<ul>
+<li><strong>Enable Host Recovery</strong>: Ensure Host Recovery is
+enabled on all eligible Dedicated Hosts via the EC2 console or by
+specifying <code>--host-recovery on</code> in the
+<code>allocate-hosts</code> or <code>modify-hosts</code> CLI
+commands.</li>
+<li><strong>Use Amazon EBS for Persistent Data</strong>: Store all
+critical application state and databases on Amazon EBS volumes or
+networked storage (such as Amazon EFS or Amazon FSx) rather than local
+instance store volumes.</li>
+<li><strong>Deploy Across Multiple Availability Zones</strong>: Spread
+Dedicated Hosts across at least two Availability Zones so that a
+physical server failure does not cause a complete service outage while
+Host Recovery restarts the affected instances.</li>
+<li><strong>Use Host Resource Groups</strong>: Combine AWS License
+Manager with Host Resource Groups and Auto Placement so instances can
+seamlessly restart on healthy hosts without requiring manual Host ID
+reassignments.</li>
+<li><strong>Monitor AWS Health Events</strong>: Configure Amazon
+EventBridge rules to capture <code>AWS_EC2_DEDICATED_HOST_EVENT</code>
+notifications and trigger automated alerts or failover workflows when
+hardware degradation occurs.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-dedicated-host-hardware-fails';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Governs EC2 Aggregate EBS Bandwidth and IOPS Limits? - ec2</title>
+    <meta name="description" content="Understanding the performance boundaries of an Amazon EC2 instance is essential for designing storage-intensive workloads. Every EBS-optimized EC2 instance type enforces two distinct ceilings on attached Amazon Elastic Block Store volumes: maximum through">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-governs-ec-2-aggregate-ebs-bandwidth-and-iops-limits">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Governs EC2 Aggregate EBS Bandwidth and IOPS Limits? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-governs-ec-2-aggregate-ebs-bandwidth-and-iops-limits" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Understanding the performance boundaries of an Amazon EC2 instance is essential for designing storage-intensive workloads. Every EBS-optimized EC2 instance type enforces two distinct ceilings on attached Amazon Elastic Block Store volumes: maximum through" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-governs-ec2-aggregate-ebs-bandwidth-and-iops-limits">What
+Governs EC2 Aggregate EBS Bandwidth and IOPS Limits?</h1>
+<p>Understanding the performance boundaries of an Amazon EC2 instance is
+essential for designing storage-intensive workloads. Every EBS-optimized
+EC2 instance type enforces two distinct ceilings on attached Amazon
+Elastic Block Store volumes: maximum throughput (measured in megabytes
+or gigabits per second) and maximum input/output operations per second
+(IOPS). The actual storage performance achieved by an instance is always
+governed by whichever is lower between the aggregate capacity of the
+attached EBS volumes and the dedicated EBS network limits of the EC2
+instance itself. This article explains the architectural constraints,
+bursting mechanisms, I/O block size relationships, and hardware ceilings
+that define these aggregate limits.</p>
+<h2 id="instance-level-vs-volume-level-ceilings">Instance-Level vs.
+Volume-Level Ceilings</h2>
+<p>Storage performance in AWS operates on a dual-constraint model. On
+one side, each individual EBS volume (such as gp3, io2, or st1) has its
+own provisioned IOPS and throughput limits. On the other side, the EC2
+instance hosting those volumes has a dedicated network channel for EBS
+traffic with a hard ceiling on aggregate bandwidth and aggregate
+IOPS.</p>
+<p>If you attach multiple high-performance EBS volumes to a single EC2
+instance, their combined provisioned performance can easily exceed the
+instance's internal capabilities. When this occurs, the EC2 instance
+becomes the bottleneck. Mathematically, the effective maximum IOPS
+(<span class="math inline">\(I_{\text{effective}}\)</span>) and
+effective maximum throughput (<span
+class="math inline">\(T_{\text{effective}}\)</span>) can be expressed
+as:</p>
+<p><span class="math display">\[I_{\text{effective}} =
+\min\left(I_{\text{instance}}, \sum_{i=1}^{n} I_{\text{volume},
+i}\right)\]</span></p>
+<p><span class="math display">\[T_{\text{effective}} =
+\min\left(T_{\text{instance}}, \sum_{i=1}^{n} T_{\text{volume},
+i}\right)\]</span></p>
+<p>In these equations, <span class="math inline">\(n\)</span> represents
+the total number of EBS volumes attached to the instance. Even if ten
+gp3 volumes are configured to deliver <span
+class="math inline">\(16,000\text{ IOPS}\)</span> each (an aggregate
+volume capability of <span class="math inline">\(160,000\text{
+IOPS}\)</span>), attaching them to an instance capped at <span
+class="math inline">\(40,000\text{ IOPS}\)</span> will restrict total
+storage operations across all volumes to <span
+class="math inline">\(40,000\text{ IOPS}\)</span>.</p>
+<h2 id="baseline-vs-burst-ebs-performance">Baseline vs. Burst EBS
+Performance</h2>
+<p>Modern EBS-optimized instances fall into two categories based on
+their size: those with fixed dedicated limits and those with burstable
+EBS limits.</p>
+<p>Smaller and medium-sized instances within an instance family (for
+example, <code>m6i.large</code> through <code>m6i.4xlarge</code>)
+typically provide a <strong>baseline</strong> performance level and a
+higher <strong>burst</strong> ceiling. These instances can operate at
+their maximum burst bandwidth and IOPS for up to 30 minutes at a time,
+at least once every 24 hours, depending on a credit bucket system. Once
+the burst credits are exhausted, the instance's aggregate EBS
+performance drops back to its baseline bandwidth and baseline IOPS until
+credits are replenished during periods of below-baseline activity.</p>
+<p>Larger instance sizes within the same family (such as
+<code>m6i.8xlarge</code> and above) do not rely on a burst bucket.
+Instead, their baseline performance is equal to their maximum
+performance, providing consistent, sustained aggregate EBS bandwidth and
+IOPS 24 hours a day.</p>
+<h2 id="the-relationship-between-iops-block-size-and-bandwidth">The
+Relationship Between IOPS, Block Size, and Bandwidth</h2>
+<p>Aggregate EBS bandwidth and aggregate IOPS are not independent
+variables; they are linked by the I/O block size of the workload.
+Throughput is the product of the number of operations per second and the
+size of each operation:</p>
+<p><span class="math display">\[\text{Throughput} = \text{IOPS} \times
+\text{I/O Size}\]</span></p>
+<p>AWS specifies an instance's maximum EBS IOPS assuming a <span
+class="math inline">\(16\text{ KiB}\)</span> I/O block size. However,
+AWS caps the size of a single EBS I/O operation at <span
+class="math inline">\(256\text{ KiB}\)</span> for SSD-backed volumes
+(and up to <span class="math inline">\(1,024\text{ KiB}\)</span> for
+HDD-backed volumes). Because of this relationship, an instance will hit
+one of the two limits first depending on the workload's average block
+size:</p>
+<ol type="1">
+<li><strong>Small Block Sizes (<span class="math inline">\(4\text{
+KiB}\)</span> to <span class="math inline">\(16\text{
+KiB}\)</span>):</strong> Transactional databases and metadata-heavy
+workloads generate small I/O operations. Under these conditions, the
+instance will reach its <strong>maximum aggregate IOPS limit</strong>
+well before saturating its available EBS bandwidth.</li>
+<li><strong>Large Block Sizes (<span class="math inline">\(64\text{
+KiB}\)</span> to <span class="math inline">\(256\text{
+KiB}\)</span>):</strong> Sequential read/write workloads, such as data
+warehousing, log processing, or media streaming, issue large I/O blocks.
+Here, the instance will saturate its <strong>maximum aggregate bandwidth
+limit</strong> at a relatively low IOPS count.</li>
+</ol>
+<p>For example, consider an instance with a maximum EBS bandwidth of
+<span class="math inline">\(1,250\text{ MB/s}\)</span> (equivalent to
+<span class="math inline">\(10\text{ Gbps}\)</span>) and a maximum IOPS
+limit of <span class="math inline">\(40,000\text{ IOPS}\)</span>:</p>
+<ul>
+<li>At a <span class="math inline">\(16\text{ KiB}\)</span> block size,
+reaching <span class="math inline">\(40,000\text{ IOPS}\)</span>
+consumes <span class="math inline">\(40,000 \times 16\text{ KiB} =
+640,000\text{ KiB/s} \approx 625\text{ MB/s}\)</span>, which is only
+half of the bandwidth limit. The IOPS ceiling governs performance.</li>
+<li>At a <span class="math inline">\(64\text{ KiB}\)</span> block size,
+<span class="math inline">\(40,000\text{ IOPS}\)</span> would require
+<span class="math inline">\(2,500\text{ MB/s}\)</span> of bandwidth.
+Because the instance is capped at <span
+class="math inline">\(1,250\text{ MB/s}\)</span>, the bandwidth ceiling
+restricts the workload to approximately <span
+class="math inline">\(20,000\text{ IOPS}\)</span>.</li>
+</ul>
+<h2
+id="underlying-hardware-architecture-and-the-aws-nitro-system">Underlying
+Hardware Architecture and the AWS Nitro System</h2>
+<p>The generation and underlying hypervisor architecture of an EC2
+instance heavily dictate its storage performance ceilings:</p>
+<ul>
+<li><strong>AWS Nitro System:</strong> Newer generation instances built
+on the AWS Nitro System offload virtualization and storage I/O
+processing to dedicated Nitro Cards (custom ASICs). This hardware
+acceleration dramatically increases both maximum aggregate IOPS
+(reaching up to <span class="math inline">\(260,000\text{ IOPS}\)</span>
+or more on high-end instances) and maximum EBS bandwidth (up to <span
+class="math inline">\(60\text{ Gbps}\)</span> or <span
+class="math inline">\(80\text{ Gbps}\)</span> on specialized storage and
+compute sizes).</li>
+<li><strong>Legacy Xen-based Instances:</strong> Older generation
+instances use software-based virtualization paths and exhibit
+significantly lower IOPS and bandwidth ceilings. On very old
+non-EBS-optimized instances, EBS traffic must even contend with standard
+network traffic over the same physical network interface.</li>
+<li><strong>Shared Network Bandwidth on Specific Instance
+Families:</strong> While most modern EBS-optimized instances have
+dedicated bandwidth for EBS separate from standard network traffic,
+certain ultra-high-network or specialized instance types share a unified
+physical network card ceiling between EC2 networking and EBS traffic. On
+those specific architectures, heavy network egress can reduce the
+available ceiling for EBS bandwidth.</li>
+</ul>
+<h2 id="monitoring-instance-level-ebs-limits">Monitoring Instance-Level
+EBS Limits</h2>
+<p>To determine whether an EC2 instance is throttling your attached
+storage volumes, AWS provides dedicated instance-level CloudWatch
+metrics that should be monitored alongside volume-level metrics:</p>
+<ul>
+<li><code>EBSByteBalance%</code> and <code>EBSIOBalance%</code>: These
+metrics track the remaining burst credits for smaller EBS-optimized
+instances. If either metric drops to zero, the instance is restricted to
+its baseline EBS bandwidth or baseline IOPS.</li>
+<li><code>EBSReadBytes</code> and <code>EBSWriteBytes</code>: Summing
+these values over a period and dividing by the number of seconds reveals
+the current aggregate throughput, which can be compared directly against
+the instance's documented maximum bandwidth.</li>
+<li><code>EBSReadOps</code> and <code>EBSWriteOps</code>: Summing these
+values and dividing by the period duration yields the aggregate IOPS
+across all attached volumes, allowing you to verify if the workload is
+hitting the instance's IOPS ceiling.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-governs-ec-2-aggregate-ebs-bandwidth-and-iops-limits';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do Windows or RHEL EC2 RIs Support Size Flexibility? - ec2</title>
+    <meta name="description" content="Amazon EC2 does not allow instance size flexibility for Reserved Instances that include commercial licensing such as Windows Server or Red Hat Enterprise Linux. Because the hourly rates for these operating systems contain built-in software license fees pr">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/do-windows-or-rhel-ec-2-r-is-support-size-flexibility">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Do Windows or RHEL EC2 RIs Support Size Flexibility? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/do-windows-or-rhel-ec-2-r-is-support-size-flexibility" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 does not allow instance size flexibility for Reserved Instances that include commercial licensing such as Windows Server or Red Hat Enterprise Linux. Because the hourly rates for these operating systems contain built-in software license fees pr" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="do-windows-or-rhel-ec2-ris-support-size-flexibility">Do Windows
+or RHEL EC2 RIs Support Size Flexibility?</h1>
+<p>Amazon EC2 does not allow instance size flexibility for Reserved
+Instances that include commercial licensing such as Windows Server or
+Red Hat Enterprise Linux. Because the hourly rates for these operating
+systems contain built-in software license fees provided by Microsoft and
+Red Hat, the reservation discount is strictly locked to the exact
+instance size, platform, and tenancy specified at the time of purchase.
+This article explains how Amazon EC2 normalization factors work, why
+commercial operating systems are excluded from size flexibility, and
+what alternative purchasing models provide flexibility for licensed
+workloads.</p>
+<h2 id="how-instance-size-flexibility-works-in-amazon-ec2">How Instance
+Size Flexibility Works in Amazon EC2</h2>
+<p>Instance size flexibility allows a regional Reserved Instance
+discount to automatically apply across different instance sizes within
+the same instance family and Availability Zone or region. AWS calculates
+this flexibility using a normalization factor assigned to each instance
+size based on its relative resource footprint.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Size</th>
+<th style="text-align: left;">Normalization Factor (<span
+class="math inline">\(N\)</span>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>nano</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.25\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>micro</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.5\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>small</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(1\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>medium</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(2\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>large</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(4\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(8\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>2xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(16\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>4xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(32\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>8xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(64\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>16xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(128\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>32xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(256\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>For eligible open-source Linux platforms, the total normalized
+capacity of a reservation is determined by multiplying the quantity of
+reserved instances (<span class="math inline">\(Q\)</span>) by the
+normalization factor (<span
+class="math inline">\(N_{\text{reserved}}\)</span>) of the purchased
+size:</p>
+<p><span class="math display">\[U_{\text{total}} = Q \times
+N_{\text{reserved}}\]</span></p>
+<p>When running instances of another size within the same family, the
+number of covered instances (<span class="math inline">\(C\)</span>)
+that can receive the full reservation discount is given by:</p>
+<p><span class="math display">\[C =
+\frac{U_{\text{total}}}{N_{\text{running}}}\]</span></p>
+<p>For example, purchasing one <code>m6i.2xlarge</code> regional Linux
+Reserved Instance provides <span class="math inline">\(U_{\text{total}}
+= 1 \times 16 = 16\)</span> normalized units per hour. Those <span
+class="math inline">\(16\)</span> units can cover two
+<code>m6i.large</code> instances (<span class="math inline">\(2 \times 4
+= 8\)</span> units) and one <code>m6i.xlarge</code> instance (<span
+class="math inline">\(1 \times 8 = 8\)</span> units) simultaneously:</p>
+<p><span class="math display">\[\sum_{i} \left( C_i \times N_i \right) =
+(2 \times 4) + (1 \times 8) = 16\]</span></p>
+<h2
+id="why-windows-server-and-red-hat-enterprise-linux-are-excluded">Why
+Windows Server and Red Hat Enterprise Linux Are Excluded</h2>
+<p>Instance size flexibility is restricted exclusively to Amazon EC2
+Reserved Instances running free, open-source Linux/UNIX platforms
+without additional commercial licensing (specifically the default
+Linux/UNIX platform, which includes Amazon Linux, Ubuntu, CentOS, and
+Debian). Reservations for the following commercial operating systems do
+not support instance size flexibility:</p>
+<ul>
+<li>Windows Server (Standard and Datacenter editions)</li>
+<li>Windows Server with SQL Server (Web, Standard, or Enterprise)</li>
+<li>Red Hat Enterprise Linux (RHEL) and RHEL for SAP</li>
+<li>SUSE Linux Enterprise Server (SLES)</li>
+<li>Linux with SQL Server</li>
+</ul>
+<p>There are two technical and contractual reasons why AWS enforces this
+limitation:</p>
+<ol type="1">
+<li><strong>Non-Linear Software Licensing Costs:</strong> For standard
+Linux/UNIX instances, the hourly price scales linearly with hardware
+resources:</li>
+</ol>
+<p><span class="math display">\[P_{\text{Linux}}(s) = k_{\text{compute}}
+\times N(s)\]</span></p>
+<p>However, commercial operating systems bundle both compute
+infrastructure and vendor software licensing into a single hourly
+rate:</p>
+<p><span class="math display">\[P_{\text{commercial}}(s) =
+P_{\text{compute}}(s) + P_{\text{license}}(s)\]</span></p>
+<p>While Windows Server licensing on EC2 often scales proportionally
+with virtual CPUs (vCPUs), Red Hat Enterprise Linux and SUSE Linux
+Enterprise Server frequently use tiered or flat-rate subscription
+pricing structures where the license fee <span
+class="math inline">\(P_{\text{license}}(s)\)</span> does not double
+when the instance size doubles. For example, RHEL licensing on smaller
+vCPU tiers may have one fixed hourly license add-on, while larger vCPU
+tiers have a different cap. If AWS permitted a single
+<code>r6i.4xlarge</code> RHEL Reserved Instance (<span
+class="math inline">\(N = 32\)</span>) to split into sixteen
+<code>r6i.medium</code> RHEL instances (<span class="math inline">\(16
+\times 2 = 32\)</span>), the customer would consume sixteen separate OS
+subscription licenses while only paying for one high-tier license,
+violating the underlying vendor licensing metrics.</p>
+<ol start="2" type="1">
+<li><strong>Fixed Vendor Royalty Reporting:</strong> AWS remits
+licensing royalties to Microsoft, Red Hat, and SUSE based on the
+specific SKU and instance type committed under the Reserved Instance
+agreement. Consequently, a Reserved Instance for <code>m5.xlarge</code>
+running Windows Server or RHEL will only discount a running
+<code>m5.xlarge</code> instance matching the exact platform, tenancy,
+and region or Availability Zone. If you scale that workload up to an
+<code>m5.2xlarge</code> or down to two <code>m5.large</code> instances,
+the Reserved Instance sits unutilized and the new instances are billed
+at full On-Demand rates.</li>
+</ol>
+<h2 id="requirements-for-ec2-instance-size-flexibility">Requirements for
+EC2 Instance Size Flexibility</h2>
+<p>To qualify for instance size flexibility on Amazon EC2, a Reserved
+Instance must meet all of the following criteria:</p>
+<ul>
+<li><strong>Platform:</strong> Must be basic <code>Linux/UNIX</code>
+(Amazon Linux, Ubuntu, etc.) with default shared tenancy.</li>
+<li><strong>Tenancy:</strong> Must be <code>Default</code> (shared)
+tenancy. Dedicated Instances and Dedicated Hosts do not support size
+flexibility.</li>
+<li><strong>Scope:</strong> Both Regional and Zonal Reserved Instances
+can have standard or convertible classes, though size flexibility
+applies within the instance family across a region (for Regional RIs) or
+is constrained to the specific Availability Zone if capacity is
+reserved. Note that Zonal RIs (which provide a capacity reservation) do
+not offer instance size flexibility—only Regional RIs on default
+Linux/UNIX provide size flexibility.</li>
+<li><strong>Instance Family:</strong> Must belong to the exact same
+instance family (for example, <code>c6i</code> cannot flex to
+<code>c6a</code> or <code>c5</code>).Bare metal instances
+(<code>*.metal</code>) belong to the same family normalization table for
+eligible Linux workloads, where their normalization factor is
+proportional to the largest virtualized size in that family.</li>
+</ul>
+<h2
+id="alternatives-for-flexible-windows-and-rhel-commitments">Alternatives
+for Flexible Windows and RHEL Commitments</h2>
+<p>If your workloads run Windows Server or Red Hat Enterprise Linux and
+require the ability to change instance sizes without losing your
+commitment discount, you have three primary options:</p>
+<h3
+id="1-aws-savings-plans-compute-savings-plans-and-ec2-instance-savings-plans">1.
+AWS Savings Plans (Compute Savings Plans and EC2 Instance Savings
+Plans)</h3>
+<p>Unlike Reserved Instances, AWS Savings Plans are based on an hourly
+monetary spend commitment (<span
+class="math inline">\(S_{\text{commit}}\)</span>, measured in currency
+per hour) rather than fixed normalized hardware units. Both
+<strong>Compute Savings Plans</strong> and <strong>EC2 Instance Savings
+Plans</strong> automatically apply across different instance sizes, even
+when running Windows Server, RHEL, SLES, or SQL Server.</p>
+<p>Under a Savings Plan, if your discounted hourly rate for a Windows or
+RHEL instance of size <span class="math inline">\(s\)</span> is <span
+class="math inline">\(r_{\text{SP}}(s)\)</span>, the number of
+concurrent instances covered by your hourly commitment <span
+class="math inline">\(S_{\text{commit}}\)</span> is:</p>
+<p><span class="math display">\[C_{\text{SP}}(s) =
+\frac{S_{\text{commit}}}{r_{\text{SP}}(s)}\]</span></p>
+<p>Because the commitment is tracked in currency rather than vCPU
+normalization units, you can freely resize from <code>m6i.xlarge</code>
+to <code>m6i.2xlarge</code> on Windows Server or RHEL and continue
+receiving the Savings Plan discount rate up to your hourly commitment
+ceiling.</p>
+<h3 id="2-convertible-reserved-instances">2. Convertible Reserved
+Instances</h3>
+<p>If you already own or prefer Reserved Instances for Windows Server or
+RHEL, <strong>Convertible Reserved Instances</strong> allow you to
+manually exchange your reservation for another configuration of equal or
+greater total value:</p>
+<p><span class="math display">\[V_{\text{new}} \ge
+V_{\text{current}}\]</span></p>
+<p>While Convertible RIs do not resize automatically at billing time
+like instance size flexibility does, you can invoke the
+<code>AcceptReservedInstancesExchangeQuote</code> API or use the EC2
+console to trade a Windows or RHEL <code>m5.2xlarge</code> Convertible
+RI for two <code>m5.xlarge</code> Convertible RIs whenever you resize
+your environment.</p>
+<h3
+id="3-bring-your-own-license-byol-with-default-linuxunix-or-license-mobility">3.
+Bring Your Own License (BYOL) with Default Linux/UNIX or License
+Mobility</h3>
+<ul>
+<li><strong>Red Hat Cloud Access (BYOL):</strong> When you bring your
+own Red Hat Enterprise Linux subscriptions to AWS via Red Hat Cloud
+Access, your EC2 instances run on the standard <code>Linux/UNIX</code>
+billing platform from an AWS perspective because Red Hat licensing is
+handled directly through your Red Hat Customer Portal subscription.
+Because AWS bills the underlying compute as standard
+<code>Linux/UNIX</code>, Regional Reserved Instances purchased for these
+instances <strong>do</strong> receive full instance size
+flexibility.</li>
+<li><strong>Windows Server BYOL on Dedicated Hosts:</strong> Bringing
+Windows Server licenses typically requires EC2 Dedicated Hosts to comply
+with Microsoft licensing terms for physical core allocation. While
+Dedicated Host Reservations do not offer instance size flexibility in
+the same way as shared-tenancy Linux RIs, they allow you to run multiple
+different instance sizes simultaneously on the same physical host as
+long as the instances belong to the host's supported instance
+family.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/do-windows-or-rhel-ec-2-r-is-support-size-flexibility';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

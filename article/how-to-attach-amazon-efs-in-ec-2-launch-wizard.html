@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Attach Amazon EFS in EC2 Launch Wizard? - ec2</title>
+    <meta name="description" content="Attaching an Amazon Elastic File System directly during the Amazon EC2 launch instance wizard automates package installation, directory creation, and file system table configuration without manual scripting. When you select an existing shared file system">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-attach-amazon-efs-in-ec-2-launch-wizard">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Attach Amazon EFS in EC2 Launch Wizard? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-attach-amazon-efs-in-ec-2-launch-wizard" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Attaching an Amazon Elastic File System directly during the Amazon EC2 launch instance wizard automates package installation, directory creation, and file system table configuration without manual scripting. When you select an existing shared file system" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-attach-amazon-efs-in-ec2-launch-wizard">How to Attach
+Amazon EFS in EC2 Launch Wizard?</h1>
+<p>Attaching an Amazon Elastic File System directly during the Amazon
+EC2 launch instance wizard automates package installation, directory
+creation, and file system table configuration without manual scripting.
+When you select an existing shared file system or create a new one in
+the storage configuration section of the wizard, AWS automatically
+generates and injects a cloud-init user data script into the instance.
+This script installs the required amazon-efs-utils helper package,
+creates the local mount point directory, appends the persistent mount
+entry to the fstab file using recommended network options, and mounts
+the file system at first boot. It also optionally creates and associates
+the security groups needed to permit Network File System traffic on port
+2049 between your compute instance and the file system mount
+targets.</p>
+<h2 id="prerequisites-for-automated-efs-mounting">Prerequisites for
+Automated EFS Mounting</h2>
+<p>Before using the EC2 launch wizard to attach an EFS file system, your
+environment and chosen configuration must meet specific networking and
+operating system requirements:</p>
+<ol type="1">
+<li><strong>Supported Amazon Machine Image (AMI):</strong> The automated
+user data script relies on <code>cloud-init</code> and the
+<code>amazon-efs-utils</code> package. Supported Linux distributions
+include Amazon Linux 2023, Amazon Linux 2, Red Hat Enterprise Linux
+(RHEL), CentOS, Ubuntu, and SUSE Linux Enterprise Server.</li>
+<li><strong>Same Virtual Private Cloud (VPC):</strong> The EC2 instance
+and the EFS file system must reside in the same VPC.</li>
+<li><strong>Mount Target Availability:</strong> The EFS file system must
+have an active mount target in the Availability Zone where you launch
+the EC2 instance (or you must allow the wizard to create a new file
+system with regional mount targets).</li>
+<li><strong>DNS Settings:</strong> The VPC must have both
+<code>enableDnsHostnames</code> and <code>enableDnsSupport</code> set to
+<code>true</code> so the instance can resolve the EFS file system DNS
+name (<code>fs-xxxxxxxx.efs.region.amazonaws.com</code>).</li>
+</ol>
+<h2
+id="step-by-step-guide-to-attaching-efs-in-the-ec2-launch-wizard">Step-by-Step
+Guide to Attaching EFS in the EC2 Launch Wizard</h2>
+<p>Follow these steps in the AWS Management Console to attach an EFS
+file system and automate <code>/etc/fstab</code> configuration during
+instance creation:</p>
+<h3 id="1-configure-basic-instance-and-network-settings">1. Configure
+Basic Instance and Network Settings</h3>
+<ol type="1">
+<li>Open the Amazon EC2 console and choose <strong>Launch
+instances</strong>.</li>
+<li>Enter a name for your instance and select a supported Linux AMI
+(such as Amazon Linux 2023).</li>
+<li>Select an instance type and a key pair for SSH or AWS Systems
+Manager Session Manager access.</li>
+<li>In the <strong>Network settings</strong> section, click
+<strong>Edit</strong>:
+<ul>
+<li>Select the <strong>VPC</strong> that contains (or will contain) your
+EFS file system.</li>
+<li>Select the target <strong>Subnet</strong>. Ensure an EFS mount
+target exists in the Availability Zone associated with this subnet.</li>
+</ul></li>
+</ol>
+<h3 id="2-add-the-efs-file-system-in-configure-storage">2. Add the EFS
+File System in Configure Storage</h3>
+<ol type="1">
+<li>Scroll down to the <strong>Configure storage</strong> section.</li>
+<li>Locate the <strong>File systems</strong> subsection (Directly below
+the EBS root volume configuration) and click <strong>Edit</strong> if it
+is not already expanded.</li>
+<li>Ensure the <strong>EFS</strong> tab is selected and click
+<strong>Add shared file system</strong> (or <strong>Create file
+system</strong> if you do not have an existing one).</li>
+<li>Configure the attachment options:
+<ul>
+<li><strong>File system:</strong> Select your existing EFS file system
+from the dropdown list.</li>
+<li><strong>Mount point:</strong> Specify the absolute path on the EC2
+instance where the file system will be mounted. By default, AWS assigns
+<code>/mnt/efs/fs1</code>.</li>
+<li><strong>Automatically create and attach security groups:</strong>
+Keep this box checked to have AWS automatically create and assign client
+and mount target security groups that allow inbound and outbound TCP
+traffic on port <span class="math inline">\(2049\)</span>.</li>
+<li><strong>Automatically mount shared file system by attaching required
+user data script:</strong> Keep this box checked. This option automates
+the <code>/etc/fstab</code> configuration and initial mount
+process.</li>
+<li><strong>Encryption in transit:</strong> Check this box (enabled by
+default) to mount the file system using Transport Layer Security (TLS)
+via the <code>efs</code> mount helper.</li>
+</ul></li>
+</ol>
+<h3 id="3-review-generated-user-data-and-launch">3. Review Generated
+User Data and Launch</h3>
+<p>If you expand the <strong>Advanced details</strong> section at the
+bottom of the launch wizard and scroll to <strong>User data</strong>,
+you can inspect the exact <code>cloud-init</code> configuration
+generated by the wizard. Click <strong>Launch instance</strong> to
+provision the instance.</p>
+<h2 id="how-the-automated-user-data-script-works">How the Automated User
+Data Script Works</h2>
+<p>When you enable automatic mounting in the wizard, EC2 injects a
+multi-part <code>cloud-init</code> configuration into the instance user
+data. Below is an example of the configuration generated for an EFS file
+system with ID <code>fs-0123456789abcdef0</code> mounted at
+<code>/mnt/efs/fs1</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#cloud-config</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">package_update</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">package_upgrade</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">runcmd</span><span class="kw">:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> yum install -y amazon-efs-utils</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> apt-get -y install amazon-efs-utils</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> yum install -y nfs-utils</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> apt-get -y install nfs-common</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> file_system_id_1=fs-0123456789abcdef0</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> efs_mount_point_1=/mnt/efs/fs1</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> mkdir -p &quot;${efs_mount_point_1}&quot;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> test -f &quot;/sbin/mount.efs&quot; &amp;&amp; printf &quot;\n${file_system_id_1}:/ ${efs_mount_point_1} efs tls,_netdev\n&quot; &gt;&gt; /etc/fstab || printf &quot;\n${file_system_id_1}.efs.us-east-1.amazonaws.com:/ ${efs_mount_point_1} nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev 0 0\n&quot; &gt;&gt; /etc/fstab</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> test -f &quot;/sbin/mount.efs&quot; &amp;&amp; grep -ozP &#39;client-info]\nsource&#39; &#39;/etc/amazon/efs/efs-utils.conf&#39;; if [ $? == 1 ]; then printf &quot;\n[client-info]\nsource=ec2\n&quot; &gt;&gt; /etc/amazon/efs/efs-utils.conf; fi;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> retryCnt=15; waitTime=30; while true; do mount -a -t efs,nfs4 defaults; if [ $? = 0 ] || [ $retryCnt -lt 1 ]; then echo File system mounted successfully; break; fi; echo File system not available, retrying to mount.; ((retryCnt--)); sleep $waitTime; done;</span></span></code></pre></div>
+<h3 id="breakdown-of-the-etcfstab-entry-and-mount-parameters">Breakdown
+of the <code>/etc/fstab</code> Entry and Mount Parameters</h3>
+<p>The script checks for the presence of <code>/sbin/mount.efs</code>
+(installed by <code>amazon-efs-utils</code>). Depending on whether the
+helper is available, it appends one of two lines to
+<code>/etc/fstab</code>:</p>
+<ol type="1">
+<li><p><strong>With EFS Mount Helper (<code>/sbin/mount.efs</code>
+present):</strong></p>
+<pre class="text"><code>fs-0123456789abcdef0:/ /mnt/efs/fs1 efs tls,_netdev</code></pre>
+<ul>
+<li><code>efs</code>: Uses the <code>amazon-efs-utils</code> mount
+helper type.</li>
+<li><code>tls</code>: Enforces encryption of data in transit using TLS
+<span class="math inline">\(1.2\)</span> or higher.</li>
+<li><code>_netdev</code>: Prevents the operating system from attempting
+to mount the file system until networking has been enabled on the
+instance, avoiding boot hangs.</li>
+</ul></li>
+<li><p><strong>Fallback to Standard NFSv4.1
+(<code>/sbin/mount.efs</code> absent):</strong></p>
+<pre class="text"><code>fs-0123456789abcdef0.efs.us-east-1.amazonaws.com:/ /mnt/efs/fs1 nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev 0 0</code></pre>
+<ul>
+<li><code>rsize=1048576</code> and <code>wsize=1048576</code>: Sets the
+maximum read and write buffer sizes to <span
+class="math inline">\(2^{20} = 1048576\text{ bytes}\)</span> (<span
+class="math inline">\(1\text{ MiB}\)</span>) for optimal
+throughput.</li>
+<li><code>hard</code>: Ensures that if the EFS mount target becomes
+temporarily unreachable, I/O operations retry indefinitely rather than
+failing and corrupting application data.</li>
+<li><code>timeo=600</code>: Sets the timeout duration to <span
+class="math inline">\(600\text{ deciseconds}\)</span> (<span
+class="math inline">\(60\text{ seconds}\)</span>) before retrying an NFS
+request.</li>
+<li><code>retrans=2</code>: Sets the number of retries to <span
+class="math inline">\(2\)</span> before alerting that the server is not
+responding.</li>
+<li><code>noresvport</code>: Instructs the NFS client to use a new
+ephemeral TCP source port if a network reconnection occurs, ensuring
+uninterrupted availability after a recovery event.</li>
+</ul></li>
+</ol>
+<p>The retry loop at the end of the <code>runcmd</code> block attempts
+to run <code>mount -a -t efs,nfs4 defaults</code> up to <span
+class="math inline">\(N = 15\)</span> times with a delay of <span
+class="math inline">\(\Delta t = 30\text{ seconds}\)</span> between
+attempts, allowing a maximum wait window of:</p>
+<p><span class="math display">\[T_{\text{max}} = N \times \Delta t = 15
+\times 30\text{ s} = 450\text{ seconds}\]</span></p>
+<p>This <span class="math inline">\(7.5\text{-minute}\)</span> window
+ensures that even if a brand-new EFS file system and its mount targets
+are still initializing when the EC2 instance finishes booting, the mount
+command will succeed as soon as the mount target transitions to the
+<code>available</code> state.</p>
+<h2 id="verifying-the-mount-and-etcfstab-configuration">Verifying the
+Mount and <code>/etc/fstab</code> Configuration</h2>
+<p>Once your EC2 instance is running, connect to it via SSH or Session
+Manager and run the following commands to verify the setup:</p>
+<ol type="1">
+<li><p><strong>Check that the file system is mounted:</strong></p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">df</span> <span class="at">-hT</span> /mnt/efs/fs1</span></code></pre></div>
+<p>You should see <code>/mnt/efs/fs1</code> mounted with type
+<code>nfs4</code> (both <code>mount.efs</code> with TLS and standard NFS
+mounts report <code>nfs4</code> in <code>df</code>).</p></li>
+<li><p><strong>Verify the <code>/etc/fstab</code> entry:</strong></p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> /etc/fstab</span></code></pre></div>
+<p>Confirm that the line
+<code>fs-xxxxxxxxxxxxxxxxx:/ /mnt/efs/fs1 efs tls,_netdev</code> is
+present at the bottom of the file.</p></li>
+<li><p><strong>Test reboot persistence without rebooting:</strong></p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> umount /mnt/efs/fs1</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount <span class="at">-av</span></span></code></pre></div>
+<p>If <code>mount -av</code> remounts <code>/mnt/efs/fs1</code> without
+errors, your <code>/etc/fstab</code> configuration is valid and will
+persist across instance stops, starts, and reboots.</p></li>
+<li><p><strong>Check <code>cloud-init</code> logs if the mount
+failed:</strong> If <code>/mnt/efs/fs1</code> is empty or unmounted
+right after launch, inspect the execution log to diagnose package
+installation or security group connectivity issues:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> cat /var/log/cloud-init-output.log</span></code></pre></div></li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-attach-amazon-efs-in-ec-2-launch-wizard';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

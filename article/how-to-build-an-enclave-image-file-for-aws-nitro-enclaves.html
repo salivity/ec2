@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Build an Enclave Image File for AWS Nitro Enclaves? - ec2</title>
+    <meta name="description" content="Building and packaging a Docker container image into an Enclave Image File for Amazon EC2 Nitro Enclaves requires preparing a compatible container image and converting it using the AWS Nitro Enclaves Command Line Interface. This guide outlines the hardwar">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-build-an-enclave-image-file-for-aws-nitro-enclaves">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Build an Enclave Image File for AWS Nitro Enclaves? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-build-an-enclave-image-file-for-aws-nitro-enclaves" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Building and packaging a Docker container image into an Enclave Image File for Amazon EC2 Nitro Enclaves requires preparing a compatible container image and converting it using the AWS Nitro Enclaves Command Line Interface. This guide outlines the hardwar" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-build-an-enclave-image-file-for-aws-nitro-enclaves">How
+to Build an Enclave Image File for AWS Nitro Enclaves?</h1>
+<p>Building and packaging a Docker container image into an Enclave Image
+File for Amazon EC2 Nitro Enclaves requires preparing a compatible
+container image and converting it using the AWS Nitro Enclaves Command
+Line Interface. This guide outlines the hardware prerequisites,
+installation steps, container configuration requirements, and the build
+commands needed to generate a signed or unsigned Enclave Image File
+along with its cryptographic measurements for attestation.</p>
+<h2 id="prerequisites-and-instance-configuration">Prerequisites and
+Instance Configuration</h2>
+<p>To build and run an Enclave Image File (EIF), you need an Amazon EC2
+instance that supports AWS Nitro Enclaves, or a compatible Linux build
+environment with Docker installed. While you can build an EIF on any
+x86_64 or ARM64 Linux machine with Docker and the Nitro CLI installed,
+running the enclave requires a parent EC2 instance launched with the
+Nitro Enclaves option enabled.</p>
+<p>Before starting the build process, ensure your environment meets the
+following criteria:</p>
+<ul>
+<li>An Amazon Linux 2, Amazon Linux 2023, or Ubuntu Linux host matching
+the target CPU architecture (<code>x86_64</code> or
+<code>aarch64</code>).</li>
+<li>Docker Engine installed, running, and accessible by your current
+user account.</li>
+<li>Sufficient disk space to hold both the uncompressed Docker image
+layers and the resulting <code>.eif</code> file (the final EIF size is
+roughly equal to the uncompressed container image size plus kernel and
+initramfs overhead, <span class="math inline">\(S_{\text{EIF}} \approx
+S_{\text{image}} + S_{\text{kernel}} +
+S_{\text{initramfs}}\)</span>).</li>
+</ul>
+<h2 id="installing-the-aws-nitro-enclaves-cli-and-docker">Installing the
+AWS Nitro Enclaves CLI and Docker</h2>
+<p>On Amazon Linux 2023, you can install the AWS Nitro Enclaves CLI and
+Docker directly from the standard system repositories:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> aws-nitro-enclaves-cli aws-nitro-enclaves-cli-devel docker</span></code></pre></div>
+<p>On Amazon Linux 2, use the Amazon Extras library to install the
+required packages:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> amazon-linux-extras install aws-nitro-enclaves-cli <span class="at">-y</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> yum install <span class="at">-y</span> aws-nitro-enclaves-cli-devel docker</span></code></pre></div>
+<p>After installing the packages, add your user to the <code>ne</code>
+and <code>docker</code> security groups so you can execute build
+commands without elevated root privileges, and start the Docker
+service:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> usermod <span class="at">-aG</span> ne <span class="va">$USER</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> usermod <span class="at">-aG</span> docker <span class="va">$USER</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl enable <span class="at">--now</span> docker</span></code></pre></div>
+<p>Log out and log back in for the group membership changes to take
+effect. Verify the installation by checking the version of the CLI
+tool:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">nitro-cli</span> <span class="at">--version</span></span></code></pre></div>
+<h2 id="creating-a-compatible-docker-container-image">Creating a
+Compatible Docker Container Image</h2>
+<p>An enclave has no persistent storage, no external network interface
+(no TCP/IP stack connected to the internet or VPC), and no interactive
+shell access. Instead, it communicates exclusively with its parent EC2
+instance over a local virtual socket (<code>vsock</code>)
+connection.</p>
+<p>When authoring a <code>Dockerfile</code> for a Nitro Enclave, keep
+the following constraints in mind:</p>
+<ol type="1">
+<li><strong>Entrypoint or CMD is required:</strong> The
+<code>nitro-cli build-enclave</code> command extracts the
+<code>ENTRYPOINT</code> or <code>CMD</code> directive from the Docker
+image metadata and uses it as the initial process started inside the
+enclave.</li>
+<li><strong>Self-contained dependencies:</strong> All libraries,
+binaries, and static assets must be baked directly into the container
+image because the enclave cannot download packages at runtime.</li>
+<li><strong>Read-only root filesystem considerations:</strong> The
+enclave root filesystem runs entirely in memory
+(<code>initramfs</code>). Ensure your application writes temporary data
+to <code>/tmp</code> or <code>/run</code> and respects the memory
+allocation assigned to the enclave.</li>
+</ol>
+<p>Below is an example of a Python application (<code>app.py</code>)
+that listens on a <code>vsock</code> port inside the enclave, followed
+by its corresponding <code>Dockerfile</code>:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> socket</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>VSOCK_PORT <span class="op">=</span> <span class="dv">5000</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>VMADDR_CID_ANY <span class="op">=</span> <span class="bn">0xFFFFFFFF</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    s.bind((VMADDR_CID_ANY, VSOCK_PORT))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    s.listen()</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Listening on vsock port </span><span class="sc">{</span>VSOCK_PORT<span class="sc">}</span><span class="ss">...&quot;</span>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="va">True</span>:</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        conn, addr <span class="op">=</span> s.accept()</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        data <span class="op">=</span> conn.recv(<span class="dv">1024</span>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> data:</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>            conn.sendall(<span class="st">b&quot;Ack: &quot;</span> <span class="op">+</span> data)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        conn.close()</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
+<p>Create a <code>Dockerfile</code> in the same directory:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode dockerfile"><code class="sourceCode dockerfile"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> public.ecr.aws/amazonlinux/amazonlinux:2023</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">dnf</span> install <span class="at">-y</span> python3 <span class="kw">&amp;&amp;</span> <span class="ex">dnf</span> clean all</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WORKDIR</span> /app</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">COPY</span> app.py /app/app.py</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">CMD</span> [<span class="st">&quot;python3&quot;</span>, <span class="st">&quot;/app/app.py&quot;</span>]</span></code></pre></div>
+<p>Build the local Docker image using the standard Docker build
+command:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> build <span class="at">-t</span> vsock-sample:latest .</span></code></pre></div>
+<h2 id="packaging-the-docker-image-into-an-enclave-image-file">Packaging
+the Docker Image into an Enclave Image File</h2>
+<p>Once the Docker image is present in your local Docker daemon or
+accessible in a remote container registry, use the
+<code>nitro-cli build-enclave</code> command to package it into an
+Enclave Image File (<code>.eif</code>).</p>
+<p>Run the following command to convert the
+<code>vsock-sample:latest</code> Docker image into an EIF named
+<code>vsock-sample.eif</code>:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">nitro-cli</span> build-enclave <span class="dt">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--docker-uri</span> vsock-sample:latest <span class="dt">\</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output-file</span> vsock-sample.eif</span></code></pre></div>
+<p>If you have a <code>Dockerfile</code> and want <code>nitro-cli</code>
+to build the Docker image and convert it in a single step, you can also
+pass the <code>--docker-dir</code> flag pointing to the build context
+directory alongside <code>--docker-uri</code>:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">nitro-cli</span> build-enclave <span class="dt">\</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--docker-dir</span> ./ <span class="dt">\</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--docker-uri</span> vsock-sample:latest <span class="dt">\</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output-file</span> vsock-sample.eif</span></code></pre></div>
+<p>During the build process, <code>nitro-cli</code> pulls or inspects
+the container layers, flattens the filesystem into an initial RAM
+filesystem (<code>initramfs</code>), bundles the Nitro Enclaves Linux
+kernel and bootstrap init process, and writes the final binary image to
+<code>vsock-sample.eif</code>.</p>
+<h2 id="understanding-build-output-and-pcr-measurements">Understanding
+Build Output and PCR Measurements</h2>
+<p>When <code>nitro-cli build-enclave</code> finishes, it outputs a JSON
+object to standard output containing cryptographic Platform
+Configuration Register (PCR) measurements calculated using SHA-384:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Measurements&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;HashAlgorithm&quot;</span><span class="fu">:</span> <span class="st">&quot;Sha384 { ... }&quot;</span><span class="fu">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;PCR0&quot;</span><span class="fu">:</span> <span class="st">&quot;a1b2c3d4e5f6...&quot;</span><span class="fu">,</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;PCR1&quot;</span><span class="fu">:</span> <span class="st">&quot;112233445566...&quot;</span><span class="fu">,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;PCR2&quot;</span><span class="fu">:</span> <span class="st">&quot;998877665544...&quot;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Each register serves a specific purpose in cryptographic attestation
+and AWS Key Management Service (KMS) access policies:</p>
+<ul>
+<li><strong>PCR0 (Enclave Image):</strong> A cryptographic hash of the
+entire Enclave Image File, including the kernel, bootstrap binaries, and
+application filesystem. Any modification to the application code or base
+image changes <code>PCR0</code>.</li>
+<li><strong>PCR1 (Linux Kernel and Bootstrap):</strong> A hash of the
+kernel and boot ramfs provided by AWS Nitro Enclaves.</li>
+<li><strong>PCR2 (Application):</strong> A hash of the user space
+application root filesystem extracted from the Docker container image,
+excluding the kernel and bootstrap components.</li>
+</ul>
+<p>You can inspect an existing <code>.eif</code> file at any time
+without rebuilding it by running
+<code>nitro-cli describe-eif</code>:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">nitro-cli</span> describe-eif <span class="at">--eif-path</span> vsock-sample.eif</span></code></pre></div>
+<h2 id="signing-an-enclave-image-file-for-pcr8-attestation">Signing an
+Enclave Image File for PCR8 Attestation</h2>
+<p>In production workflows, updating an application changes
+<code>PCR0</code> and <code>PCR2</code>, which requires updating IAM or
+AWS KMS key policies that rely on those registers. To authorize enclaves
+by their build signer rather than a specific image hash, you can sign
+the EIF with an elliptic curve (ECDSA P-384) private key and an X.509
+certificate during the build phase. Signing populates
+<strong>PCR8</strong> with the hash of the signing certificate.</p>
+<p>First, generate an ECDSA P-384 private key and a self-signed
+certificate using OpenSSL:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> ecparam <span class="at">-name</span> secp384r1 <span class="at">-genkey</span> <span class="at">-out</span> signing-key.pem</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> req <span class="at">-new</span> <span class="at">-x509</span> <span class="at">-key</span> signing-key.pem <span class="at">-sha384</span> <span class="at">-days</span> 365 <span class="at">-out</span> signing-cert.pem <span class="at">-subj</span> <span class="st">&quot;/CN=EnclaveSigner&quot;</span></span></code></pre></div>
+<p>Next, run <code>nitro-cli build-enclave</code> with the
+<code>--private-key</code> and <code>--signing-certificate</code>
+flags:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">nitro-cli</span> build-enclave <span class="dt">\</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--docker-uri</span> vsock-sample:latest <span class="dt">\</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output-file</span> vsock-sample-signed.eif <span class="dt">\</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--private-key</span> signing-key.pem <span class="dt">\</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--signing-certificate</span> signing-cert.pem</span></code></pre></div>
+<p>The resulting JSON output will now include a <code>PCR8</code> value
+alongside <code>PCR0</code>, <code>PCR1</code>, and <code>PCR2</code>.
+You can reference <code>PCR8</code> in AWS KMS key policy conditions
+(<code>kms:RecipientAttestation:PCR8</code>) so any enclave image signed
+by your key and certificate is authorized to decrypt sensitive
+secrets.</p>
+<h2 id="verifying-and-running-the-enclave-image-file">Verifying and
+Running the Enclave Image File</h2>
+<p>To test the packaged <code>.eif</code> file on a Nitro
+Enclave-enabled EC2 instance, verify that the Nitro Enclaves allocator
+service is configured with sufficient memory and CPU cores in
+<code>/etc/nitro_enclaves/allocator.yaml</code>, restart the
+<code>nitro-enclaves-allocator.service</code>, and launch the
+enclave:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">nitro-cli</span> run-enclave <span class="dt">\</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--cpu-count</span> 2 <span class="dt">\</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--memory</span> 1024 <span class="dt">\</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--eif-path</span> vsock-sample.eif <span class="dt">\</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--debug-mode</span></span></code></pre></div>
+<p>Note that <code>--debug-mode</code> allows you to view standard
+output from the container via
+<code>nitro-cli console --enclave-id &lt;ENCLAVE_ID&gt;</code>, which is
+helpful during initial development and testing. However, when
+<code>--debug-mode</code> is enabled, the Nitro Hypervisor zeros out all
+PCR values in the attestation document (<span
+class="math inline">\(PCR_i = 0\)</span>), preventing production KMS
+attestation checks from succeeding until the flag is removed.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-build-an-enclave-image-file-for-aws-nitro-enclaves';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

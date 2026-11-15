@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which EC2 Instances and OS Support EFA OS-Bypass via Libfabric? - ec2</title>
+    <meta name="description" content="Amazon EC2 Elastic Fabric Adapter (EFA) provides OS-bypass capabilities through the Libfabric communications library across high-performance Linux operating systems and numerous compute-optimized, memory-optimized, accelerated computing, and general-purpo">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-ec-2-instances-and-os-support-efa-os-bypass-via-libfabric">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which EC2 Instances and OS Support EFA OS-Bypass via Libfabric? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-ec-2-instances-and-os-support-efa-os-bypass-via-libfabric" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Elastic Fabric Adapter (EFA) provides OS-bypass capabilities through the Libfabric communications library across high-performance Linux operating systems and numerous compute-optimized, memory-optimized, accelerated computing, and general-purpo" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="which-ec2-instances-and-os-support-efa-os-bypass-via-libfabric">Which
+EC2 Instances and OS Support EFA OS-Bypass via Libfabric?</h1>
+<p>Amazon EC2 Elastic Fabric Adapter (EFA) provides OS-bypass
+capabilities through the Libfabric communications library across
+high-performance Linux operating systems and numerous compute-optimized,
+memory-optimized, accelerated computing, and general-purpose EC2
+instance families. By routing packets directly from user-space
+applications to the custom-built Nitro network hardware, EFA eliminates
+kernel context-switching overhead, significantly reducing network
+latency and maximizing throughput for tightly coupled High Performance
+Computing (HPC) and distributed Machine Learning (ML) workloads. This
+article details the architecture of EFA OS-bypass via Libfabric, lists
+the supported Amazon EC2 instance families, outlines compatible
+operating systems, and explains how the software stack enables
+low-latency communication at scale.</p>
+<h2 id="how-efa-os-bypass-and-libfabric-work-together">How EFA OS-Bypass
+and Libfabric Work Together</h2>
+<p>Traditional TCP/IP networking requires applications to invoke system
+calls that transition execution from user space to the operating system
+kernel. The kernel processes network headers, manages socket buffers,
+and handles interrupts before passing data to the network interface card
+(NIC). While reliable for general-purpose workloads, this path
+introduces microsecond-level latency jitter and consumes CPU cycles that
+could otherwise be dedicated to computation.</p>
+<p>Elastic Fabric Adapter overcomes this bottleneck using an
+architecture known as <strong>OS-bypass</strong>. Through the
+OpenFabrics Interfaces (OFI) <strong>Libfabric</strong> API, user-space
+libraries communicate directly with the EFA hardware queues managed by
+the AWS Nitro System:</p>
+<ol type="1">
+<li><strong>User-Space Queue Management</strong>: When an application
+initializes communication via MPI (such as Open MPI or Intel MPI) or
+collective communication libraries (such as AWS OFI NCCL for PyTorch and
+TensorFlow), Libfabric allocates send, receive, and completion queues
+directly in user-space memory.</li>
+<li><strong>Direct Memory Access (DMA) and RDMA</strong>: The EFA
+provider (<code>ofi_efa</code>) within Libfabric registers memory
+regions with the EFA device. Data transfers occur via DMA and Remote
+Direct Memory Access (RDMA) read/write operations without copying
+buffers through the OS kernel.</li>
+<li><strong>Scalable Reliable Datagram (SRD)</strong>: EFA relies on the
+AWS-engineered Scalable Reliable Datagram (SRD) protocol in the Nitro
+hardware. Unlike traditional InfiniBand, which struggles with congestion
+over Equal-Cost Multi-Path (ECMP) routing, SRD sprays packets across
+multiple network paths simultaneously and handles out-of-order delivery
+and retransmissions directly in hardware.</li>
+</ol>
+<p>The effective latency <span
+class="math inline">\(L_{\text{total}}\)</span> in an OS-bypass model
+eliminates the kernel traversal time <span
+class="math inline">\(T_{\text{kernel}}\)</span>, leaving only the
+user-space library serialization <span
+class="math inline">\(T_{\text{lib}}\)</span>, PCIe traversal <span
+class="math inline">\(T_{\text{PCIe}}\)</span>, and physical network
+propagation <span class="math inline">\(T_{\text{fabric}}\)</span>:</p>
+<p><span class="math display">\[L_{\text{total}} = T_{\text{lib}} + 2
+\cdot T_{\text{PCIe}} + T_{\text{fabric}}\]</span></p>
+<h2 id="supported-operating-systems-for-efa-os-bypass">Supported
+Operating Systems for EFA OS-Bypass</h2>
+<p>Note that while all current-generation EC2 instances support the ENA
+(Elastic Network Adapter) driver for standard TCP/IP networking across
+almost any OS, <strong>OS-bypass via Libfabric on EFA</strong> requires
+specific operating system kernel drivers (<code>efa.ko</code> via
+<code>rdma-core</code>) and user-space libraries packaged in the
+official AWS EFA installer.</p>
+<h3 id="supported-linux-distributions">Supported Linux
+Distributions</h3>
+<p>AWS provides full OS-bypass support via the EFA installer on the
+following 64-bit (<code>x86_64</code> and <code>arm64</code> Graviton)
+Linux operating systems:</p>
+<ul>
+<li><strong>Amazon Linux</strong>: Amazon Linux 2023 (AL2023) and Amazon
+Linux 2 (AL2)</li>
+<li><strong>Ubuntu</strong>: Ubuntu 20.04 LTS, Ubuntu 22.04 LTS, and
+Ubuntu 24.04 LTS</li>
+<li><strong>Red Hat Enterprise Linux (RHEL)</strong>: RHEL 8 and RHEL 9
+(and compatible derivatives)</li>
+<li><strong>Rocky Linux</strong>: Rocky Linux 8 and Rocky Linux 9</li>
+<li><strong>AlmaLinux</strong>: AlmaLinux 8 and AlmaLinux 9</li>
+<li><strong>SUSE Linux Enterprise Server (SLES)</strong>: SLES 15 (SP4
+and later recommended for modern HPC stacks)</li>
+<li><strong>CentOS</strong>: CentOS 7 and CentOS Stream 8/9 (legacy
+support in earlier EFA installer releases)</li>
+</ul>
+<h3 id="windows-server-support-limitations">Windows Server Support
+Limitations</h3>
+<p>While EFA devices can be attached to certain Windows Server instances
+for standard IP networking, <strong>OS-bypass via Libfabric is not
+supported on Windows operating systems</strong>. Distributed workloads
+requiring EFA OS-bypass and SRD capabilities must run on one of the
+supported Linux distributions listed above, either natively on the host
+or inside privileged Linux containers (such as Docker,
+Singularity/Apptainer, or AWS Batch/EKS pods with
+<code>/dev/infiniband/uverbs*</code> device pass-through).</p>
+<h2 id="supported-amazon-ec2-instance-families">Supported Amazon EC2
+Instance Families</h2>
+<p>EFA OS-bypass support is available primarily on large and bare-metal
+(<code>metal</code>) instance sizes, though many newer generations (such
+as 7th and 8th generation instances) also support EFA on smaller
+virtualized sizes down to <code>4xlarge</code> or
+<code>8xlarge</code>.</p>
+<h3 id="1-accelerated-computing-instances-ml--gpu-hpc">1. Accelerated
+Computing Instances (ML &amp; GPU HPC)</h3>
+<p>Accelerated computing instances frequently pair EFA with multiple
+GPUs or custom AI accelerators, using multiple EFA attachments per
+instance to achieve up to <span class="math inline">\(3200\text{
+Gbps}\)</span> of aggregate network bandwidth:</p>
+<ul>
+<li><strong>P-Family (NVIDIA GPU Accelerated)</strong>:
+<code>p3dn.24xlarge</code>, <code>p4d.24xlarge</code>,
+<code>p4de.24xlarge</code>, <code>p5.48xlarge</code>,
+<code>p5e.48xlarge</code>, <code>p5en.48xlarge</code></li>
+<li><strong>Trn-Family (AWS Trainium)</strong>:
+<code>trn1.32xlarge</code>, <code>trn1n.32xlarge</code>,
+<code>trn2.48xlarge</code></li>
+<li><strong>Inf-Family (AWS Inferentia)</strong>:
+<code>inf2.24xlarge</code>, <code>inf2.48xlarge</code></li>
+<li><strong>G-Family (Graphics &amp; ML Inference/Training)</strong>:
+<code>g4dn.8xlarge</code>, <code>g4dn.12xlarge</code>,
+<code>g4dn.16xlarge</code>, <code>g4dn.metal</code>,
+<code>g5.8xlarge</code>, <code>g5.12xlarge</code>,
+<code>g5.16xlarge</code>, <code>g5.24xlarge</code>,
+<code>g5.48xlarge</code>, <code>g6.8xlarge</code>,
+<code>g6.12xlarge</code>, <code>g6.16xlarge</code>,
+<code>g6.24xlarge</code>, <code>g6.48xlarge</code>,
+<code>g6e.8xlarge</code>, <code>g6e.12xlarge</code>,
+<code>g6e.16xlarge</code>, <code>g6e.24xlarge</code>,
+<code>g6e.48xlarge</code>, <code>dl1.24xlarge</code>,
+<code>dl2q.24xlarge</code></li>
+</ul>
+<h3 id="2-high-performance-computing-hpc-instances">2. High Performance
+Computing (HPC) Instances</h3>
+<p>Purpose-built for tightly coupled scientific simulations, weather
+forecasting, computational fluid dynamics (CFD), and finite element
+analysis:</p>
+<ul>
+<li><strong>Hpc6-Family</strong>: <code>hpc6a.48xlarge</code>,
+<code>hpc6id.32xlarge</code></li>
+<li><strong>Hpc7-Family</strong>: <code>hpc7a.12xlarge</code>,
+<code>hpc7a.24xlarge</code>, <code>hpc7a.48xlarge</code>,
+<code>hpc7a.96xlarge</code>, <code>hpc7g.4xlarge</code>,
+<code>hpc7g.8xlarge</code>, <code>hpc7g.16xlarge</code></li>
+</ul>
+<h3 id="3-compute-optimized-instances">3. Compute-Optimized
+Instances</h3>
+<p>Compute-optimized instances use EFA for CPU-based MPI workloads and
+high-throughput distributed processing:</p>
+<ul>
+<li><strong>C5-Family</strong>: <code>c5n.9xlarge</code>,
+<code>c5n.18xlarge</code>, <code>c5n.metal</code></li>
+<li><strong>C6-Family</strong>: <code>c6i.32xlarge</code>,
+<code>c6i.metal</code>, <code>c6id.32xlarge</code>,
+<code>c6id.metal</code>, <code>c6in.16xlarge</code>,
+<code>c6in.24xlarge</code>, <code>c6in.32xlarge</code>,
+<code>c6in.metal</code>, <code>c6a.32xlarge</code>,
+<code>c6a.48xlarge</code>, <code>c6a.metal</code>,
+<code>c6gn.16xlarge</code></li>
+<li><strong>C7-Family</strong>: <code>c7i.24xlarge</code>,
+<code>c7i.48xlarge</code>, <code>c7i.metal-24xl</code>,
+<code>c7i.metal-48xl</code>, <code>c7a.24xlarge</code>,
+<code>c7a.32xlarge</code>, <code>c7a.48xlarge</code>,
+<code>c7a.metal-48xl</code>, <code>c7g.16xlarge</code>,
+<code>c7g.metal</code>, <code>c7gd.16xlarge</code>,
+<code>c7gd.metal</code>, <code>c7gn.8xlarge</code>,
+<code>c7gn.12xlarge</code>, <code>c7gn.16xlarge</code>,
+<code>c7gn.metal</code></li>
+<li><strong>C8-Family</strong>: <code>c8g.24xlarge</code>,
+<code>c8g.48xlarge</code>, <code>c8g.metal-24xl</code>,
+<code>c8g.metal-48xl</code></li>
+</ul>
+<h3 id="4-memory-optimized-instances">4. Memory-Optimized Instances</h3>
+<p>Ideal for in-memory databases, electronic design automation (EDA),
+and large-memory scientific modeling:</p>
+<ul>
+<li><strong>R5-Family</strong>: <code>r5n.8xlarge</code> through
+<code>r5n.24xlarge</code>, <code>r5n.metal</code>,
+<code>r5dn.8xlarge</code> through <code>r5dn.24xlarge</code>,
+<code>r5dn.metal</code></li>
+<li><strong>R6-Family</strong>: <code>r6i.24xlarge</code>,
+<code>r6i.32xlarge</code>, <code>r6i.metal</code>,
+<code>r6id.24xlarge</code>, <code>r6id.32xlarge</code>,
+<code>r6id.metal</code>, <code>r6in.16xlarge</code>,
+<code>r6in.24xlarge</code>, <code>r6in.32xlarge</code>,
+<code>r6in.metal</code>, <code>r6idn.16xlarge</code>,
+<code>r6idn.24xlarge</code>, <code>r6idn.32xlarge</code>,
+<code>r6idn.metal</code>, <code>r6a.32xlarge</code>,
+<code>r6a.48xlarge</code>, <code>r6a.metal</code></li>
+<li><strong>R7-Family</strong>: <code>r7i.24xlarge</code>,
+<code>r7i.48xlarge</code>, <code>r7i.metal-24xl</code>,
+<code>r7i.metal-48xl</code>, <code>r7iz.16xlarge</code>,
+<code>r7iz.32xlarge</code>, <code>r7iz.metal-16xl</code>,
+<code>r7iz.metal-32xl</code>, <code>r7a.24xlarge</code>,
+<code>r7a.32xlarge</code>, <code>r7a.48xlarge</code>,
+<code>r7a.metal-48xl</code>, <code>r7g.16xlarge</code>,
+<code>r7g.metal</code>, <code>r7gd.16xlarge</code>,
+<code>r7gd.metal</code></li>
+<li><strong>R8-Family</strong>: <code>r8g.24xlarge</code>,
+<code>r8g.48xlarge</code>, <code>r8g.metal-24xl</code>,
+<code>r8g.metal-48xl</code></li>
+<li><strong>X2-Family (High Memory)</strong>:
+<code>x2idn.24xlarge</code>, <code>x2idn.32xlarge</code>,
+<code>x2idn.metal</code>, <code>x2iedn.24xlarge</code>,
+<code>x2iedn.32xlarge</code>, <code>x2iedn.metal</code>,
+<code>x2iezn.8xlarge</code>, <code>x2iezn.12xlarge</code>,
+<code>x2iezn.metal</code></li>
+<li><strong>U7i-Family (Ultra High Memory)</strong>:
+<code>u7i-12tb.224xlarge</code>, <code>u7in-16tb.224xlarge</code>,
+<code>u7in-24tb.224xlarge</code>, <code>u7in-32tb.224xlarge</code></li>
+</ul>
+<h3 id="5-general-purpose-and-storage-optimized-instances">5.
+General-Purpose and Storage-Optimized Instances</h3>
+<p>Used for balanced distributed applications, scale-out file systems
+(such as Lustre or WekaIO), and data-intensive analytics clusters:</p>
+<ul>
+<li><strong>M5-Family</strong>: <code>m5n.8xlarge</code> through
+<code>m5n.24xlarge</code>, <code>m5n.metal</code>,
+<code>m5dn.8xlarge</code> through <code>m5dn.24xlarge</code>,
+<code>m5dn.metal</code>, <code>m5zn.6xlarge</code>,
+<code>m5zn.12xlarge</code>, <code>m5zn.metal</code></li>
+<li><strong>M6-Family</strong>: <code>m6i.24xlarge</code>,
+<code>m6i.32xlarge</code>, <code>m6i.metal</code>,
+<code>m6id.24xlarge</code>, <code>m6id.32xlarge</code>,
+<code>m6id.metal</code>, <code>m6in.16xlarge</code>,
+<code>m6in.24xlarge</code>, <code>m6in.32xlarge</code>,
+<code>m6in.metal</code>, <code>m6idn.16xlarge</code>,
+<code>m6idn.24xlarge</code>, <code>m6idn.32xlarge</code>,
+<code>m6idn.metal</code>, <code>m6a.32xlarge</code>,
+<code>m6a.48xlarge</code>, <code>m6a.metal</code></li>
+<li><strong>M7-Family</strong>: <code>m7i.24xlarge</code>,
+<code>m7i.48xlarge</code>, <code>m7i.metal-24xl</code>,
+<code>m7i.metal-48xl</code>, <code>m7a.24xlarge</code>,
+<code>m7a.32xlarge</code>, <code>m7a.48xlarge</code>,
+<code>m7a.metal-48xl</code>, <code>m7g.16xlarge</code>,
+<code>m7g.metal</code>, <code>m7gd.16xlarge</code>,
+<code>m7gd.metal</code></li>
+<li><strong>M8-Family</strong>: <code>m8g.24xlarge</code>,
+<code>m8g.48xlarge</code>, <code>m8g.metal-24xl</code>,
+<code>m8g.metal-48xl</code></li>
+<li><strong>I-Family (Storage-Optimized)</strong>:
+<code>i3en.6xlarge</code>, <code>i3en.12xlarge</code>,
+<code>i3en.24xlarge</code>, <code>i3en.metal</code>,
+<code>i4i.16xlarge</code>, <code>i4i.32xlarge</code>,
+<code>i4i.metal</code>, <code>i4g.16xlarge</code>,
+<code>im4gn.16xlarge</code></li>
+</ul>
+<h2 id="verifying-efa-os-bypass-support-and-configuration">Verifying EFA
+OS-Bypass Support and Configuration</h2>
+<p>Once an EFA-enabled EC2 instance is launched with a supported Linux
+OS and an EFA network interface attached, you can verify that the kernel
+module, <code>rdma-core</code> user-space libraries, and Libfabric EFA
+provider are operational.</p>
+<h3 id="checking-the-libfabric-efa-provider">Checking the Libfabric EFA
+Provider</h3>
+<p>Run the <code>fi_info</code> utility included with the AWS EFA
+installer to query the active EFA Libfabric providers:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">fi_info</span> <span class="at">-p</span> efa</span></code></pre></div>
+<p>A properly configured instance returns output showing the
+<code>efa</code> provider supporting both <code>FI_EP_RDM</code>
+(Reliable Datagram endpoints, which utilize the hardware SRD protocol
+and support RDMA operations) and <code>FI_EP_DGRAM</code> (Datagram
+endpoints):</p>
+<pre class="text"><code>provider: efa
+    fabric: efa
+    domain: rdmap0s31-rdm
+    version: 121.0
+    type: FI_EP_RDM
+    protocol: FI_PROTO_EFA
+provider: efa
+    fabric: efa
+    domain: rdmap0s31-dgrm
+    version: 121.0
+    type: FI_EP_DGRAM
+    protocol: FI_PROTO_EFA</code></pre>
+<h3 id="querying-efa-support-via-aws-cli">Querying EFA Support via AWS
+CLI</h3>
+<p>Because AWS continuously expands EFA support to newly released EC2
+instance families and sizes, you can dynamically query the exact list of
+EFA-supported instances in your target AWS Region using the AWS CLI:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-instance-types <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--filters</span> Name=network-info.efa-supported,Values=true <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">&quot;InstanceTypes[*].[InstanceType, NetworkInfo.EfaInfo.MaximumEfaInterfaces, NetworkInfo.NetworkPerformance]&quot;</span> <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output</span> table</span></code></pre></div>
+<h2 id="key-requirements-for-enabling-os-bypass-in-production">Key
+Requirements for Enabling OS-Bypass in Production</h2>
+<p>To ensure your workloads actively use the OS-bypass path rather than
+falling back to standard TCP over ENA, verify the following
+configuration requirements:</p>
+<ul>
+<li><strong>Security Group Rules</strong>: An EFA-enabled security group
+must allow <strong>all inbound and outbound traffic</strong> (all
+protocols and ports) to and from itself. Because SRD operates directly
+over the Nitro fabric outside standard TCP/UDP port numbers, restrictive
+port rules will block OS-bypass traffic.</li>
+<li><strong>Placement Groups</strong>: Launch instances inside a
+<strong>Cluster Placement Group</strong> to minimize physical distance
+and switch hops between nodes.</li>
+<li><strong>Memory Locking Limits (<code>ulimit -l</code>)</strong>:
+Because OS-bypass pins user-space memory pages for DMA transfers, the
+operating system must allow locked memory (<code>memlock</code>) to be
+set to <code>unlimited</code> in <code>/etc/security/limits.conf</code>
+or container runtime configurations.</li>
+<li><strong>HugePages and GPUDirect RDMA</strong>: On GPU instances
+(<code>p4d</code>, <code>p5</code>, <code>g5</code>, <code>g6e</code>)
+and Trainium instances (<code>trn1</code>, <code>trn2</code>), install
+the <code>aws-ofi-nccl</code> plugin and NVIDIA
+<code>nvidia-peermem</code> (or Neuron runtime drivers) alongside
+Libfabric so that EFA can perform GPUDirect RDMA transfers directly
+between GPU HBM memory and the network card without staging through host
+system RAM.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-ec-2-instances-and-os-support-efa-os-bypass-via-libfabric';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

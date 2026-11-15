@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does Amazon FSx for Windows File Server Work on EC2? - ec2</title>
+    <meta name="description" content="Amazon FSx for Windows File Server provides fully managed, native Microsoft Windows file systems that allow fleets of Windows-based Amazon EC2 instances to concurrently access shared storage over the Server Message Block protocol. Built directly on Window">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-amazon-f-sx-for-windows-file-server-work-on-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does Amazon FSx for Windows File Server Work on EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-amazon-f-sx-for-windows-file-server-work-on-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon FSx for Windows File Server provides fully managed, native Microsoft Windows file systems that allow fleets of Windows-based Amazon EC2 instances to concurrently access shared storage over the Server Message Block protocol. Built directly on Window" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-amazon-fsx-for-windows-file-server-work-on-ec2">How
+Does Amazon FSx for Windows File Server Work on EC2?</h1>
+<p>Amazon FSx for Windows File Server provides fully managed, native
+Microsoft Windows file systems that allow fleets of Windows-based Amazon
+EC2 instances to concurrently access shared storage over the Server
+Message Block protocol. Built directly on Windows Server, this service
+delivers native NTFS features, Active Directory integration, and
+sub-millisecond latencies without requiring administrators to provision
+or patch underlying storage servers. By decoupling compute instances
+from stateful file data, organizations can scale EC2 fleets horizontally
+while maintaining consistent, high-performance access to shared
+application directories, user profiles, and enterprise content
+management workloads.</p>
+<h2 id="core-architecture-and-native-ntfs-support">Core Architecture and
+Native NTFS Support</h2>
+<p>Unlike storage gateways or Linux-based SMB emulators such as Samba,
+Amazon FSx for Windows File Server runs on native Windows Server
+software and formats its underlying storage volumes using the New
+Technology File System (NTFS). Because the file system is natively built
+on Windows, EC2 instances running Windows Server interact with the
+storage exactly as they would with an on-premises Windows file
+server.</p>
+<p>This native foundation ensures full compatibility with
+Windows-specific file system mechanics:</p>
+<ul>
+<li><strong>SMB Protocol Versions:</strong> Supports SMB versions 2.0
+through 3.1.1, including features like SMB Multichannel, SMB Direct, and
+end-to-end encryption in transit.</li>
+<li><strong>NTFS Security and ACLs:</strong> Enforces granular file and
+folder permissions using standard Windows Access Control Lists (ACLs)
+and Discretionary Access Control Lists (DACLs).</li>
+<li><strong>File Locking and Leasing:</strong> Provides native
+byte-range locking and opportunistic locks (oplocks) / SMB leases,
+preventing data corruption when multiple EC2 instances read and write to
+the same files concurrently.</li>
+<li><strong>Volume Shadow Copy Service (VSS):</strong> Enables end users
+and applications to view and restore previous versions of individual
+files directly from Windows File Explorer.</li>
+<li><strong>Data Deduplication:</strong> Reduces storage footprint for
+general-purpose file shares and software deployment repositories by
+identifying and eliminating duplicated blocks of data.</li>
+</ul>
+<h2 id="active-directory-integration-and-access-control">Active
+Directory Integration and Access Control</h2>
+<p>For an Amazon EC2 fleet to mount and authenticate against an FSx for
+Windows File Server file system, both the EC2 instances and the FSx file
+system must belong to a common Active Directory environment. Every SMB
+connection is authenticated using Kerberos (or NTLM where configured)
+and authorized against NTFS permissions and SMB share-level
+permissions.</p>
+<p>Amazon FSx supports two primary Active Directory integration
+patterns:</p>
+<ol type="1">
+<li><strong>AWS Managed Microsoft AD:</strong> Amazon FSx integrates
+directly with AWS Directory Service for Microsoft Active Directory. The
+file system joins the managed domain automatically during
+provisioning.</li>
+<li><strong>Self-Managed Active Directory:</strong> Organizations
+running Active Directory on-premises or on EC2 instances can connect FSx
+directly to their existing domain controllers over AWS Direct Connect,
+AWS Site-to-Site VPN, or VPC peering.</li>
+</ol>
+<p>Once joined to the domain, administrators manage share permissions
+and NTFS ACLs using standard Windows administration tools—such as the
+Shared Folders Microsoft Management Console (MMC) snap-in,
+<code>icacls</code>, or PowerShell commands—executed from any
+domain-joined EC2 instance.</p>
+<h2 id="deployment-topologies-single-az-vs-multi-az">Deployment
+Topologies: Single-AZ vs. Multi-AZ</h2>
+<p>To match the availability requirements of different EC2 fleets,
+Amazon FSx for Windows File Server offers two deployment options within
+an Amazon Virtual Private Cloud (VPC):</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Single-AZ Deployment</th>
+<th style="text-align: left;">Multi-AZ Deployment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Architecture</strong></td>
+<td style="text-align: left;">Active file server in a single
+Availability Zone with synchronous replication across multiple disks
+within that AZ.</td>
+<td style="text-align: left;">Active and standby file servers deployed
+across two separate Availability Zones with synchronous data
+replication.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Failover Mechanism</strong></td>
+<td style="text-align: left;">Automatic replacement of failed hardware
+components within the same AZ.</td>
+<td style="text-align: left;">Automatic failover and failback between
+the preferred and standby file servers (typically completing in under 30
+seconds).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SMB Continuous
+Availability</strong></td>
+<td style="text-align: left;">Standard SMB shares.</td>
+<td style="text-align: left;">Uses SMB Transparent Failover (Continuous
+Availability) so EC2 clients stay connected during failovers without
+losing in-flight I/O.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Primary Use Case</strong></td>
+<td style="text-align: left;">Cost-sensitive development, build fleets,
+or workloads that replicate data at the application layer.</td>
+<td style="text-align: left;">Mission-critical production EC2 fleets
+requiring high availability and cross-AZ resilience.</td>
+</tr>
+</tbody>
+</table>
+<p>In a Multi-AZ deployment, Amazon FSx provisions an Elastic Network
+Interface (ENI) in each of the two selected Availability Zones. Traffic
+is routed to the active file server via a managed VPC route table entry
+or DNS name, ensuring that EC2 instances across multiple Availability
+Zones maintain uninterrupted access even if an entire Availability Zone
+experiences an outage.</p>
+<h2 id="performance-mechanics-and-throughput-scaling">Performance
+Mechanics and Throughput Scaling</h2>
+<p>Amazon FSx separates storage capacity from throughput capacity,
+allowing architects to tune the file system specifically for the I/O
+profile of their EC2 fleet.</p>
+<h3 id="storage-media-options">Storage Media Options</h3>
+<ul>
+<li><strong>SSD Storage:</strong> Designed for latency-sensitive
+workloads, databases, IIS web server farms, and high-IOPS small-file
+processing, delivering sub-millisecond latencies.</li>
+<li><strong>HDD Storage:</strong> Designed for throughput-intensive,
+sequential workloads such as large home directories, media archives, and
+batch data processing.</li>
+</ul>
+<h3 id="throughput-capacity-and-in-memory-caching">Throughput Capacity
+and In-Memory Caching</h3>
+<p>The performance of an FSx file system is governed by two independent
+parameters: storage size and provisioned throughput capacity (measured
+in <span class="math inline">\(\text{MB/s}\)</span>). Provisioning a
+higher throughput tier does more than widen the network pipe between the
+file system and the EC2 fleet; it also provisions a proportionally
+larger dedicated file server with additional CPU cores and in-memory
+read cache.</p>
+<p>The total effective throughput available to an EC2 fleet follows the
+relationship:</p>
+<p><span class="math display">\[\text{Effective Read Throughput} =
+\min\left(\text{Network Bandwidth}, \text{Cache Read Bandwidth} +
+\text{Disk Read Bandwidth}\right)\]</span></p>
+<p>For frequently accessed active working sets that fit into the file
+server's in-memory cache, an EC2 fleet can drive read throughput
+significantly higher than the baseline disk performance, scaling up to
+several gigabytes per second and hundreds of thousands of IOPS. If
+workload demands change, both storage capacity and throughput capacity
+can be scaled dynamically without taking the file shares offline.</p>
+<h2 id="scaling-across-large-ec2-fleets-with-dfs-namespaces">Scaling
+Across Large EC2 Fleets with DFS Namespaces</h2>
+<p>When scaling Windows EC2 fleets to hundreds or thousands of
+instances, a single file system might eventually reach its capacity or
+throughput ceiling. Amazon FSx for Windows File Server natively supports
+Microsoft Distributed File System (DFS) Namespaces and DFS
+Replication.</p>
+<p>Using DFS Namespaces, administrators can create a unified, virtual
+directory tree (for example, <code>\\corp.example.com\appdata</code>)
+that abstracts the underlying physical file systems. Behind a single
+namespace, multiple Amazon FSx file systems can be linked as folder
+targets, enabling horizontal scaling across hundreds of petabytes of
+storage while presenting a single, consistent mount path to the entire
+EC2 fleet.</p>
+<h2 id="mounting-shares-across-an-ec2-fleet">Mounting Shares Across an
+EC2 Fleet</h2>
+<p>Because Amazon FSx exposes standard SMB endpoints over the VPC
+network, Windows EC2 instances can mount shares at boot time, via Group
+Policy Objects (GPO), EC2 User Data scripts, or AWS Systems Manager
+State Manager.</p>
+<p>To map a file share persistently from a Windows EC2 instance using
+PowerShell, execute the following command:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>New-SmbMapping <span class="op">-</span>LocalPath <span class="st">&quot;Z:&quot;</span> <span class="op">-</span>RemotePath <span class="st">&quot;\\amznfsx12345678.corp.example.com\share&quot;</span> <span class="op">-</span>Persistent <span class="va">$true</span></span></code></pre></div>
+<p>For Windows services or IIS application pools running on EC2
+instances that access the share without an interactive user session,
+applications can reference the Universal Naming Convention (UNC) path
+(<code>\\amznfsx12345678.corp.example.com\share</code>) directly using a
+domain service account or a Group Managed Service Account (gMSA)
+configured with the appropriate NTFS permissions.</p>
+<h2 id="automated-data-protection-and-backups">Automated Data Protection
+and Backups</h2>
+<p>To protect shared data modified by EC2 fleets, Amazon FSx takes
+automated daily backups during a configurable backup window and allows
+administrators to trigger manual backups at any time. Backups use
+storage-level snapshots that are incremental, crash-consistent, and
+stored durably in Amazon S3 across multiple Availability Zones. Because
+backups occur at the block level without consuming file server I/O, they
+do not degrade the SMB performance experienced by active EC2
+instances.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-amazon-f-sx-for-windows-file-server-work-on-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

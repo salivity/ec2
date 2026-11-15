@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Does Rebooting an EC2 Instance Erase NVMe Instance Store Data? - ec2</title>
+    <meta name="description" content="When an Amazon EC2 instance equipped with local NVMe instance store volumes is rebooted from inside the guest operating system, all data stored on those volumes is preserved. Unlike stopping or terminating an instance, an operating system level reboot mai">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/does-rebooting-an-ec-2-instance-erase-nv-me-instance-store-data">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Does Rebooting an EC2 Instance Erase NVMe Instance Store Data? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/does-rebooting-an-ec-2-instance-erase-nv-me-instance-store-data" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When an Amazon EC2 instance equipped with local NVMe instance store volumes is rebooted from inside the guest operating system, all data stored on those volumes is preserved. Unlike stopping or terminating an instance, an operating system level reboot mai" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="does-rebooting-an-ec2-instance-erase-nvme-instance-store-data">Does
+Rebooting an EC2 Instance Erase NVMe Instance Store Data?</h1>
+<p>When an Amazon EC2 instance equipped with local NVMe instance store
+volumes is rebooted from inside the guest operating system, all data
+stored on those volumes is preserved. Unlike stopping or terminating an
+instance, an operating system level reboot maintains the instance on the
+same underlying physical host hardware, ensuring that the temporary
+block-level storage remains intact and accessible once the system
+finishes restarting. This article explores the mechanics of EC2 instance
+store persistence, the critical differences between rebooting and
+stopping an instance, how hardware encryption behaves during a restart,
+and the operating system configurations required to automatically
+remount NVMe volumes upon boot.</p>
+<h2
+id="understanding-ec2-nvme-instance-store-architecture">Understanding
+EC2 NVMe Instance Store Architecture</h2>
+<p>An Amazon EC2 instance store provides temporary block-level storage
+for your instance. Unlike Amazon Elastic Block Store (EBS), which is
+network-attached storage that persists independently of the compute
+lifecycle, instance store volumes are physically attached to the host
+computer that runs the EC2 instance. On modern EC2 instance families
+(such as Nitro-based instances), these volumes are backed by
+Non-Volatile Memory Express (NVMe) solid-state drives (SSDs) that
+deliver high random I/O performance and very low latency.</p>
+<p>Because the storage media is directly connected to the physical host
+server's PCIe bus, the lifecycle of the data on an NVMe instance store
+volume is strictly bound to the lifecycle of the instance's association
+with that specific physical host. As long as the virtual machine remains
+scheduled on the same physical hardware and the underlying drive does
+not fail, the data on the NVMe devices remains intact.</p>
+<h2 id="guest-os-reboots-vs-api-reboots">Guest OS Reboots vs API
+Reboots</h2>
+<p>When you initiate a reboot from inside the guest operating
+system—using commands such as <code>sudo reboot</code>,
+<code>sudo shutdown -r now</code>, or <code>systemctl reboot</code> on
+Linux, or <code>Restart-Computer</code> on Windows—the operating system
+cleanly shuts down running services, flushes file system buffers to the
+disk, and instructs the virtual machine firmware to reset.</p>
+<p>From the perspective of the AWS Nitro hypervisor, a guest-initiated
+reboot is identical in outcome to an API-initiated reboot
+(<code>aws ec2 reboot-instances</code>). In both scenarios:</p>
+<ol type="1">
+<li><strong>Physical Host Persistence:</strong> The EC2 instance stays
+on the exact same physical host server. It is not migrated to another
+hardware node in the data center.</li>
+<li><strong>Network and Storage Continuity:</strong> The instance
+retains its private and public IPv4 addresses, IPv6 addresses, network
+interfaces, and direct physical mapping to the local NVMe SSDs.</li>
+<li><strong>Power State:</strong> The underlying NVMe drives remain
+powered on and connected to the host throughout the guest restart
+sequence.</li>
+<li><strong>Billing Continuity:</strong> No new billing transition
+occurs because the instance never leaves the <code>running</code> state
+in the AWS control plane (though it briefly appears unreachable over the
+network while the OS kernel reloads).</li>
+</ol>
+<h2 id="what-happens-to-nvme-encryption-keys-during-a-reboot">What
+Happens to NVMe Encryption Keys During a Reboot?</h2>
+<p>Data on NVMe instance store volumes is automatically encrypted using
+an XTS-AES-256 block cipher implemented directly in hardware on the
+Nitro controller module. Each NVMe instance store device has its own
+unique encryption key generated when the instance is first launched and
+assigned to the host hardware.</p>
+<p>During an in-guest reboot, these hardware encryption keys are
+<strong>not</strong> destroyed or regenerated. Because the instance
+remains active in its <code>running</code> placement slot on the Nitro
+card, the hardware encryption module retains the cryptographic keys in
+volatile controller memory. When the guest operating system boots back
+up and the NVMe driver initializes <code>/dev/nvme1n1</code> (or
+equivalent device nodes), the controller seamlessly decrypts blocks read
+from the drive just as it did prior to the reboot.</p>
+<p>Encryption keys are only destroyed when the instance enters the
+<code>stopped</code> or <code>terminated</code> state, or if the
+underlying physical disk experiences an unrecoverable hardware
+failure.</p>
+<h2 id="comparing-ec2-lifecycle-actions-and-data-persistence">Comparing
+EC2 Lifecycle Actions and Data Persistence</h2>
+<p>Understanding which lifecycle transitions preserve or wipe local NVMe
+storage is critical for preventing unintended data loss.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Lifecycle Action</th>
+<th style="text-align: left;">Moves to New Host?</th>
+<th style="text-align: left;">Encryption Keys Wiped?</th>
+<th style="text-align: left;">NVMe Data Preserved?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Guest OS Reboot (<code>reboot</code> /
+<code>shutdown -r</code>)</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;">EC2 API Reboot
+(<code>RebootInstances</code>)</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;">Guest OS Shutdown
+(<code>shutdown -h</code> / <code>poweroff</code>)</td>
+<td style="text-align: left;">Yes (upon next start)</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;">EC2 API Stop
+(<code>StopInstances</code>)</td>
+<td style="text-align: left;">Yes (upon next start)</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;">EC2 API Hibernate
+(<code>StopInstances --hibernate</code>)</td>
+<td style="text-align: left;">Yes (upon next start)</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No (RAM saved to EBS, NVMe wiped)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Instance Termination
+(<code>TerminateInstances</code>)</td>
+<td style="text-align: left;">N/A</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;">Underlying Host Hardware Failure</td>
+<td style="text-align: left;">Yes (if recovered)</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-danger-of-shutdown--h-or-poweroff-inside-the-guest">The
+Danger of <code>shutdown -h</code> or <code>poweroff</code> Inside the
+Guest</h3>
+<p>A common operational mistake occurs when an administrator executes
+<code>shutdown -h now</code> or <code>poweroff</code> instead of
+<code>reboot</code> from inside the guest operating system. By default,
+when an EBS-backed EC2 instance halts its operating system, the AWS
+hypervisor detects the ACPI power-down state and transitions the EC2
+instance state from <code>running</code> to <code>stopped</code> (or
+<code>terminated</code>, depending on the
+<code>InstanceInitiatedShutdownBehavior</code> attribute).</p>
+<p>Once the instance transitions to the <code>stopped</code> state:</p>
+<ul>
+<li>The instance is deallocated from the physical host.</li>
+<li>The Nitro controller destroys the NVMe hardware encryption keys,
+rendering all blocks on the local NVMe drives permanently
+unreadable.</li>
+<li>When you subsequently start the instance, it is provisioned on a new
+physical host with freshly wiped NVMe instance store volumes.</li>
+</ul>
+<h2 id="operating-system-considerations-upon-reboot">Operating System
+Considerations Upon Reboot</h2>
+<p>While the raw block data and file systems on the NVMe instance store
+volumes survive a guest OS reboot, the operating system does not
+automatically mount extra block devices unless explicitly configured to
+do so.</p>
+<h3 id="1-persistent-mounting-with-etcfstab">1. Persistent Mounting with
+<code>/etc/fstab</code></h3>
+<p>If you format and mount an NVMe instance store volume manually (for
+example, <code>mount /dev/nvme1n1 /mnt/ephemeral</code>), that mount
+exists only in the current kernel session. After a reboot, the data will
+still be sitting on <code>/dev/nvme1n1</code>, but
+<code>/mnt/ephemeral</code> will be an empty directory on the root
+volume until the drive is mounted again.</p>
+<p>To ensure the volume automatically remounts during the boot sequence,
+add an entry to <code>/etc/fstab</code> using the file system's UUID
+rather than the kernel device name:</p>
+<pre class="text"><code>UUID=12345678-abcd-1234-ef00-123456789abc  /mnt/ephemeral  xfs  defaults,nofail  0  2</code></pre>
+<h3 id="2-why-device-names-and-nofail-matter">2. Why Device Names and
+<code>nofail</code> Matter</h3>
+<p>On Linux kernels, NVMe device node names (<code>/dev/nvme0n1</code>,
+<code>/dev/nvme1n1</code>, <code>/dev/nvme2n1</code>) are assigned
+asynchronously as the PCIe bus is scanned during boot. If your instance
+has both EBS volumes (which also appear as NVMe devices on Nitro
+instances) and local NVMe instance store volumes,
+<code>/dev/nvme0n1</code> might become <code>/dev/nvme1n1</code> across
+reboots. Mounting by <code>UUID=</code> or file system
+<code>LABEL=</code> guarantees the operating system mounts the exact
+volume you intended.</p>
+<p>Additionally, including the <code>nofail</code> mount option in
+<code>/etc/fstab</code> is mandatory for operational safety on EC2. If
+the instance is ever stopped and started in the future (or recovered
+onto new hardware), the NVMe instance store volume will come up
+unformatted without a file system or matching UUID. Without
+<code>nofail</code>, the Linux boot process will halt in emergency mode
+waiting for the missing UUID, locking you out of SSH access.</p>
+<h3 id="3-automating-initialization-with-systemd-or-cloud-init">3.
+Automating Initialization with Systemd or Cloud-Init</h3>
+<p>Because an instance might eventually be stopped and started—which
+wipes the file system on the NVMe volume—many production environments
+configure a startup script or <code>systemd</code> unit that runs before
+application services start. This script checks if a valid file system
+exists on the local NVMe instance store device using <code>blkid</code>
+or <code>lsblk -f</code>:</p>
+<ul>
+<li><strong>On a standard reboot:</strong> The script sees the existing
+file system, skips formatting, and mounts the volume with all prior data
+intact.</li>
+<li><strong>After a stop/start cycle:</strong> The script detects an
+unformatted raw device, runs <code>mkfs.xfs</code> or
+<code>mkfs.ext4</code>, creates the required directory structure, and
+mounts the clean volume.</li>
+</ul>
+<h2 id="best-practices-for-workloads-using-nvme-instance-store">Best
+Practices for Workloads Using NVMe Instance Store</h2>
+<p>Even though NVMe instance store data survives in-guest reboots, it
+should always be treated as ephemeral storage. To maintain high
+availability and data durability:</p>
+<ul>
+<li><strong>Use for Scratch Data and Caches:</strong> Store temporary
+processing files, swap space, database buffer pool extensions, or
+read-through caches that can be reconstructed from durable sources (like
+Amazon S3 or Amazon EBS) if the host fails.</li>
+<li><strong>Replicate Across Availability Zones:</strong> If running
+distributed databases or stateful clusters (such as Apache Cassandra,
+Kafka, or Elasticsearch/OpenSearch) on NVMe instance store volumes, rely
+on application-level replication across multiple instances in separate
+Availability Zones so that a single host failure or stop event does not
+cause cluster-wide data loss.</li>
+<li><strong>Flush Buffers Before Forced Reboots:</strong> Always prefer
+graceful OS reboot commands (<code>sudo reboot</code>) over hard resets
+so the guest kernel can flush dirty pages from system memory
+(<code>pagecache</code>) and NVMe volatile write caches down to
+non-volatile NAND flash media before the reset occurs.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/does-rebooting-an-ec-2-instance-erase-nv-me-instance-store-data';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

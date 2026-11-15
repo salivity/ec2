@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does EC2 Dedicated Host vs Dedicated Instance Billing Work? - ec2</title>
+    <meta name="description" content="The primary billing difference between Amazon EC2 Dedicated Hosts and Dedicated Instances lies in the unit of charge and the presence of a regional fee. With Dedicated Hosts, you pay a fixed hourly rate for an entire physical server regardless of how many">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-ec-2-dedicated-host-vs-dedicated-instance-billing-work">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does EC2 Dedicated Host vs Dedicated Instance Billing Work? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-ec-2-dedicated-host-vs-dedicated-instance-billing-work" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The primary billing difference between Amazon EC2 Dedicated Hosts and Dedicated Instances lies in the unit of charge and the presence of a regional fee. With Dedicated Hosts, you pay a fixed hourly rate for an entire physical server regardless of how many" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="how-does-ec2-dedicated-host-vs-dedicated-instance-billing-work">How
+Does EC2 Dedicated Host vs Dedicated Instance Billing Work?</h1>
+<p>The primary billing difference between Amazon EC2 Dedicated Hosts and
+Dedicated Instances lies in the unit of charge and the presence of a
+regional fee. With Dedicated Hosts, you pay a fixed hourly rate for an
+entire physical server regardless of how many virtual instances you
+launch on it. With Dedicated Instances, you pay an hourly fee for each
+individual instance you run, plus a flat two-dollar per hour regional
+fee as long as at least one Dedicated Instance of any family is active
+in that AWS Region. Understanding these billing mechanics helps
+organizations optimize cloud infrastructure expenses when physical
+hardware isolation is required.</p>
+<h2 id="amazon-ec2-dedicated-hosts-billing-model">Amazon EC2 Dedicated
+Hosts Billing Model</h2>
+<p>When you allocate an Amazon EC2 Dedicated Host, AWS dedicates an
+entire physical server to your account. You are billed strictly per
+physical host on an hourly or per-second basis, depending on the
+instance family configuration and operating system.</p>
+<h3 id="fixed-hardware-capacity-pricing">Fixed Hardware Capacity
+Pricing</h3>
+<p>Once a Dedicated Host is allocated in your account, billing begins
+immediately, even if zero instances are currently running on it.
+However, launching instances onto an allocated Dedicated Host incurs no
+additional compute charges for the instances themselves. If a physical
+host has the capacity to run sixteen small instances or four large
+instances, the hourly compute cost remains identical whether the host is
+empty, partially utilized, or completely full.</p>
+<p>Let <span class="math inline">\(C_{\text{host}}\)</span> represent
+the hourly rate of a single Dedicated Host and <span
+class="math inline">\(H\)</span> represent the total number of allocated
+hosts. The total hourly compute cost <span
+class="math inline">\(T_{\text{host}}\)</span> is expressed as:</p>
+<p><span class="math display">\[T_{\text{host}} = H \times
+C_{\text{host}}\]</span></p>
+<p>Notice that the number of running instances <span
+class="math inline">\(N\)</span> does not appear in this equation,
+provided the instances fit within the physical capacity of the <span
+class="math inline">\(H\)</span> hosts.</p>
+<h3 id="software-licensing-impact-on-billing">Software Licensing Impact
+on Billing</h3>
+<p>A major financial advantage of the per-host billing model is its
+compatibility with Bring Your Own License (BYOL) software agreements.
+Because Dedicated Hosts provide visibility into the exact number of
+physical sockets and physical cores on the server, you can bind existing
+per-socket or per-core enterprise licenses—such as Windows Server, SQL
+Server, or Oracle—directly to the hardware. This avoids paying AWS for
+license-included instance rates.</p>
+<h2 id="amazon-ec2-dedicated-instances-billing-model">Amazon EC2
+Dedicated Instances Billing Model</h2>
+<p>Dedicated Instances also run on hardware dedicated to a single
+customer, but the management of the underlying physical servers is
+abstracted away by AWS. Consequently, the billing structure mirrors
+standard EC2 instance pricing with an additional surcharge for hardware
+isolation.</p>
+<h3 id="per-instance-usage-plus-regional-fee">Per-Instance Usage Plus
+Regional Fee</h3>
+<p>With Dedicated Instances, there are two distinct cost components:</p>
+<ol type="1">
+<li><strong>Per-Instance Hourly Rate:</strong> You pay for each running
+Dedicated Instance based on its instance type and size. This rate is
+typically slightly higher than standard shared-tenancy On-Demand
+instances.</li>
+<li><strong>Per-Region Hourly Fee:</strong> AWS charges a flat fee of
+<span class="math inline">\(\$2.00\)</span> per hour for each Region in
+which you have at least one running Dedicated Instance. Whether you run
+one Dedicated Instance or one hundred Dedicated Instances across
+multiple instance families within the same Region, this regional fee
+remains a flat <span class="math inline">\(\$2.00\)</span> per
+hour.</li>
+</ol>
+<p>Let <span class="math inline">\(N\)</span> be the number of active
+Dedicated Instances in a single Region, and <span
+class="math inline">\(C_i\)</span> be the hourly rate for the <span
+class="math inline">\(i\)</span>-th instance. For <span
+class="math inline">\(N \ge 1\)</span>, the total hourly compute cost
+<span class="math inline">\(T_{\text{instance}}\)</span> is:</p>
+<p><span class="math display">\[T_{\text{instance}} = 2.00 +
+\sum_{i=1}^{N} C_i\]</span></p>
+<p>If all Dedicated Instances in that Region are stopped or terminated
+(<span class="math inline">\(N = 0\)</span>), both the per-instance
+charges and the <span class="math inline">\(\$2.00\)</span> regional fee
+stop accruing.</p>
+<h2 id="cost-comparison-and-break-even-analysis">Cost Comparison and
+Break-Even Analysis</h2>
+<p>Choosing the most cost-effective option depends heavily on your
+hardware utilization rate and workload scale.</p>
+<h3 id="low-volume-or-variable-workloads">Low Volume or Variable
+Workloads</h3>
+<p>If you only need to run a few isolated instances or if your workload
+scales up and down frequently, Dedicated Instances are usually less
+expensive. Paying for one or two instances plus the <span
+class="math inline">\(\$2.00\)</span> regional fee costs significantly
+less than paying for an entire physical Dedicated Host that sits mostly
+idle. Furthermore, when traffic drops, terminating Dedicated Instances
+immediately scales your compute bill down, whereas a Dedicated Host
+continues to bill at 100% capacity until you terminate all instances on
+it and explicitly release the host.</p>
+<h3 id="high-volume-and-predictable-workloads">High Volume and
+Predictable Workloads</h3>
+<p>As you scale up the number of instances of the same family, Dedicated
+Hosts become much more economical. When you pack a Dedicated Host to
+near 100% capacity, the effective cost per instance drops below the
+per-instance rate of Dedicated Instances, and you avoid the <span
+class="math inline">\(\$2.00\)</span> regional fee entirely.</p>
+<p>To find the break-even point for a homogeneous fleet of instances of
+size <span class="math inline">\(s\)</span>, let <span
+class="math inline">\(K\)</span> be the maximum number of instances of
+size <span class="math inline">\(s\)</span> that can fit on a single
+Dedicated Host, and let <span class="math inline">\(C_s\)</span> be the
+hourly rate of a single Dedicated Instance of that same size. A single
+Dedicated Host becomes cheaper than running <span
+class="math inline">\(N\)</span> Dedicated Instances (where <span
+class="math inline">\(1 \le N \le K\)</span>) when:</p>
+<p><span class="math display">\[C_{\text{host}} &lt; 2.00 + (N \times
+C_s)\]</span></p>
+<p>Solving for <span class="math inline">\(N\)</span> gives the minimum
+number of instances required on a single host to justify per-host
+billing:</p>
+<p><span class="math display">\[N &gt; \frac{C_{\text{host}} -
+2.00}{C_s}\]</span></p>
+<h2 id="purchasing-options-and-discounts">Purchasing Options and
+Discounts</h2>
+<p>Both billing models support AWS commitment discounts, though they
+apply at different levels:</p>
+<ul>
+<li><strong>On-Demand:</strong> Pay by the hour or second with no
+long-term commitments. Dedicated Hosts charge while allocated; Dedicated
+Instances charge while running.</li>
+<li><strong>Savings Plans:</strong> Compute Savings Plans and EC2
+Instance Savings Plans apply to both Dedicated Hosts and Dedicated
+Instances, automatically reducing the hourly host rate or the
+per-instance rate in exchange for a 1-year or 3-year hourly spend
+commitment. Note that Savings Plans do not cover the <span
+class="math inline">\(\$2.00\)</span> per hour regional fee for
+Dedicated Instances unless there is sufficient commitment to cover
+usage, and typically the regional fee is billed separately from standard
+instance compute rates.</li>
+<li><strong>Reservations:</strong> You can purchase Dedicated Host
+Reservations to receive a substantial discount on the hourly host fee,
+or purchase Reserved Instances with Dedicated tenancy to discount the
+per-instance charges of Dedicated Instances.</li>
+<li><strong>Spot Instances:</strong> Dedicated Instances can be launched
+as Spot Instances to take advantage of spare AWS capacity at steep
+discounts, whereas Dedicated Hosts do not support a Spot purchasing
+model for the physical host itself.</li>
+</ul>
+<h2 id="summary-of-key-billing-differences">Summary of Key Billing
+Differences</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Billing Feature</th>
+<th style="text-align: left;">EC2 Dedicated Hosts</th>
+<th style="text-align: left;">EC2 Dedicated Instances</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Primary Unit of
+Charge</strong></td>
+<td style="text-align: left;">Per allocated physical server</td>
+<td style="text-align: left;">Per running virtual instance</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Regional Surcharge</strong></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;"><span
+class="math inline">\(\$2.00\)</span> per hour per active Region</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cost When Instances Are
+Stopped</strong></td>
+<td style="text-align: left;">Full host rate continues until host is
+released</td>
+<td style="text-align: left;">Compute and regional fees drop to <span
+class="math inline">\(\$0.00\)</span> (if all instances are
+stopped)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cost of Adding
+Instances</strong></td>
+<td style="text-align: left;"><span
+class="math inline">\(\$0.00\)</span> for additional instances that fit
+on an existing host</td>
+<td style="text-align: left;">Linearly increases with each new instance
+launched</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>BYOL License Cost
+Impact</strong></td>
+<td style="text-align: left;">Supports per-core and per-socket BYOL to
+eliminate license fees</td>
+<td style="text-align: left;">Limited BYOL support; usually requires
+license-included rates</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Best Financial Fit</strong></td>
+<td style="text-align: left;">High-density, steady-state workloads or
+strict BYOL requirements</td>
+<td style="text-align: left;">Small instance counts, mixed instance
+families, or elastic workloads</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-ec-2-dedicated-host-vs-dedicated-instance-billing-work';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

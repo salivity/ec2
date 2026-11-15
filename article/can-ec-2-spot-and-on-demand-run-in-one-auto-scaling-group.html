@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can EC2 Spot and On-Demand Run in One Auto Scaling Group? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 Spot Instances can be combined with On-Demand Instances inside a single Auto Scaling group using a Mixed Instances Policy. This article explores how AWS Auto Scaling manages both purchase options simultaneously, the configuration steps req">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-ec-2-spot-and-on-demand-run-in-one-auto-scaling-group">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can EC2 Spot and On-Demand Run in One Auto Scaling Group? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-ec-2-spot-and-on-demand-run-in-one-auto-scaling-group" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 Spot Instances can be combined with On-Demand Instances inside a single Auto Scaling group using a Mixed Instances Policy. This article explores how AWS Auto Scaling manages both purchase options simultaneously, the configuration steps req" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="can-ec2-spot-and-on-demand-run-in-one-auto-scaling-group">Can
+EC2 Spot and On-Demand Run in One Auto Scaling Group?</h1>
+<p>Yes, Amazon EC2 Spot Instances can be combined with On-Demand
+Instances inside a single Auto Scaling group using a Mixed Instances
+Policy. This article explores how AWS Auto Scaling manages both purchase
+options simultaneously, the configuration steps required via EC2 Launch
+Templates, how allocation strategies optimize cost and availability, and
+the mathematical models behind mixed fleet pricing.</p>
+<h2
+id="understanding-mixed-instances-policies-in-amazon-ec2">Understanding
+Mixed Instances Policies in Amazon EC2</h2>
+<p>Historically, running both On-Demand and Spot capacity required
+maintaining multiple Auto Scaling groups and synchronizing their scaling
+policies. Amazon EC2 Auto Scaling simplifies this architecture by
+allowing a single Auto Scaling group (ASG) to provision instances across
+multiple purchase options and instance types. This capability is driven
+by a <strong>Mixed Instances Policy</strong> paired with an <strong>EC2
+Launch Template</strong>.</p>
+<p>By combining On-Demand and Spot Instances in the same group, you can
+establish a reliable baseline of constant capacity using On-Demand
+Instances (which may also be covered by Savings Plans or Reserved
+Instances) while scaling bursts or fault-tolerant workloads on
+cost-effective Spot capacity.</p>
+<h2 id="key-configuration-components">Key Configuration Components</h2>
+<p>When configuring a mixed-instance Auto Scaling group, three primary
+components govern how instances are launched and maintained:</p>
+<h3 id="1-ec2-launch-template">1. EC2 Launch Template</h3>
+<p>Unlike legacy Launch Configurations, an EC2 Launch Template is
+required to use a Mixed Instances Policy. The Launch Template defines
+the baseline instance configuration, including the Amazon Machine Image
+(AMI), security groups, IAM instance profile, user data, and default
+instance type.</p>
+<h3 id="2-instance-type-overrides">2. Instance Type Overrides</h3>
+<p>Within the Auto Scaling group configuration, you can specify multiple
+instance types that override the default type defined in the Launch
+Template. Providing a diverse list of compatible instance types (for
+example, <code>m6i.large</code>, <code>m5.large</code>,
+<code>c6i.large</code>, and <code>r6i.large</code>) increases the number
+of Spot capacity pools available to the Auto Scaling group, reducing the
+likelihood of Spot capacity shortages.</p>
+<p>For workloads that require varied instance sizes, you can assign
+<strong>weighted capacities</strong>. For example, if your group scales
+based on vCPU count, an <code>m6i.large</code> (2 vCPUs) can be assigned
+a weight of <span class="math inline">\(2\)</span>, while an
+<code>m6i.xlarge</code> (4 vCPUs) can be assigned a weight of <span
+class="math inline">\(4\)</span>.</p>
+<h3 id="3-purchase-option-split-instances-distribution">3. Purchase
+Option Split (Instances Distribution)</h3>
+<p>The <code>InstancesDistribution</code> block defines how capacity is
+divided between On-Demand and Spot Instances using two critical
+parameters:</p>
+<ul>
+<li><strong>On-Demand Base Capacity
+(<code>OnDemandBaseCapacity</code>):</strong> The minimum amount of the
+Auto Scaling group's capacity that must be fulfilled by On-Demand
+Instances. As the group launches instances, it provisions On-Demand
+capacity first until this base threshold is met.</li>
+<li><strong>On-Demand Percentage Above Base Capacity
+(<code>OnDemandPercentageAboveBaseCapacity</code>):</strong> For any
+additional capacity required beyond the base capacity, this percentage
+dictates the split between On-Demand and Spot Instances. Setting this to
+<span class="math inline">\(0\)</span> means all capacity above the base
+will be Spot Instances; setting it to <span
+class="math inline">\(20\)</span> means <span
+class="math inline">\(20\%\)</span> of the scaling capacity above the
+base will be On-Demand and <span class="math inline">\(80\%\)</span>
+will be Spot.</li>
+</ul>
+<h2 id="mathematical-breakdown-of-capacity-distribution">Mathematical
+Breakdown of Capacity Distribution</h2>
+<p>To calculate the exact number of On-Demand and Spot units launched
+for a given total desired capacity <span
+class="math inline">\(C_{\text{total}}\)</span>, let <span
+class="math inline">\(B\)</span> represent the On-Demand base capacity
+and <span class="math inline">\(p\)</span> represent the On-Demand
+percentage above base expressed as a decimal (<span
+class="math inline">\(0 \le p \le 1\)</span>).</p>
+<p>First, the capacity allocated to the base is:</p>
+<p><span class="math display">\[C_{\text{base}} = \min(C_{\text{total}},
+B)\]</span></p>
+<p>Next, the remaining capacity above the base is:</p>
+<p><span class="math display">\[C_{\text{above}} = \max(0,
+C_{\text{total}} - B)\]</span></p>
+<p>The total On-Demand capacity <span
+class="math inline">\(C_{\text{OD}}\)</span> and total Spot capacity
+<span class="math inline">\(C_{\text{Spot}}\)</span> are then determined
+by:</p>
+<p><span class="math display">\[C_{\text{OD}} = C_{\text{base}} + \lceil
+p \cdot C_{\text{above}} \rceil\]</span></p>
+<p><span class="math display">\[C_{\text{Spot}} = C_{\text{total}} -
+C_{\text{OD}}\]</span></p>
+<h3 id="example-calculation">Example Calculation</h3>
+<p>Suppose an Auto Scaling group has a desired capacity of <span
+class="math inline">\(C_{\text{total}} = 24\)</span> instances, an
+On-Demand base capacity of <span class="math inline">\(B = 4\)</span>,
+and an On-Demand percentage above base of <span
+class="math inline">\(25\%\)</span> (<span class="math inline">\(p =
+0.25\)</span>):</p>
+<p><span class="math display">\[C_{\text{base}} = \min(24, 4) =
+4\]</span></p>
+<p><span class="math display">\[C_{\text{above}} = 24 - 4 =
+20\]</span></p>
+<p><span class="math display">\[C_{\text{OD}} = 4 + (0.25 \times 20) = 4
++ 5 = 9 \text{ On-Demand Instances}\]</span></p>
+<p><span class="math display">\[C_{\text{Spot}} = 24 - 9 = 15 \text{
+Spot Instances}\]</span></p>
+<p>If the average hourly On-Demand price is <span
+class="math inline">\(P_{\text{OD}}\)</span> and the average Spot
+discount is <span class="math inline">\(d\)</span> (where <span
+class="math inline">\(0 &lt; d &lt; 1\)</span>), the effective hourly
+cost <span class="math inline">\(E_{\text{cost}}\)</span> of the fleet
+is:</p>
+<p><span class="math display">\[E_{\text{cost}} = C_{\text{OD}} \cdot
+P_{\text{OD}} + C_{\text{Spot}} \cdot P_{\text{OD}} \cdot (1 -
+d)\]</span></p>
+<h2 id="allocation-strategies-for-on-demand-and-spot">Allocation
+Strategies for On-Demand and Spot</h2>
+<p>Auto Scaling uses separate allocation strategies to decide which
+instance types to launch from your overrides list for each purchase
+option.</p>
+<h3 id="spot-allocation-strategies">Spot Allocation Strategies</h3>
+<ul>
+<li><strong>Price Capacity Optimized
+(<code>price-capacity-optimized</code>):</strong> Recommended for most
+workloads. AWS identifies the Spot capacity pools with the highest
+availability and then selects from the lowest-priced pools within that
+subset. This balances low interruption rates with deep cost
+savings.</li>
+<li><strong>Capacity Optimized
+(<code>capacity-optimized</code>):</strong> Launches instances from the
+most available Spot capacity pools based on real-time capacity data,
+prioritizing low interruption risk over raw price.</li>
+<li><strong>Lowest Price (<code>lowest-price</code>):</strong>
+Diversifies Spot Instances across the N lowest-priced pools per
+Availability Zone. While it targets the lowest immediate cost, it can
+result in higher interruption rates if the cheapest pools have limited
+capacity.</li>
+</ul>
+<h3 id="on-demand-allocation-strategies">On-Demand Allocation
+Strategies</h3>
+<ul>
+<li><strong>Prioritized (<code>prioritized</code>):</strong> Uses the
+exact order of instance types listed in your overrides, starting with
+the first type and moving down the list only if capacity is unavailable
+in an Availability Zone.</li>
+<li><strong>Lowest Price (<code>lowest-price</code>):</strong>
+Automatically selects the lowest-priced On-Demand instance type
+available in each Availability Zone.</li>
+</ul>
+<h2 id="example-aws-cli-configuration">Example AWS CLI
+Configuration</h2>
+<p>Below is an example JSON structure used with the
+<code>aws autoscaling create-auto-scaling-group</code> command to
+configure a Mixed Instances Policy:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;AutoScalingGroupName&quot;</span><span class="fu">:</span> <span class="st">&quot;production-mixed-asg&quot;</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;MixedInstancesPolicy&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;LaunchTemplate&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;LaunchTemplateSpecification&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;LaunchTemplateName&quot;</span><span class="fu">:</span> <span class="st">&quot;web-server-template&quot;</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;$Latest&quot;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Overrides&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;InstanceType&quot;</span><span class="fu">:</span> <span class="st">&quot;c6i.large&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;InstanceType&quot;</span><span class="fu">:</span> <span class="st">&quot;c5.large&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;InstanceType&quot;</span><span class="fu">:</span> <span class="st">&quot;m6i.large&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;InstanceType&quot;</span><span class="fu">:</span> <span class="st">&quot;m5.large&quot;</span> <span class="fu">}</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;InstancesDistribution&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;OnDemandAllocationStrategy&quot;</span><span class="fu">:</span> <span class="st">&quot;prioritized&quot;</span><span class="fu">,</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;OnDemandBaseCapacity&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;OnDemandPercentageAboveBaseCapacity&quot;</span><span class="fu">:</span> <span class="dv">20</span><span class="fu">,</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;SpotAllocationStrategy&quot;</span><span class="fu">:</span> <span class="st">&quot;price-capacity-optimized&quot;</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;MinSize&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;MaxSize&quot;</span><span class="fu">:</span> <span class="dv">50</span><span class="fu">,</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;DesiredCapacity&quot;</span><span class="fu">:</span> <span class="dv">14</span><span class="fu">,</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;VPCZoneIdentifier&quot;</span><span class="fu">:</span> <span class="st">&quot;subnet-0123456789abcdef0,subnet-0fedcba9876543210&quot;</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="handling-spot-interruptions-with-capacity-rebalancing">Handling
+Spot Interruptions with Capacity Rebalancing</h2>
+<p>When running Spot Instances inside an Auto Scaling group, EC2 emits
+two types of notifications before reclaiming capacity:</p>
+<ol type="1">
+<li><strong>EC2 Instance Rebalance Recommendation:</strong> A proactive
+signal sent when a Spot Instance is at an elevated risk of
+interruption.</li>
+<li><strong>Two-Minute Spot Interruption Notice:</strong> The final
+warning before the instance is terminated or stopped.</li>
+</ol>
+<p>By enabling <strong>Capacity Rebalancing</strong> on the Auto Scaling
+group, AWS automatically responds to Rebalance Recommendations by
+launching a replacement Spot Instance from an available pool
+<em>before</em> terminating the at-risk instance. Once the new instance
+passes health checks (or after termination lifecycle hooks complete),
+the old instance is gracefully drained and terminated.</p>
+<h2 id="best-practices-for-mixed-auto-scaling-groups">Best Practices for
+Mixed Auto Scaling Groups</h2>
+<ul>
+<li><strong>Select Multiple Instance Families and Generations:</strong>
+Include at least 4 to 10 compatible instance types across different
+families (such as <code>m6i</code>, <code>m5</code>, <code>c6i</code>,
+<code>c6a</code>) and Availability Zones to maximize Spot pool
+diversity.</li>
+<li><strong>Use Attribute-Based Instance Type Selection:</strong>
+Instead of manually listing dozens of instance types, specify vCPU and
+memory ranges in the Mixed Instances Policy so EC2 automatically selects
+matching instance types, including newer generations as they are
+released.</li>
+<li><strong>Align Base Capacity with Commitments:</strong> Set
+<code>OnDemandBaseCapacity</code> to match your active Reserved
+Instances or Compute Savings Plans to ensure you never waste
+pre-committed spend.</li>
+<li><strong>Configure Elastic Load Balancing Connection
+Draining:</strong> Combine Capacity Rebalancing with Deregistration
+Delay (Connection Draining) on your Application or Network Load Balancer
+so in-flight requests complete before an interrupted Spot Instance
+terminates.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-ec-2-spot-and-on-demand-run-in-one-auto-scaling-group';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

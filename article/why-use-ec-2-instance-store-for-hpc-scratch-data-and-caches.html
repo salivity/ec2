@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Use EC2 Instance Store for HPC Scratch Data and Caches? - ec2</title>
+    <meta name="description" content="High-performance computing workloads use Amazon EC2 instance store volumes for temporary scratch data and caches to achieve ultra-low latency and maximum input/output operations per second. Because these volumes are physically attached to the host server">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/why-use-ec-2-instance-store-for-hpc-scratch-data-and-caches">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Why Use EC2 Instance Store for HPC Scratch Data and Caches? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/why-use-ec-2-instance-store-for-hpc-scratch-data-and-caches" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="High-performance computing workloads use Amazon EC2 instance store volumes for temporary scratch data and caches to achieve ultra-low latency and maximum input/output operations per second. Because these volumes are physically attached to the host server" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="why-use-ec2-instance-store-for-hpc-scratch-data-and-caches">Why
+Use EC2 Instance Store for HPC Scratch Data and Caches?</h1>
+<p>High-performance computing workloads use Amazon EC2 instance store
+volumes for temporary scratch data and caches to achieve ultra-low
+latency and maximum input/output operations per second. Because these
+volumes are physically attached to the host server rather than connected
+over a network, they eliminate network bottlenecks and provide rapid
+data access for compute-intensive tasks. In addition, instance store
+storage is included in the hourly cost of the EC2 instance, offering a
+cost-effective solution for managing massive volumes of transient data
+that do not require long-term persistence.</p>
+<h2 id="understanding-amazon-ec2-instance-store">Understanding Amazon
+EC2 Instance Store</h2>
+<p>Amazon EC2 instance store provides temporary block-level storage for
+an EC2 instance. Unlike Amazon Elastic Block Store (EBS), which operates
+over the network as remote storage, instance store volumes reside on
+disks that are physically attached to the host computer running the
+virtual machine. Most modern instance families equipped with instance
+store utilize Non-Volatile Memory Express (NVMe) Solid State Drives
+(SSDs) connected directly to the host PCIe bus.</p>
+<p>Because the storage is tied directly to the underlying physical
+hardware, the lifecycle of the data on an instance store volume matches
+the lifecycle of the EC2 instance. Data remains intact if the operating
+system reboots, as the instance stays on the same physical host.
+However, if the instance is stopped, hibernated, or terminated, or if
+the underlying physical drive fails, every block of data on the instance
+store volume is permanently lost. This ephemeral nature makes it
+unsuitable for primary databases or critical long-term state, yet ideal
+for disposable data generated during active computation.</p>
+<h2 id="ultra-low-latency-and-high-iops">Ultra-Low Latency and High
+IOPS</h2>
+<p>In High-Performance Computing (HPC), processors frequently wait on
+storage subsystems to feed them data or write out intermediate states.
+Network-attached block storage must traverse the virtualization layer
+and the storage network stack, introducing microsecond-level delays that
+compound over millions of operations.</p>
+<p>Physically attached NVMe instance store volumes bypass the network
+layer entirely. When an application requests a read or write operation,
+the request travels directly over the local PCIe lanes to the storage
+media. This architecture delivers sub-millisecond latency—often measured
+in tens of microseconds—and enables a single instance to achieve
+millions of Input/Output Operations Per Second (IOPS).</p>
+<p>The relationship between latency, concurrency, and throughput can be
+expressed using Little's Law applied to storage queues:</p>
+<p><span class="math display">\[\text{IOPS} = \frac{\text{Queue
+Depth}}{\text{Latency}}\]</span></p>
+<p>When latency (<span class="math inline">\(L\)</span>) decreases
+significantly, an HPC workload can achieve much higher <span
+class="math inline">\(\text{IOPS}\)</span> at a lower queue depth,
+preventing CPU threads from blocking while waiting for disk responses.
+For multi-disk instances, administrators frequently combine multiple
+NVMe instance store volumes into a single logical volume using a
+<code>RAID 0</code> (striping) configuration. If an instance has <span
+class="math inline">\(N\)</span> physical NVMe drives, each capable of a
+throughput <span class="math inline">\(T_{\text{drive}}\)</span>, the
+aggregate sequential throughput <span
+class="math inline">\(T_{\text{total}}\)</span> approaches:</p>
+<p><span class="math display">\[T_{\text{total}} \approx N \times
+T_{\text{drive}}\]</span></p>
+<p>This allows large storage-optimized or compute-optimized instances to
+reach tens of gigabytes per second in sequential read and write
+bandwidth.</p>
+<h2
+id="preserving-network-bandwidth-for-inter-node-communication">Preserving
+Network Bandwidth for Inter-Node Communication</h2>
+<p>Distributed HPC workloads—such as computational fluid dynamics,
+weather modeling, and molecular dynamics—rely heavily on Message Passing
+Interface (MPI) to communicate across hundreds or thousands of compute
+nodes. These nodes exchange boundary conditions and synchronization
+messages continuously over high-speed network interfaces like the AWS
+Elastic Fabric Adapter (EFA).</p>
+<p>On many cloud architectures, network-attached storage traffic and
+inter-node network traffic share the same physical network interface
+card or underlying host bandwidth allocation. If a workload writes
+terabytes of temporary scratch files to network-attached storage, that
+storage traffic can contend with MPI communication or traffic heading to
+shared parallel file systems like Amazon FSx for Lustre. By routing
+local scratch reads and writes to the physical PCIe bus via instance
+store volumes, the workload keeps local I/O off the network interface.
+This isolation ensures that 100% of the available network bandwidth
+remains dedicated to node-to-node communication and shared cluster
+coordination.</p>
+<h2 id="cost-efficiency-at-scale">Cost Efficiency at Scale</h2>
+<p>Cost management is a major factor when scaling HPC clusters to
+thousands of cores. With network-attached storage like Amazon EBS,
+organizations pay separately for the provisioned storage capacity (per
+gigabyte-month) and, depending on the volume type, for provisioned IOPS
+and throughput. Provisioning multiple terabytes of high-IOPS network
+storage across hundreds of nodes for a short-lived simulation can
+quickly eclipse the cost of the compute instances themselves.</p>
+<p>Instance store volumes are included in the base hourly price of the
+EC2 instance. Whether an HPC job writes a few megabytes or saturates the
+local NVMe drives with terabytes of temporary calculations, there are no
+per-GB or per-IOPS charges for the local storage. For workloads with
+high data churn—where massive datasets are written, read once, and
+discarded—using instance store eliminates storage provisioning overhead
+and significantly lowers the total cost per simulation run.</p>
+<h2 id="common-hpc-use-cases-for-instance-store">Common HPC Use Cases
+for Instance Store</h2>
+<p>Because of its performance profile and ephemeral nature, HPC
+architects target specific data patterns for EC2 instance store
+volumes:</p>
+<ul>
+<li><strong>Out-of-Core Computation Scratch Space:</strong> Solvers in
+finite element analysis (FEA) and seismic processing often generate
+matrices too large to fit into system RAM. When memory capacity (<span
+class="math inline">\(M_{\text{RAM}}\)</span>) is exceeded by the
+problem size (<span class="math inline">\(S_{\text{matrix}}\)</span>),
+the solver spills intermediate matrix blocks to disk. High-speed NVMe
+scratch space minimizes the performance penalty of this out-of-core
+execution.</li>
+<li><strong>Local Dataset Caching for Machine Learning:</strong> Deep
+learning training jobs frequently iterate over millions of small files
+(such as images or audio clips) stored in Amazon S3. Fetching these
+files repeatedly over the network introduces bottlenecks during each
+training epoch. Workloads copy and unpack the training dataset onto the
+local instance store at the start of the job, allowing GPUs to read data
+at local NVMe speeds for all subsequent epochs.</li>
+<li><strong>Genomics Alignment and Sorting:</strong> Secondary genomics
+analysis involves splitting raw sequencing reads, aligning them against
+a reference genome, and sorting massive intermediate BAM or SAM files.
+Storing these temporary split chunks on local instance store speeds up
+the sort and merge phases before the final variant calls are written
+back to durable storage.</li>
+<li><strong>Burst Buffer and Staging Tier:</strong> Before committing
+checkpoints to a shared parallel file system or object store, compute
+nodes can write application state dumps rapidly to their local instance
+store. The simulation immediately resumes computation on the CPUs while
+a background process asynchronously trickles the checkpoint data from
+the instance store to durable storage like Amazon S3 or Amazon FSx.</li>
+</ul>
+<h2
+id="architectural-best-practices-for-ephemeral-storage">Architectural
+Best Practices for Ephemeral Storage</h2>
+<p>To use EC2 instance store effectively without risking valuable
+research or production results, workloads must be designed around data
+disposability:</p>
+<ol type="1">
+<li><strong>Automated Initialization:</strong> Because instance store
+volumes arrive unformatted or wiped upon fresh instance launch, launch
+scripts or cluster managers (such as AWS ParallelCluster) should
+automatically format the NVMe devices with a high-performance file
+system like <code>XFS</code> or <code>ext4</code> and mount them to a
+designated <code>/scratch</code> or <code>/tmp</code> directory at boot
+time.</li>
+<li><strong>Tiered Checkpointing:</strong> Never store the only copy of
+a long-running simulation's checkpoint on an instance store volume. If a
+Spot Instance is interrupted or a hardware failure occurs, all progress
+is lost. Use the instance store as a staging area and replicate critical
+checkpoints to persistent storage at regular intervals.</li>
+<li><strong>Final Output Ingestion:</strong> Configure job orchestration
+pipelines so that the final step of any batch job copies the synthesized
+results from the local instance store to a durable destination before
+the instance is terminated.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/why-use-ec-2-instance-store-for-hpc-scratch-data-and-caches';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

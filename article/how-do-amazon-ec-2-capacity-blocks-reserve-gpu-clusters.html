@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do Amazon EC2 Capacity Blocks Reserve GPU Clusters? - ec2</title>
+    <meta name="description" content="Amazon EC2 Capacity Blocks for ML allow organizations to reserve highly sought-after GPU instances for specific future time windows to support machine learning workloads. By searching an inventory calendar for available cluster capacity, users can book co">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-amazon-ec-2-capacity-blocks-reserve-gpu-clusters">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do Amazon EC2 Capacity Blocks Reserve GPU Clusters? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-amazon-ec-2-capacity-blocks-reserve-gpu-clusters" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Capacity Blocks for ML allow organizations to reserve highly sought-after GPU instances for specific future time windows to support machine learning workloads. By searching an inventory calendar for available cluster capacity, users can book co" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-amazon-ec2-capacity-blocks-reserve-gpu-clusters">How Do
+Amazon EC2 Capacity Blocks Reserve GPU Clusters?</h1>
+<p>Amazon EC2 Capacity Blocks for ML allow organizations to reserve
+highly sought-after GPU instances for specific future time windows to
+support machine learning workloads. By searching an inventory calendar
+for available cluster capacity, users can book colocation-optimized
+compute resources days or weeks in advance. Once purchased, AWS
+provisions a dedicated Capacity Reservation within an UltraCluster,
+guaranteeing that the requested GPU instances are available at the
+scheduled start time and automatically terminating them when the
+reservation expires.</p>
+<h2 id="understanding-ec2-capacity-blocks-for-ml">Understanding EC2
+Capacity Blocks for ML</h2>
+<p>Training foundation models, fine-tuning large language models, and
+running intensive machine learning experiments require massive,
+uninterrupted compute power. However, securing on-demand access to
+high-performance GPU instances like P5, P4d, or Trn1 can be challenging
+due to high global demand. Simultaneously, committing to multi-year
+Savings Plans or Reserved Instances is often impractical for short-term
+bursts, prototyping, or periodic training runs.</p>
+<p>Amazon EC2 Capacity Blocks for ML solve this by providing a
+predictable, time-bound reservation mechanism. Instead of hoping for
+on-demand availability or locking into long-term contracts, engineering
+teams can reserve clusters ranging from 1 to 64 instances (handling up
+to 512 GPUs) for durations between 1 and 182 days.</p>
+<h2 id="co-location-in-amazon-ec2-ultraclusters">Co-Location in Amazon
+EC2 UltraClusters</h2>
+<p>A defining feature of Capacity Blocks for ML is physical topology
+optimization. When you reserve a Capacity Block, AWS does not simply
+allocate isolated instances scattered across an Availability Zone.
+Instead, all instances within a single Capacity Block are placed
+together inside an Amazon EC2 UltraCluster.</p>
+<p>These instances are interconnected using the Elastic Fabric Adapter
+(EFA) over a petabit-scale, non-blocking network. This low-latency,
+high-throughput interconnect is essential for distributed training
+frameworks like PyTorch Distributed Data Parallel (DDP), DeepSpeed, or
+Megatron-LM, where collective communication operations such as
+<code>AllReduce</code> and <code>AllGather</code> frequently become the
+primary bottleneck across nodes.</p>
+<h2 id="step-by-step-reservation-mechanics">Step-by-Step Reservation
+Mechanics</h2>
+<p>Reserving and utilizing a GPU cluster through EC2 Capacity Blocks
+follows a structured lifecycle managed via the AWS Management Console,
+AWS CLI, or SDKs.</p>
+<h3 id="1-querying-available-capacity-offerings">1. Querying Available
+Capacity Offerings</h3>
+<p>Unlike standard On-Demand Capacity Reservations that take effect
+immediately if hardware is free, Capacity Blocks operate on a
+forward-looking schedule. You submit a search query specifying:</p>
+<ul>
+<li><strong>Instance Type:</strong> Such as <code>p5.48xlarge</code>,
+<code>p4d.24xlarge</code>, <code>p4de.24xlarge</code>, or
+<code>trn1.32xlarge</code>.</li>
+<li><strong>Instance Count:</strong> Typically in increments of 1, 2, 4,
+8, 16, 32, or 64 instances.</li>
+<li><strong>Date Range:</strong> The earliest start date and latest end
+date within which you want your training window to occur (up to 8 weeks
+in advance).</li>
+<li><strong>Duration:</strong> The total number of days required.</li>
+</ul>
+<p>Using the AWS CLI, you can search for available offerings with the
+<code>describe-capacity-block-offerings</code> command:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-capacity-block-offerings <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> p5.48xlarge <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-count</span> 16 <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--start-date-range</span> 2026-12-01T00:00:00Z <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--end-date-range</span> 2026-12-15T00:00:00Z <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--capacity-duration-hours</span> 168</span></code></pre></div>
+<p>AWS evaluates its regional scheduling ledger and returns matching
+offerings. Each offering includes a unique
+<code>CapacityBlockOfferingId</code>, the specific Availability Zone
+where the UltraCluster resides, the exact <code>StartDate</code> and
+<code>EndDate</code> timestamps (standardized to 11:30 UTC), and the
+upfront fee.</p>
+<h3 id="2-purchasing-the-capacity-block">2. Purchasing the Capacity
+Block</h3>
+<p>Once a suitable window is identified, you purchase the offering using
+its ID. Because Capacity Blocks use dynamic pricing based on supply and
+demand algorithms at the time of booking, the price is locked in upon
+purchase.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 purchase-capacity-block <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--capacity-block-offering-id</span> cbo-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-platform</span> Linux/UNIX</span></code></pre></div>
+<p>If we denote the hourly rate per instance as <span
+class="math inline">\(R\)</span>, the number of instances as <span
+class="math inline">\(N\)</span>, and the reservation duration in hours
+as <span class="math inline">\(H\)</span>, the total upfront cost <span
+class="math inline">\(C_{\text{total}}\)</span> billed to your account
+upon purchase is:</p>
+<p><span class="math display">\[C_{\text{total}} = N \times H \times
+R\]</span></p>
+<p>When the purchase succeeds, AWS immediately creates a
+<code>CapacityReservation</code> resource in the <code>scheduled</code>
+state. You receive a <code>CapacityReservationId</code> (for example,
+<code>cr-0abcdef1234567890</code>), which acts as the target identifier
+for your automated deployment pipelines.</p>
+<h3 id="3-state-transitions-and-activation">3. State Transitions and
+Activation</h3>
+<p>Between the time of purchase and the scheduled window, the
+reservation remains in the <code>scheduled</code> state. During this
+phase, no instances can be launched into it.</p>
+<p>At the exact scheduled start time (11:30 UTC on the start date), AWS
+transitions the Capacity Reservation state from <code>scheduled</code>
+to <code>active</code> and emits an Amazon EventBridge notification:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;0&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;12345678-1234-1234-1234-123456789012&quot;</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;detail-type&quot;</span><span class="fu">:</span> <span class="st">&quot;EC2 Capacity Reservation State Change&quot;</span><span class="fu">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;aws.ec2&quot;</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;detail&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;capacity-reservation-id&quot;</span><span class="fu">:</span> <span class="st">&quot;cr-0abcdef1234567890&quot;</span><span class="fu">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;state&quot;</span><span class="fu">:</span> <span class="st">&quot;active&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="4-launching-instances-into-the-reserved-cluster">4. Launching
+Instances into the Reserved Cluster</h3>
+<p>Once the reservation state is <code>active</code>, you can provision
+your GPU instances. To ensure your instances consume the reserved
+UltraCluster capacity, you must explicitly target the
+<code>CapacityReservationId</code> and set the
+<code>InstanceMarketOptions</code> market type to
+<code>capacity-block</code>.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> p5.48xlarge <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--count</span> 16 <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--subnet-id</span> subnet-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--InstanceMarketOptions</span> MarketType=capacity-block <span class="dt">\</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--capacity-reservation-specification</span> CapacityReservationTarget={CapacityReservationId=cr-0abcdef1234567890}</span></code></pre></div>
+<p>You can also integrate this <code>CapacityReservationId</code> into
+AWS Batch, Amazon EKS managed node groups, AWS ParallelCluster, or
+Amazon SageMaker HyperPod to automate cluster spin-up the moment the
+EventBridge <code>active</code> event fires.</p>
+<h3 id="5-pre-expiration-draining-and-termination">5. Pre-Expiration
+Draining and Termination</h3>
+<p>Because another customer may have booked the same physical
+UltraCluster hardware for the window immediately following yours, AWS
+enforces strict boundary times.</p>
+<p>Thirty minutes before the reservation's <code>EndDate</code> (at
+11:00 UTC), AWS begins the winding-down process:</p>
+<ol type="1">
+<li><strong>EventBridge Warning:</strong> AWS emits an
+<code>EC2 Capacity Block Expire Warning</code> event via Amazon
+EventBridge and sends an EC2 Instance rebalance/interruption notice via
+the Instance Metadata Service (IMDS).</li>
+<li><strong>Checkpointing Window:</strong> Your training scripts have 30
+minutes to save model weights and optimizer states to persistent storage
+such as Amazon S3 or Amazon FSx for Lustre.</li>
+<li><strong>Automatic Termination:</strong> At 11:30 UTC, any instances
+still running inside the Capacity Block are forcibly terminated by AWS,
+and the <code>CapacityReservation</code> transitions to the
+<code>expired</code> state.</li>
+</ol>
+<h2 id="summary-of-key-operational-constraints">Summary of Key
+Operational Constraints</h2>
+<p>When architecting ML workflows around EC2 Capacity Blocks, keep the
+following operational behaviors in mind:</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Behavior in EC2 Capacity Blocks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Reservation
+Targeting</strong></td>
+<td style="text-align: left;">Mandatory explicit targeting via
+<code>CapacityReservationId</code>. Open reservations are not
+supported.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Billing Model</strong></td>
+<td style="text-align: left;">100% upfront payment upon booking; cannot
+be canceled or modified after purchase.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Standard Time
+Boundaries</strong></td>
+<td style="text-align: left;">Reservations start and end at 11:30 UTC;
+workloads must vacate by 11:00 UTC on the end date.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Network Placement</strong></td>
+<td style="text-align: left;">Guaranteed low-latency co-location inside
+an EC2 UltraCluster with EFA support.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Stop and Start
+Support</strong></td>
+<td style="text-align: left;">Instances inside an active block can be
+stopped and started as many times as needed during the active window
+without losing the reservation.</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-amazon-ec-2-capacity-blocks-reserve-gpu-clusters';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

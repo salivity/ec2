@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do GPUs Communicate Over NVLink in AWS P4d and P5? - ec2</title>
+    <meta name="description" content="When multiple GPUs inside a single Amazon EC2 P4d or P5 instance communicate over NVLink and NVSwitch, they exchange data directly across a high-bandwidth, low-latency fabric without routing traffic through the host CPU, system memory, or PCIe switches. T">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-gp-us-communicate-over-nv-link-in-aws-p-4-d-and-p-5">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do GPUs Communicate Over NVLink in AWS P4d and P5? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-gp-us-communicate-over-nv-link-in-aws-p-4-d-and-p-5" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When multiple GPUs inside a single Amazon EC2 P4d or P5 instance communicate over NVLink and NVSwitch, they exchange data directly across a high-bandwidth, low-latency fabric without routing traffic through the host CPU, system memory, or PCIe switches. T" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-gpus-communicate-over-nvlink-in-aws-p4d-and-p5">How Do
+GPUs Communicate Over NVLink in AWS P4d and P5?</h1>
+<p>When multiple GPUs inside a single Amazon EC2 P4d or P5 instance
+communicate over NVLink and NVSwitch, they exchange data directly across
+a high-bandwidth, low-latency fabric without routing traffic through the
+host CPU, system memory, or PCIe switches. This hardware-level
+peer-to-peer interconnect creates a unified memory space across all
+eight local GPUs, allowing collective communication operations and
+direct memory transfers to execute at hundreds of gigabytes per second
+per GPU while keeping host resources free for other tasks.</p>
+<h2 id="the-architecture-of-intra-node-gpu-interconnects">The
+Architecture of Intra-Node GPU Interconnects</h2>
+<p>In traditional multi-GPU systems, communication between accelerators
+relies on the Peripheral Component Interconnect Express (PCIe) bus. When
+one GPU needs to send tensor data to another, the data often travels
+through PCIe root complexes or switches, creating a severe bandwidth
+bottleneck. Even with PCIe Gen4 or Gen5, the maximum bidirectional
+bandwidth per GPU is limited to <span class="math inline">\(64\text{
+GB/s}\)</span> or <span class="math inline">\(128\text{ GB/s}\)</span>,
+respectively.</p>
+<p>To eliminate this bottleneck in high-performance computing and deep
+learning workloads, Amazon EC2 P4d and P5 instances utilize NVIDIA
+NVLink and NVSwitch technologies:</p>
+<ul>
+<li><strong>NVLink</strong> is a wire-level serial communication
+protocol developed by NVIDIA that enables direct, high-speed
+point-to-point connections between GPUs.</li>
+<li><strong>NVSwitch</strong> is a physical switching chip located on
+the server baseboard (such as the NVIDIA HGX A100 or HGX H100 board)
+that connects multiple NVLink lanes into a fully connected, non-blocking
+crossbar fabric.</li>
+</ul>
+<p>Instead of only connecting adjacent GPUs in a ring or mesh topology,
+NVSwitch allows any GPU inside the instance to communicate with any
+other GPU simultaneously at full NVLink bandwidth.</p>
+<h2 id="hardware-specifications-in-ec2-p4d-and-p5-instances">Hardware
+Specifications in EC2 P4d and P5 Instances</h2>
+<p>Both the P4d and P5 instance families house 8 GPUs per instance,
+interconnected via NVSwitch, though their underlying generations differ
+significantly in throughput and capabilities.</p>
+<h3 id="amazon-ec2-p4d-instances-nvidia-a100">Amazon EC2 P4d Instances
+(NVIDIA A100)</h3>
+<p>An <code>ec2 p4d.24xlarge</code> instance contains eight NVIDIA A100
+Tensor Core GPUs connected via third-generation NVLink and
+second-generation NVSwitch chips:</p>
+<ul>
+<li><strong>Links per GPU:</strong> 12 third-generation NVLink
+connections</li>
+<li><strong>Bidirectional Bandwidth per Link:</strong> <span
+class="math inline">\(50\text{ GB/s}\)</span></li>
+<li><strong>Total Bidirectional Bandwidth per GPU:</strong> <span
+class="math inline">\(600\text{ GB/s}\)</span> (<span
+class="math inline">\(300\text{ GB/s}\)</span> ingress and <span
+class="math inline">\(300\text{ GB/s}\)</span> egress)</li>
+<li><strong>Aggregate Instance NVLink Bandwidth:</strong> <span
+class="math inline">\(4.8\text{ TB/s}\)</span></li>
+</ul>
+<h3 id="amazon-ec2-p5-instances-nvidia-h100">Amazon EC2 P5 Instances
+(NVIDIA H100)</h3>
+<p>An <code>ec2 p5.48xlarge</code> instance contains eight NVIDIA H100
+Tensor Core GPUs connected via fourth-generation NVLink and
+third-generation NVSwitch chips:</p>
+<ul>
+<li><strong>Links per GPU:</strong> 18 fourth-generation NVLink
+connections</li>
+<li><strong>Bidirectional Bandwidth per Link:</strong> <span
+class="math inline">\(50\text{ GB/s}\)</span></li>
+<li><strong>Total Bidirectional Bandwidth per GPU:</strong> <span
+class="math inline">\(900\text{ GB/s}\)</span> (<span
+class="math inline">\(450\text{ GB/s}\)</span> ingress and <span
+class="math inline">\(450\text{ GB/s}\)</span> egress)</li>
+<li><strong>Aggregate Instance NVLink Bandwidth:</strong> <span
+class="math inline">\(7.2\text{ TB/s}\)</span></li>
+<li><strong>In-Network Compute:</strong> Third-generation NVSwitch
+introduces NVIDIA Scalable Hierarchical Aggregation and Reduction
+Protocol (SHARP) engines directly inside the NVSwitch silicon.</li>
+</ul>
+<h2 id="step-by-step-mechanics-of-gpu-to-gpu-communication">Step-by-Step
+Mechanics of GPU-to-GPU Communication</h2>
+<p>When a distributed workload—such as training a large language model
+using PyTorch and the NVIDIA Collective Communications Library
+(NCCL)—triggers an intra-node transfer, several coordinated steps occur
+beneath the software layer.</p>
+<h3 id="1-topology-discovery-and-peer-access-initialization">1. Topology
+Discovery and Peer Access Initialization</h3>
+<p>When the CUDA runtime and NCCL initialize on a P4d or P5 instance,
+they query the NVIDIA driver to discover the physical interconnect
+topology. Detecting the NVSwitch fabric, the runtime enables
+Peer-to-Peer (P2P) memory access across all 8 GPUs.</p>
+<p>Through Unified Virtual Addressing (UVA), the High Bandwidth Memory
+(HBM2e on P4d, HBM3 on P5) of all eight GPUs is mapped into a single,
+contiguous virtual address space. A kernel executing on
+<code>GPU 0</code> can reference a memory pointer residing physically on
+<code>GPU 7</code> just as it would reference its own local memory.</p>
+<h3 id="2-bypassing-the-host-cpu-and-pcie-bus">2. Bypassing the Host CPU
+and PCIe Bus</h3>
+<p>Once peer access is established, data transfers between GPUs
+completely bypass the host x86 CPUs, system RAM, and PCIe root complex.
+There is no need to stage data in host-pinned memory.</p>
+<p>When a transfer is initiated—either via an explicit
+<code>cudaMemcpyPeerAsync</code> call or via a GPU kernel
+reading/writing remote pointers directly—the GPU's internal memory
+controller translates the virtual memory address into a physical NVLink
+packet target.</p>
+<h3 id="3-routing-across-the-nvswitch-crossbar">3. Routing Across the
+NVSwitch Crossbar</h3>
+<p>The originating GPU serializes the memory transaction into flits
+(flow control digits) and transmits them across its NVLink lanes to the
+onboard NVSwitch chips.</p>
+<p>Because the NVSwitch fabric forms a full crossbar topology, traffic
+from all 8 GPUs is striped across multiple NVSwitch ASICs
+simultaneously. If <code>GPU 0</code> sends data to <code>GPU 1</code>
+while <code>GPU 2</code> sends data to <code>GPU 3</code>, neither
+transfer contends for bandwidth with the other. Every GPU can transmit
+at its maximum unidirectional rate (<span
+class="math inline">\(300\text{ GB/s}\)</span> on P4d, <span
+class="math inline">\(450\text{ GB/s}\)</span> on P5) and receive at the
+same rate concurrently.</p>
+<h3 id="4-remote-memory-access-and-cache-coherency">4. Remote Memory
+Access and Cache Coherency</h3>
+<p>On the receiving GPU, the incoming NVLink packets are reassembled and
+routed directly to the target GPU's High Bandwidth Memory controller or
+L2 cache. GPU kernels can even perform atomic operations (such as
+<code>atomicAdd</code>) directly on the memory of a remote peer GPU over
+NVLink, enabling fine-grained synchronization without host
+intervention.</p>
+<h2 id="collective-operations-and-nvlink-sharp-on-p5">Collective
+Operations and NVLink SHARP on P5</h2>
+<p>In distributed machine learning, GPUs frequently execute collective
+operations like <code>AllReduce</code>, <code>AllGather</code>,
+<code>ReduceScatter</code>, and <code>AllToAll</code> to synchronize
+gradients and activations.</p>
+<h3 id="ring-and-tree-algorithms-on-p4d-nvswitch-gen-2">Ring and Tree
+Algorithms on P4d (NVSwitch Gen 2)</h3>
+<p>On a P4d instance, NCCL constructs logical rings or double binary
+trees over the physical NVSwitch fabric. During an
+<code>AllReduce</code> operation across <span class="math inline">\(N =
+8\)</span> GPUs with a data payload of size <span
+class="math inline">\(S\)</span>, a traditional ring algorithm requires
+each GPU to send and receive:</p>
+<p><span class="math display">\[\text{Data Transferred per GPU} = 2
+\times \frac{N - 1}{N} \times S\]</span></p>
+<p>With <span class="math inline">\(N = 8\)</span>, each GPU transmits
+<span class="math inline">\(1.75 \times S\)</span> bytes over NVLink,
+and the GPUs themselves use their Streaming Multiprocessors (SMs) to
+compute the mathematical sum of incoming gradient chunks before
+forwarding them to the next GPU in the logical schedule.</p>
+<h3
+id="hardware-accelerated-collectives-on-p5-nvswitch-gen-3">Hardware-Accelerated
+Collectives on P5 (NVSwitch Gen 3)</h3>
+<p>On a P5 instance, the third-generation NVSwitch chips include
+dedicated Arithmetic Logic Units (ALUs) that support NVLink SHARP
+(in-switch reductions). When NCCL executes an <code>AllReduce</code> on
+a P5 instance using NVLink SHARP:</p>
+<ol type="1">
+<li>Instead of passing chunks from GPU to GPU in a ring, a GPU issues a
+multicast or reduction request directly to the NVSwitch fabric.</li>
+<li>The NVSwitch chips read the corresponding memory addresses from all
+8 GPUs concurrently.</li>
+<li>The ALUs inside the NVSwitch hardware compute the sum (or min/max)
+of the tensors across all 8 GPUs inside the switch itself.</li>
+<li>The NVSwitch broadcasts the final reduced result back to all 8 GPUs
+simultaneously using hardware multicast.</li>
+</ol>
+<p>This reduces the required NVLink traffic per GPU from <span
+class="math inline">\(2 \frac{N-1}{N} S\)</span> down to approximately
+<span class="math inline">\(S\)</span>, frees up GPU Streaming
+Multiprocessors for compute tasks rather than communication kernels, and
+boosts the effective <code>AllReduce</code> algorithm bandwidth on a P5
+instance from roughly <span class="math inline">\(350\text{
+GB/s}\)</span> to nearly <span class="math inline">\(480\text{
+GB/s}\)</span> per GPU.</p>
+<h2
+id="interaction-with-elastic-fabric-adapter-efa-in-multi-node-clusters">Interaction
+with Elastic Fabric Adapter (EFA) in Multi-Node Clusters</h2>
+<p>While NVLink and NVSwitch handle all intra-node communication inside
+a single P4d or P5 instance, large-scale training clusters span multiple
+instances connected via AWS Elastic Fabric Adapter (EFA).</p>
+<p>Inside a multi-node cluster, NCCL uses a hierarchical communication
+strategy:</p>
+<ol type="1">
+<li><strong>Intra-node phase:</strong> GPUs within the same instance
+aggregate or scatter data at ultra-high speed (<span
+class="math inline">\(600\text{ GB/s}\)</span> or <span
+class="math inline">\(900\text{ GB/s}\)</span>) over NVLink and
+NVSwitch.</li>
+<li><strong>Inter-node phase:</strong> Only the necessary cross-instance
+data is routed out of the GPUs over PCIe Gen4 (P4d) or PCIe Gen5 (P5)
+via GPUDirect RDMA directly to the EFA network interface cards (<span
+class="math inline">\(400\text{ Gbps}\)</span> on P4d, <span
+class="math inline">\(3200\text{ Gbps}\)</span> across 32 EFA devices on
+P5).</li>
+</ol>
+<p>This division of labor allows model parallelism techniques—such as
+Tensor Parallelism, which requires heavy layer-by-layer
+synchronization—to stay strictly within the single-instance NVSwitch
+domain, while Data Parallelism and Pipeline Parallelism operate across
+instances over EFA.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-gp-us-communicate-over-nv-link-in-aws-p-4-d-and-p-5';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

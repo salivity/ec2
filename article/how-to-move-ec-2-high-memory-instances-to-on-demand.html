@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Move EC2 High Memory Instances to On-Demand? - ec2</title>
+    <meta name="description" content="Transitioning an Amazon EC2 High Memory instance from a Dedicated Host billing model to an On-Demand or shared tenancy model depends heavily on the specific generation and size of your instance. Older bare metal High Memory instances require a Dedicated H">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-move-ec-2-high-memory-instances-to-on-demand">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Move EC2 High Memory Instances to On-Demand? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-move-ec-2-high-memory-instances-to-on-demand" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Transitioning an Amazon EC2 High Memory instance from a Dedicated Host billing model to an On-Demand or shared tenancy model depends heavily on the specific generation and size of your instance. Older bare metal High Memory instances require a Dedicated H" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-move-ec2-high-memory-instances-to-on-demand">How to Move
+EC2 High Memory Instances to On-Demand?</h1>
+<p>Transitioning an Amazon EC2 High Memory instance from a Dedicated
+Host billing model to an On-Demand or shared tenancy model depends
+heavily on the specific generation and size of your instance. Older bare
+metal High Memory instances require a Dedicated Host reservation,
+whereas newer virtualized High Memory instances allow you to modify
+instance placement attributes directly after stopping the instance. This
+article covers the exact prerequisites, compatibility constraints, and
+step-by-step procedures to migrate your High Memory workloads using the
+AWS Management Console and AWS CLI.</p>
+<h2
+id="understanding-ec2-high-memory-instance-tenancy-rules">Understanding
+EC2 High Memory Instance Tenancy Rules</h2>
+<p>Before attempting to change the tenancy of an EC2 High Memory
+instance, you must verify whether your specific instance type supports
+shared or default tenancy. Amazon EC2 High Memory instances are divided
+into two main architectural categories:</p>
+<ol type="1">
+<li><strong>Bare Metal High Memory Instances
+(<code>u-*.metal</code>)</strong>: Instances such as
+<code>u-6tb1.metal</code>, <code>u-9tb1.metal</code>,
+<code>u-12tb1.metal</code>, <code>u-18tb1.metal</code>, and
+<code>u-24tb1.metal</code> are only supported on EC2 Dedicated Hosts
+(<code>tenancy=host</code>). You cannot directly change the tenancy
+attribute of a bare metal High Memory instance to <code>default</code>
+(shared) while keeping the <code>u-*.metal</code> instance type. To move
+off a Dedicated Host model, you must first change the instance type to a
+virtualized High Memory instance (such as <code>u-6tb1.112xlarge</code>)
+or a newer generation family (such as <code>u7i</code>).</li>
+<li><strong>Virtualized High Memory Instances
+(<code>u-*.112xlarge</code>, <code>u-*.56xlarge</code>,
+<code>u7i</code>, <code>u7in</code>)</strong>: Virtualized High Memory
+instances support default (shared), dedicated instance, and Dedicated
+Host tenancies. If you are running one of these instance types on an
+On-Demand Dedicated Host and want to run it as a standard On-Demand
+instance without a Dedicated Host, you can stop the instance and change
+its tenancy from <code>host</code> to <code>default</code> or
+<code>dedicated</code>.</li>
+</ol>
+<h2 id="prerequisites-before-making-changes">Prerequisites Before Making
+Changes</h2>
+<p>Changing instance tenancy or resizing an instance requires stopping
+the instance. Prepare for the following impacts before starting the
+maintenance window:</p>
+<ul>
+<li><strong>Downtime</strong>: The instance must be in the
+<code>stopped</code> state to modify its placement and tenancy
+settings.</li>
+<li><strong>Public IPv4 Addresses</strong>: If your instance uses an
+auto-assigned public IPv4 address instead of an Elastic IP address,
+stopping the instance will release the public IPv4 address. Associate an
+Elastic IP address if you need to retain the same public IP.</li>
+<li><strong>Instance Store Volumes</strong>: High Memory instances
+primarily use Amazon EBS volumes, which persist across stops and starts.
+However, any data stored in RAM or temporary file systems
+(<code>tmpfs</code>) will be lost when the instance stops.</li>
+<li><strong>On-Demand Capacity Quotas</strong>: Ensure your AWS account
+has sufficient vCPU service quotas for On-Demand High Memory instances
+in the target Region. Moving an instance from a Dedicated Host to
+standard On-Demand consumes your standard On-Demand vCPU quota.</li>
+</ul>
+<h2
+id="scenario-1-changing-tenancy-for-virtualized-high-memory-instances">Scenario
+1: Changing Tenancy for Virtualized High Memory Instances</h2>
+<p>If your instance is already a virtualized High Memory instance (for
+example, <code>u-6tb1.112xlarge</code>, <code>u-12tb1.112xlarge</code>,
+or <code>u7i-12tb.224xlarge</code>) running on a Dedicated Host, you can
+transition it directly to standard On-Demand tenancy.</p>
+<h3 id="using-the-aws-management-console">Using the AWS Management
+Console</h3>
+<ol type="1">
+<li>Open the Amazon EC2 console and navigate to
+<strong>Instances</strong>.</li>
+<li>Select your High Memory instance, choose <strong>Instance
+state</strong>, and select <strong>Stop instance</strong>.</li>
+<li>Wait until the instance state changes to
+<strong>Stopped</strong>.</li>
+<li>With the instance still selected, choose <strong>Actions</strong>,
+<strong>Instance settings</strong>, and then <strong>Modify instance
+placement</strong>.</li>
+<li>Change <strong>Tenancy</strong> from <strong>Dedicated Host</strong>
+to <strong>Shared - Run a shared hardware instance</strong> (for
+standard On-Demand) or <strong>Dedicated - Run a dedicated
+instance</strong>.</li>
+<li>Choose <strong>Save</strong>.</li>
+<li>Select the instance, choose <strong>Instance state</strong>, and
+select <strong>Start instance</strong>.</li>
+</ol>
+<h3 id="using-the-aws-cli">Using the AWS CLI</h3>
+<ol type="1">
+<li>Stop the running EC2 instance:</li>
+</ol>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 stop-instances <span class="at">--instance-ids</span> i-0123456789abcdef0</span></code></pre></div>
+<ol start="2" type="1">
+<li>Wait for the instance to enter the <code>stopped</code> state:</li>
+</ol>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 wait instance-stopped <span class="at">--instance-ids</span> i-0123456789abcdef0</span></code></pre></div>
+<ol start="3" type="1">
+<li>Modify the instance placement to use <code>default</code>
+tenancy:</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-instance-placement <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-id</span> i-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--tenancy</span> default</span></code></pre></div>
+<ol start="4" type="1">
+<li>Start the instance:</li>
+</ol>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 start-instances <span class="at">--instance-ids</span> i-0123456789abcdef0</span></code></pre></div>
+<h2 id="scenario-2-transitioning-bare-metal-u-metal-instances">Scenario
+2: Transitioning Bare Metal (<code>u-*.metal</code>) Instances</h2>
+<p>If you are running a bare metal High Memory instance (such as
+<code>u-6tb1.metal</code> or <code>u-12tb1.metal</code>) on a Dedicated
+Host, AWS does not permit <code>tenancy=default</code> on
+<code>.metal</code> High Memory types. You must resize the instance to
+its virtualized equivalent (for example, <code>u-6tb1.112xlarge</code>
+or <code>u-12tb1.112xlarge</code>) and update its placement tenancy.</p>
+<h3 id="step-1-verify-nitro-enclaves-and-driver-readiness">Step 1:
+Verify Nitro Enclaves and Driver Readiness</h3>
+<p>Virtualized High Memory instances run on the AWS Nitro System. Most
+modern Linux distributions (such as SLES for SAP and RHEL for SAP) used
+on <code>u-*.metal</code> instances already include the required ENA
+(Elastic Network Adapter) and NVMe drivers. Verify that <code>ena</code>
+and <code>nvme</code> modules are enabled in your initramfs before
+stopping the instance.</p>
+<h3 id="step-2-stop-the-instance-and-modify-type-and-placement">Step 2:
+Stop the Instance and Modify Type and Placement</h3>
+<ol type="1">
+<li>Stop the bare metal instance using the AWS CLI:</li>
+</ol>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 stop-instances <span class="at">--instance-ids</span> i-0123456789abcdef0</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 wait instance-stopped <span class="at">--instance-ids</span> i-0123456789abcdef0</span></code></pre></div>
+<ol start="2" type="1">
+<li>Change the instance type from <code>.metal</code> to the virtualized
+<code>.112xlarge</code> (or <code>.56xlarge</code>) equivalent:</li>
+</ol>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-instance-attribute <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-id</span> i-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> <span class="st">&quot;{</span><span class="dt">\&quot;</span><span class="st">Value</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">u-6tb1.112xlarge</span><span class="dt">\&quot;</span><span class="st">}&quot;</span></span></code></pre></div>
+<ol start="3" type="1">
+<li>Change the placement tenancy from <code>host</code> to
+<code>default</code>:</li>
+</ol>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-instance-placement <span class="dt">\</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-id</span> i-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--tenancy</span> default</span></code></pre></div>
+<ol start="4" type="1">
+<li>Start the instance on standard On-Demand capacity:</li>
+</ol>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 start-instances <span class="at">--instance-ids</span> i-0123456789abcdef0</span></code></pre></div>
+<h2 id="releasing-the-dedicated-host-to-stop-billing">Releasing the
+Dedicated Host to Stop Billing</h2>
+<p>Moving an instance off a Dedicated Host does not automatically stop
+the billing for the Dedicated Host itself. Dedicated Hosts are billed
+continuously while allocated to your account, even when no instances are
+running on them.</p>
+<h3 id="if-using-an-on-demand-dedicated-host">If Using an On-Demand
+Dedicated Host</h3>
+<p>Once all instances have been migrated off the Dedicated Host, release
+the host so you are no longer charged:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 release-hosts <span class="at">--host-ids</span> h-0123456789abcdef0</span></code></pre></div>
+<h3 id="if-using-a-dedicated-host-reservation">If Using a Dedicated Host
+Reservation</h3>
+<p>If your Dedicated Host is bound to an active 1-year or 3-year
+Dedicated Host Reservation, AWS does not allow you to release the host
+until the reservation term expires. While you can still move the
+instance to On-Demand shared tenancy, you will continue to pay for the
+Dedicated Host Reservation until the end of its commitment term,
+resulting in double billing (<span
+class="math inline">\(C_{\text{total}} = C_{\text{reservation}} +
+C_{\text{on-demand}}\)</span>) unless you wait for the reservation to
+expire before transitioning the workload.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-move-ec-2-high-memory-instances-to-on-demand';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

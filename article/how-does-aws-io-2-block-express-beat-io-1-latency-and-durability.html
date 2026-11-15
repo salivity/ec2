@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does AWS io2 Block Express Beat io1 Latency and Durability? - ec2</title>
+    <meta name="description" content="Amazon Elastic Block Store io2 Block Express offers significant architectural improvements over standard io1 volumes by delivering consistent sub-millisecond latency and a 99.999 percent durability rating. Designed for mission-critical, I/O-intensive depl">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-aws-io-2-block-express-beat-io-1-latency-and-durability">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does AWS io2 Block Express Beat io1 Latency and Durability? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-aws-io-2-block-express-beat-io-1-latency-and-durability" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Elastic Block Store io2 Block Express offers significant architectural improvements over standard io1 volumes by delivering consistent sub-millisecond latency and a 99.999 percent durability rating. Designed for mission-critical, I/O-intensive depl" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="how-does-aws-io2-block-express-beat-io1-latency-and-durability">How
+Does AWS io2 Block Express Beat io1 Latency and Durability?</h1>
+<p>Amazon Elastic Block Store io2 Block Express offers significant
+architectural improvements over standard io1 volumes by delivering
+consistent sub-millisecond latency and a 99.999 percent durability
+rating. Designed for mission-critical, I/O-intensive deployments on
+Amazon EC2, io2 Block Express uses the Scalable Reliable Datagram
+protocol to minimize network jitter and reduce input/output wait times.
+While standard io1 volumes provide single-digit millisecond latency and
+a 99.8 percent to 99.9 percent durability guarantee, upgrading to io2
+Block Express lowers the annual failure rate by two orders of magnitude
+and increases maximum volume performance up to 256,000 IOPS and 4,000
+MB/s of throughput.</p>
+<h2
+id="architectural-foundation-srd-and-nitro-integration">Architectural
+Foundation: SRD and Nitro Integration</h2>
+<p>To understand the performance leap between standard <code>io1</code>
+volumes and <code>io2</code> Block Express, it is necessary to examine
+the underlying network transport layer connecting Amazon EC2 instances
+to Amazon EBS storage nodes. Standard <code>io1</code> volumes
+communicate over traditional TCP/IP-based storage fabrics, which are
+susceptible to head-of-line blocking, queuing delays, and route
+congestion during peak traffic periods.</p>
+<p><code>io2</code> Block Express replaces this legacy transport
+mechanism with a next-generation storage server architecture built
+specifically for AWS Nitro System-based EC2 instances. It communicates
+using the Scalable Reliable Datagram (SRD) protocol—the same proprietary
+network transport mechanism that powers Elastic Fabric Adapter (EFA) for
+high-performance computing (HPC).</p>
+<h3 id="how-srd-eliminates-tail-latency">How SRD Eliminates Tail
+Latency</h3>
+<ol type="1">
+<li><strong>Multipath Routing:</strong> Rather than pinning a storage
+connection to a single network path like standard TCP, SRD splits I/O
+flows across dozens of parallel network paths inside the AWS data center
+fabric.</li>
+<li><strong>Fast Congestion Avoidance:</strong> SRD monitors network
+saturation in real time on dedicated Nitro hardware cards, dynamically
+routing packets around congested switches or degraded links before
+packet drops occur.</li>
+<li><strong>Out-of-Order Delivery Recovery:</strong> Because packets
+travel across multiple paths simultaneously, they may arrive out of
+sequence. The Nitro controller reassembles these packets directly in
+hardware without triggering TCP retransmissions or collapsing the
+congestion window.</li>
+</ol>
+<h2 id="sub-millisecond-latency-advantages">Sub-Millisecond Latency
+Advantages</h2>
+<p>Latency on cloud block storage is measured across both average
+response times and high-percentile tail latencies (<span
+class="math inline">\(P99\)</span> and <span
+class="math inline">\(P99.9\)</span>). For transactional relational
+databases such as Oracle, SAP HANA, Microsoft SQL Server, and Apache
+Cassandra, tail latency spikes directly cause transaction lock
+contention and slow down commit logs.</p>
+<h3 id="latency-comparison">Latency Comparison</h3>
+<ul>
+<li><strong>Standard <code>io1</code> Volumes:</strong> Engineered to
+deliver single-digit millisecond latencies (typically between <span
+class="math inline">\(1\text{ ms}\)</span> and <span
+class="math inline">\(5\text{ ms}\)</span> under normal operating
+conditions). However, when underlying network paths experience
+micro-bursts or background storage node maintenance, <span
+class="math inline">\(P99.9\)</span> latency on <code>io1</code> can
+spike into double-digit milliseconds.</li>
+<li><strong><code>io2</code> Block Express Volumes:</strong> Engineered
+to provide average latency under <span class="math inline">\(0.5\text{
+ms}\)</span> (<span class="math inline">\(500\text{
+}\mu\text{s}\)</span>) for small block I/O operations. By offloading I/O
+processing to dedicated Nitro hardware and using SRD multipath routing,
+<code>io2</code> Block Express flattens the latency distribution curve,
+keeping <span class="math inline">\(P99.9\)</span> outlier latencies
+tightly bound near the sub-millisecond threshold.</li>
+</ul>
+<h3 id="impact-on-database-write-ahead-logging">Impact on Database
+Write-Ahead Logging</h3>
+<p>In database systems, every committed transaction must be flushed to
+non-volatile storage via a Write-Ahead Log (WAL) or redo log before the
+client receives confirmation. If a transaction requires <span
+class="math inline">\(N\)</span> sequential synchronous disk writes, the
+minimum execution time <span
+class="math inline">\(T_{\text{commit}}\)</span> is directly bound by
+storage latency <span class="math inline">\(L\)</span>:</p>
+<p><span class="math display">\[T_{\text{commit}} \ge \sum_{i=1}^{N}
+L_i\]</span></p>
+<p>Cutting average write latency from <span
+class="math inline">\(2.5\text{ ms}\)</span> on <code>io1</code> down to
+<span class="math inline">\(0.4\text{ ms}\)</span> on <code>io2</code>
+Block Express yields a <span class="math inline">\(6.25\times\)</span>
+speedup on synchronous log flushes. This allows databases to process
+significantly higher transactions per second (TPS) on the exact same EC2
+compute footprint without CPU threads sitting idle in
+<code>iowait</code> states.</p>
+<h2 id="durability-and-reliability-99999-vs-999">Durability and
+Reliability: 99.999% vs. 99.9%</h2>
+<p>Storage durability in Amazon EBS is quantified by the Annual Failure
+Rate (AFR), which represents the statistical probability that a volume
+will experience an unrecoverable complete or partial data loss event
+over a one-year period.</p>
+<p><span class="math display">\[\text{Durability} = 100\% -
+\text{AFR}\]</span></p>
+<h3 id="statistical-reliability-breakdown">Statistical Reliability
+Breakdown</h3>
+<ul>
+<li><strong>Standard <code>io1</code> Durability (99.8% to
+99.9%):</strong> An AFR between <span
+class="math inline">\(0.1\%\)</span> and <span
+class="math inline">\(0.2\%\)</span> means that if an enterprise deploys
+<span class="math inline">\(1,000\)</span> standard <code>io1</code>
+volumes across its fleet, it should statistically expect <span
+class="math inline">\(1\)</span> to <span
+class="math inline">\(2\)</span> volumes to suffer an unrecoverable
+failure every year.</li>
+<li><strong><code>io2</code> Block Express Durability
+(99.999%):</strong> An AFR of <span
+class="math inline">\(0.001\%\)</span> improves reliability by a factor
+of <span class="math inline">\(100\times\)</span> to <span
+class="math inline">\(200\times\)</span> over <code>io1</code>. Across a
+fleet of <span class="math inline">\(1,000\)</span> volumes, the
+expected failure rate drops to <span class="math inline">\(0.01\)</span>
+volumes per year—meaning you would need to run <span
+class="math inline">\(100,000\)</span> volumes for a full year to
+statistically expect a single volume failure.</li>
+</ul>
+<h3 id="architectural-drivers-of-five-nines-durability">Architectural
+Drivers of Five-Nines Durability</h3>
+<p><code>io2</code> Block Express achieves <span
+class="math inline">\(99.999\%\)</span> durability through finer-grained
+data striping and faster background healing across distributed storage
+nodes within an Availability Zone:</p>
+<ol type="1">
+<li><strong>Distributed Block Striping:</strong> Rather than relying on
+simple mirrored pairs, <code>io2</code> Block Express distributes data
+chunks across a broader pool of independent physical NVMe storage bricks
+within the Availability Zone.</li>
+<li><strong>Accelerated Replica Rebuilding:</strong> When a physical SSD
+or storage server fails in the AWS fleet, the time window during which
+the volume is vulnerable to a secondary hardware failure is determined
+by the rebuild speed. Because the Block Express fabric supports <span
+class="math inline">\(4,000\text{ MB/s}\)</span> per volume and utilizes
+high-bandwidth SRD networking, background re-replication completes in a
+fraction of the time required by <code>io1</code> storage nodes.</li>
+<li><strong>End-to-End Checksumming:</strong> Every I/O block is
+validated with hardware-assisted cyclic redundancy checks (CRC) from the
+EC2 Nitro controller all the way to the physical NAND flash media,
+preventing silent data corruption (bit rot) during transit or at
+rest.</li>
+</ol>
+<h2 id="scaling-and-iops-to-storage-ratio-advantages">Scaling and
+IOPS-to-Storage Ratio Advantages</h2>
+<p>Beyond raw latency and durability, <code>io2</code> Block Express
+eliminates several capacity and scaling bottlenecks inherent to standard
+<code>io1</code> volumes.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Metric</th>
+<th style="text-align: left;">Standard <code>io1</code></th>
+<th style="text-align: left;"><code>io2</code> Block Express</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Durability (Annual Failure
+Rate)</strong></td>
+<td style="text-align: left;">99.8% – 99.9% (0.1% – 0.2% AFR)</td>
+<td style="text-align: left;">99.999% (0.001% AFR)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Average I/O Latency</strong></td>
+<td style="text-align: left;">Single-digit millisecond (<span
+class="math inline">\(1\text{–}5\text{ ms}\)</span>)</td>
+<td style="text-align: left;">Sub-millisecond (<span
+class="math inline">\(&lt;0.5\text{ ms}\)</span>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Maximum IOPS per
+Volume</strong></td>
+<td style="text-align: left;">64,000 IOPS</td>
+<td style="text-align: left;">256,000 IOPS</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Maximum Throughput per
+Volume</strong></td>
+<td style="text-align: left;">1,000 MB/s</td>
+<td style="text-align: left;">4,000 MB/s</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Max Volume Capacity</strong></td>
+<td style="text-align: left;">16 TiB</td>
+<td style="text-align: left;">64 TiB</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>IOPS-to-GiB Provisioning
+Ratio</strong></td>
+<td style="text-align: left;">50:1</td>
+<td style="text-align: left;">1,000:1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="eliminating-over-provisioning-with-the-10001-ratio">Eliminating
+Over-Provisioning with the 1,000:1 Ratio</h3>
+<p>On standard <code>io1</code> volumes, AWS enforces a maximum ratio of
+<span class="math inline">\(50\text{ IOPS}\)</span> per provisioned GiB
+of storage. If an application requires <span
+class="math inline">\(64,000\text{ IOPS}\)</span> for a small <span
+class="math inline">\(100\text{ GiB}\)</span> high-velocity
+transactional database, an administrator using <code>io1</code> is
+forced to provision at least <span class="math inline">\(1,280\text{
+GiB}\)</span> of capacity:</p>
+<p><span class="math display">\[\text{Required Capacity}_{\text{io1}} =
+\frac{64,000\text{ IOPS}}{50\text{ IOPS/GiB}} = 1,280\text{
+GiB}\]</span></p>
+<p>With <code>io2</code> Block Express, the provisioning ratio scales up
+to <span class="math inline">\(1,000\text{ IOPS}\)</span> per GiB. That
+same <span class="math inline">\(64,000\text{ IOPS}\)</span> workload
+only requires <span class="math inline">\(64\text{ GiB}\)</span> of
+provisioned storage capacity:</p>
+<p><span class="math display">\[\text{Required Capacity}_{\text{io2}} =
+\frac{64,000\text{ IOPS}}{1,000\text{ IOPS/GiB}} = 64\text{
+GiB}\]</span></p>
+<p>This <span class="math inline">\(20\times\)</span> higher IOPS
+density eliminates the need to pay for stranded, unused terabytes of
+disk space just to unlock high I/O performance. Furthermore, because a
+single <code>io2</code> Block Express volume scales up to <span
+class="math inline">\(64\text{ TiB}\)</span> and <span
+class="math inline">\(256,000\text{ IOPS}\)</span>, administrators no
+longer need to stripe multiple <code>io1</code> volumes together using
+host-level Logical Volume Management (LVM) or RAID 0—simplifying
+snapshot management, backup consistency, and disaster recovery
+operations.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-aws-io-2-block-express-beat-io-1-latency-and-durability';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

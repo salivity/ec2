@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crash-Consistent vs Application-Consistent EBS Snapshots? - ec2</title>
+    <meta name="description" content="This article explains the differences between crash-consistent Amazon Elastic Block Store snapshots and application-consistent multi-volume snapshots on Amazon EC2. It covers how data in memory and disk caches is handled during the backup process, the mec">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/crash-consistent-vs-application-consistent-ebs-snapshots">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Crash-Consistent vs Application-Consistent EBS Snapshots? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/crash-consistent-vs-application-consistent-ebs-snapshots" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explains the differences between crash-consistent Amazon Elastic Block Store snapshots and application-consistent multi-volume snapshots on Amazon EC2. It covers how data in memory and disk caches is handled during the backup process, the mec" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="crash-consistent-vs-application-consistent-ebs-snapshots">Crash-Consistent
+vs Application-Consistent EBS Snapshots?</h1>
+<p>This article explains the differences between crash-consistent Amazon
+Elastic Block Store snapshots and application-consistent multi-volume
+snapshots on Amazon EC2. It covers how data in memory and disk caches is
+handled during the backup process, the mechanisms used to coordinate
+snapshots across multiple volumes, and the recovery implications for
+stateful applications and databases running on AWS.</p>
+<h2 id="what-is-a-crash-consistent-ebs-snapshot">What is a
+Crash-Consistent EBS Snapshot?</h2>
+<p>A crash-consistent snapshot captures the state of an Amazon EBS
+volume at the exact moment the snapshot is initiated, including only the
+data that has already been written and flushed to the underlying storage
+disk. It does not capture any data currently residing in the operating
+system memory, file system buffers, or application caches that has not
+yet been committed to disk.</p>
+<p>The term crash-consistent comes from the fact that restoring from
+this type of snapshot is equivalent to rebooting a physical server after
+an unexpected power outage or hard reset. When a new EBS volume is
+created from a crash-consistent snapshot and attached to an EC2
+instance, the operating system and database engines treat the state as
+an unclean shutdown. File systems like ext4 or XFS will replay their
+journals, and relational databases will run crash recovery routines by
+rolling back uncommitted transactions and rolling forward committed ones
+from transaction logs.</p>
+<p>For single-volume workloads or stateless applications, standard
+crash-consistent snapshots are often sufficient. Furthermore, AWS
+supports multi-volume crash-consistent snapshots through the
+<code>CreateSnapshots</code> API, which coordinates point-in-time
+backups across all EBS volumes attached to an EC2 instance
+simultaneously without requiring you to stop the instance or manually
+freeze I/O across disks.</p>
+<h2 id="what-is-an-application-consistent-multi-volume-snapshot">What is
+an Application-Consistent Multi-Volume Snapshot?</h2>
+<p>An application-consistent multi-volume snapshot captures not only the
+data on the disks at the same point in time, but also ensures that
+applications and the operating system have completed all pending I/O
+operations and flushed their in-memory caches to disk before the
+snapshot occurs.</p>
+<p>When an application-consistent backup is triggered across an EC2
+instance with multiple attached EBS volumes—such as a database server
+storing data files on one volume and transaction logs on another—the
+backup process interacts directly with the guest operating system and
+running applications. The process follows a specific sequence:</p>
+<ol type="1">
+<li>Applications are notified that a backup is about to begin and are
+instructed to quiesce, pausing new write transactions and flushing
+internal memory buffers.</li>
+<li>The operating system file system flushes its dirty pages and buffers
+to the EBS volumes and freezes write operations.</li>
+<li>AWS initiates coordinated, simultaneous snapshots across all
+targeted EBS volumes attached to the instance.</li>
+<li>Once the point-in-time checkpoint is established by EBS, the file
+system and applications are immediately thawed to resume normal read and
+write operations while the snapshot data transfers to Amazon S3 in the
+background.</li>
+</ol>
+<p>When you restore an instance or database from an
+application-consistent snapshot, the software starts cleanly without
+needing to perform complex log replays or consistency checks, as the
+storage state reflects a clean, coordinated transaction boundary.</p>
+<h2 id="how-they-are-implemented-on-amazon-ec2">How They Are Implemented
+on Amazon EC2</h2>
+<h3 id="windows-instances-with-vss">Windows Instances with VSS</h3>
+<p>On Windows Server instances running on Amazon EC2,
+application-consistent snapshots rely on the Microsoft Volume Shadow
+Copy Service (VSS). By installing the AWS Systems Manager Agent (SSM
+Agent) and the AWS VSS components on the EC2 instance, you can run the
+<code>AWSEC2-CreateVssSnapshot</code> Systems Manager document or use
+AWS Backup with VSS enabled. VSS communicates with VSS-aware
+applications like Microsoft SQL Server or Active Directory to freeze
+transactions, flush caches, and coordinate the multi-volume EBS snapshot
+via the EC2 API.</p>
+<h3 id="linux-instances-with-custom-scripts-or-aws-backup">Linux
+Instances with Custom Scripts or AWS Backup</h3>
+<p>Linux does not have a single built-in equivalent to Windows VSS that
+covers both the OS and all third-party databases uniformly. To achieve
+application consistency on Linux EC2 instances across multiple volumes,
+administrators typically use pre-freeze and post-thaw scripts executed
+via AWS Systems Manager Run Command, AWS Data Lifecycle Manager (DLM),
+or AWS Backup.</p>
+<p>In a typical Linux workflow:</p>
+<ol type="1">
+<li>A pre-script connects to the database (such as MySQL, PostgreSQL, or
+Oracle) and places it into backup mode or acquires a global read
+lock.</li>
+<li>The script runs the <code>sync</code> command and uses
+<code>fsfreeze -f</code> on mounted file systems to halt new I/O
+operations.</li>
+<li>The <code>CreateSnapshots</code> API is called to capture all
+attached volumes at that exact instant.</li>
+<li>A post-script runs <code>fsfreeze -u</code> to unfreeze the file
+systems and releases the database lock.</li>
+</ol>
+<h2 id="key-differences-between-the-two-approaches">Key Differences
+Between the Two Approaches</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Crash-Consistent Snapshots</th>
+<th style="text-align: left;">Application-Consistent Multi-Volume
+Snapshots</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>In-Memory Data</strong></td>
+<td style="text-align: left;">Ignores data in OS buffers and application
+memory caches.</td>
+<td style="text-align: left;">Flushes application and OS memory buffers
+to disk prior to capture.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Application
+Awareness</strong></td>
+<td style="text-align: left;">Unaware of running applications or active
+transactions.</td>
+<td style="text-align: left;">Coordinates with applications to pause
+writes at a clean transaction boundary.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Guest OS
+Configuration</strong></td>
+<td style="text-align: left;">Requires no agents, scripts, or access to
+the guest OS.</td>
+<td style="text-align: left;">Requires SSM Agent, VSS components
+(Windows), or custom freeze/thaw scripts (Linux).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Performance Impact</strong></td>
+<td style="text-align: left;">Zero interruption to application I/O
+during snapshot initiation.</td>
+<td style="text-align: left;">Brief pause (typically milliseconds to a
+few seconds) in write I/O while freezing volumes.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Recovery Behavior</strong></td>
+<td style="text-align: left;">Requires file system journal checks and
+database crash recovery upon restore.</td>
+<td style="text-align: left;">Restores cleanly as if the application was
+gracefully shut down or checkpointed.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Failure Rate</strong></td>
+<td style="text-align: left;">Very low; operates purely at the AWS
+infrastructure layer.</td>
+<td style="text-align: left;">Higher potential for failure if guest OS
+scripts time out or applications fail to quiesce.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="mathematical-view-of-recovery-time-objective-rto">Mathematical
+View of Recovery Time Objective (RTO)</h2>
+<p>The choice between crash-consistent and application-consistent
+snapshots directly affects the Recovery Time Objective (<span
+class="math inline">\(\text{RTO}\)</span>) when restoring large,
+high-throughput workloads.</p>
+<p>For an application-consistent snapshot, the total recovery time <span
+class="math inline">\(T_{\text{app}}\)</span> is primarily a function of
+volume provisioning and instance boot time:</p>
+<p><span class="math display">\[T_{\text{app}} = T_{\text{provision}} +
+T_{\text{boot}} + T_{\text{service\_start}}\]</span></p>
+<p>For a crash-consistent snapshot, the recovery time <span
+class="math inline">\(T_{\text{crash}}\)</span> includes an additional
+variable for transaction log replay and file system verification, which
+scales with the volume of uncommitted or uncheckpointed transactions
+<span class="math inline">\(N_{\text{tx}}\)</span> at the moment of the
+snapshot and the disk read/write throughput <span
+class="math inline">\(R_{\text{io}}\)</span>:</p>
+<p><span class="math display">\[T_{\text{crash}} = T_{\text{provision}}
++ T_{\text{boot}} + \frac{N_{\text{tx}}}{R_{\text{io}}} +
+T_{\text{service\_start}}\]</span></p>
+<p>While EBS Fast Snapshot Restore (FSR) can minimize <span
+class="math inline">\(T_{\text{provision}}\)</span> and boost <span
+class="math inline">\(R_{\text{io}}\)</span>, eliminating the crash
+recovery phase entirely requires application-consistent snapshots.</p>
+<h2 id="when-to-use-each-snapshot-type">When to Use Each Snapshot
+Type</h2>
+<h3 id="when-to-use-crash-consistent-multi-volume-snapshots">When to Use
+Crash-Consistent Multi-Volume Snapshots</h3>
+<ul>
+<li><strong>Stateless web and application tiers:</strong> Servers that
+do not store persistent transactional data locally.</li>
+<li><strong>Modern ACID-compliant databases with low recovery
+overhead:</strong> Many modern relational databases (such as PostgreSQL,
+MySQL with InnoDB, and Oracle) are designed to recover reliably from
+crash-consistent storage snapshots, provided that data volumes and
+write-ahead log (WAL) volumes are snapped at the exact same moment using
+the multi-volume <code>CreateSnapshots</code> API.</li>
+<li><strong>Environments without guest OS access:</strong> Compliance or
+security boundaries where installing agents or running administrative
+scripts inside the guest operating system is prohibited.</li>
+</ul>
+<h3 id="when-to-use-application-consistent-multi-volume-snapshots">When
+to Use Application-Consistent Multi-Volume Snapshots</h3>
+<ul>
+<li><strong>Microsoft Windows workloads:</strong> Enterprise
+applications running on Windows Server (such as SQL Server, Exchange, or
+Active Directory) that natively expect VSS-coordinated backups for
+supported recovery scenarios.</li>
+<li><strong>Databases spanning multiple volumes without atomic
+cross-volume recovery:</strong> Legacy applications or custom storage
+engines that cannot reconcile state if in-flight memory operations are
+lost across striped (RAID 0) or separated data/log volumes.</li>
+<li><strong>Strict RTO requirements:</strong> Production systems where
+waiting for lengthy database log replay or file system checks during a
+disaster recovery event is unacceptable.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/crash-consistent-vs-application-consistent-ebs-snapshots';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens to EC2 Compute and Storage Charges When Stopped? - ec2</title>
+    <meta name="description" content="When you stop an On-Demand Amazon EC2 instance, Amazon Web Services immediately stops billing you for the hourly or per-second compute capacity of that virtual server. However, any persistent storage attached to the instance, specifically Amazon Elastic B">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-to-ec-2-compute-and-storage-charges-when-stopped">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens to EC2 Compute and Storage Charges When Stopped? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-to-ec-2-compute-and-storage-charges-when-stopped" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When you stop an On-Demand Amazon EC2 instance, Amazon Web Services immediately stops billing you for the hourly or per-second compute capacity of that virtual server. However, any persistent storage attached to the instance, specifically Amazon Elastic B" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-happens-to-ec2-compute-and-storage-charges-when-stopped">What
+Happens to EC2 Compute and Storage Charges When Stopped?</h1>
+<p>When you stop an On-Demand Amazon EC2 instance, Amazon Web Services
+immediately stops billing you for the hourly or per-second compute
+capacity of that virtual server. However, any persistent storage
+attached to the instance, specifically Amazon Elastic Block Store
+volumes, continues to incur standard monthly provisioning charges so
+that your data remains available when you restart the machine.</p>
+<h2 id="how-compute-billing-changes-when-an-instance-stops">How Compute
+Billing Changes When an Instance Stops</h2>
+<p>An On-Demand EC2 instance transitions through several lifecycle
+states before it reaches the stopped state. While the instance is in the
+running state, you are billed for compute capacity by the second (with a
+60-second minimum for Linux instances) or by the hour, depending on the
+operating system and licensing model.</p>
+<p>The moment you initiate a stop action and the instance enters the
+stopping state to prepare for shutdown, AWS ceases billing for On-Demand
+compute usage. Once the instance reaches the stopped state, it is
+detached from the underlying physical host hardware, and your compute
+charges remain at zero until you start the instance again.</p>
+<p>It is important to note the difference between stopping an instance
+and rebooting an instance:</p>
+<ul>
+<li>Stopping and starting an instance moves it to a new underlying
+physical host, releases its public IPv4 address (unless using an Elastic
+IP), and pauses compute billing while stopped.</li>
+<li>Rebooting an instance keeps it on the same physical host, retains
+all network addresses, and keeps the instance in the running billing
+state continuously.</li>
+</ul>
+<h2 id="why-attached-storage-charges-continue">Why Attached Storage
+Charges Continue</h2>
+<p>To stop an EC2 instance, the instance must use an Amazon EBS volume
+as its root device. Unlike ephemeral instance store volumes, which are
+physically attached to the host server and lose all data when an
+instance stops, EBS volumes are network-attached block storage devices
+that persist independently of the compute lifecycle.</p>
+<p>Because AWS continues to reserve and maintain your provisioned
+storage blocks on the storage Area Network while the instance is powered
+off, you continue to pay for:</p>
+<ul>
+<li>The total provisioned gigabytes of all attached EBS volumes (such as
+gp3, gp2, io1, io2, st1, or sc1).</li>
+<li>Any extra provisioned IOPS or throughput configured beyond the
+baseline on volumes like gp3, io1, or io2.</li>
+<li>Any EBS snapshots stored in Amazon S3 that were created from those
+volumes.</li>
+</ul>
+<p>If we denote the hourly compute rate as <span
+class="math inline">\(R_{c}\)</span>, the active running hours in a
+month as <span class="math inline">\(H\)</span>, the monthly storage
+rate per gigabyte as <span class="math inline">\(R_{s}\)</span>, and the
+provisioned storage size in gigabytes as <span
+class="math inline">\(S\)</span>, the total monthly cost <span
+class="math inline">\(C_{total}\)</span> of an instance that is stopped
+for part of the month can be expressed as:</p>
+<p><span class="math display">\[C_{total} = (R_{c} \times H) + (R_{s}
+\times S)\]</span></p>
+<p>Even if the running hours <span class="math inline">\(H = 0\)</span>
+for the entire month because the instance remains stopped, the storage
+cost component <span class="math inline">\((R_{s} \times S)\)</span>
+still applies in full.</p>
+<h2 id="instance-store-volumes-vs-ebs-volumes">Instance Store Volumes
+vs. EBS Volumes</h2>
+<p>Some EC2 instance families include local NVMe or SSD instance store
+volumes. The cost of instance store storage is bundled directly into the
+On-Demand compute price of the instance. When you stop an EBS-backed
+instance that also has attached instance store volumes, two things
+happen:</p>
+<ul>
+<li>You are not billed separately for the instance store volumes while
+stopped.</li>
+<li>All data on the instance store volumes is permanently erased because
+the virtual machine is deallocated from the physical host where those
+drives reside.</li>
+</ul>
+<h2 id="other-associated-costs-to-watch-while-stopped">Other Associated
+Costs to Watch While Stopped</h2>
+<p>Beyond attached EBS volumes, stopping an EC2 instance can affect or
+leave active several other related charges on your AWS bill:</p>
+<ul>
+<li>Elastic IP Addresses: AWS does not charge for one Elastic IP address
+associated with a running instance, or verify charges the same way
+across all address types, though as of recent AWS pricing updates, all
+public IPv4 addresses (whether in-use or idle Elastic IPs) incur a small
+hourly charge.</li>
+<li>EC2 Instance Hibernate: If you hibernate an instance instead of
+performing a standard stop, the contents of the instance memory (RAM)
+are written to the root EBS volume. While compute charges stop during
+hibernation, you must have enough extra space on your root EBS volume to
+store the RAM dump, which increases your ongoing EBS storage cost.</li>
+<li>Capacity Reservations: If you have an active On-Demand Capacity
+Reservation targeting the instance's attributes, you continue to pay for
+the reserved capacity slot even while the instance itself is
+stopped.</li>
+</ul>
+<h2 id="how-to-eliminate-both-compute-and-storage-charges">How to
+Eliminate Both Compute and Storage Charges</h2>
+<p>If you no longer need the EC2 instance or the data on its attached
+drives, stopping the instance is not enough to eliminate your bill. To
+stop both compute and storage charges:</p>
+<ol type="1">
+<li>Back up any needed data by creating an Amazon EBS snapshot or
+copying files to Amazon S3 (note that snapshots and S3 storage incur
+their own lower per-gigabyte storage rates).</li>
+<li>Terminate the EC2 instance rather than stopping it.</li>
+<li>Verify whether the Delete on Termination attribute is enabled for
+all attached EBS volumes. By default, the root EBS volume is deleted
+automatically upon termination, while additional attached data volumes
+remain provisioned and billable until you manually delete them from the
+EC2 console.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-to-ec-2-compute-and-storage-charges-when-stopped';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

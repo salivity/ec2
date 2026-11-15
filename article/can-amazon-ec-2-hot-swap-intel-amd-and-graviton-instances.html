@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can Amazon EC2 Hot-Swap Intel, AMD, and Graviton Instances? - ec2</title>
+    <meta name="description" content="Amazon EC2 does not support direct hot-swapping of a single running virtual machine between Intel, AMD, and AWS Graviton general-purpose M-series instance types without stopping the instance or replacing it. Because changing an instance type on a single A">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-amazon-ec-2-hot-swap-intel-amd-and-graviton-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can Amazon EC2 Hot-Swap Intel, AMD, and Graviton Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-amazon-ec-2-hot-swap-intel-amd-and-graviton-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 does not support direct hot-swapping of a single running virtual machine between Intel, AMD, and AWS Graviton general-purpose M-series instance types without stopping the instance or replacing it. Because changing an instance type on a single A" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="can-amazon-ec2-hot-swap-intel-amd-and-graviton-instances">Can
+Amazon EC2 Hot-Swap Intel, AMD, and Graviton Instances?</h1>
+<p>Amazon EC2 does not support direct hot-swapping of a single running
+virtual machine between Intel, AMD, and AWS Graviton general-purpose
+M-series instance types without stopping the instance or replacing it.
+Because changing an instance type on a single Amazon EBS-backed EC2
+instance requires the instance to be in a stopped state, any direct
+in-place modification incurs downtime. Furthermore, while Intel and AMD
+instances share the x86_64 instruction set architecture and allow
+in-place instance type changes after stopping, AWS Graviton processors
+use the arm64 architecture, which prevents direct in-place switching
+from an x86_64 instance due to fundamental operating system and binary
+incompatibilities. To achieve zero-downtime transitions across these
+processor families, cloud architects rely on horizontal scaling patterns
+such as Auto Scaling groups, Elastic Load Balancing, and container
+orchestration rather than modifying individual instances in place.</p>
+<h2
+id="understanding-the-amazon-ec2-m-series-processor-families">Understanding
+the Amazon EC2 M-Series Processor Families</h2>
+<p>Amazon EC2 general-purpose M-series instances provide a balance of
+compute, memory, and networking resources for a broad range of
+workloads. Within each generation, AWS offers three distinct processor
+options denoted by suffixes in the instance family name:</p>
+<ul>
+<li><strong>Intel Xeon Scalable Processors (e.g., m6i, m7i):</strong>
+Built on the 64-bit x86 (<code>x86_64</code>) architecture. These serve
+as the baseline general-purpose instances and support Intel-specific
+instruction sets such as AVX-512 and AMX (on 7th generation).</li>
+<li><strong>AMD EPYC Processors (e.g., m6a, m7a):</strong> Also built on
+the 64-bit x86 (<code>x86_64</code>) architecture. These instances are
+binary-compatible with standard x86 operating systems and software
+compiled for Intel processors, typically offering a lower cost per
+vCPU.</li>
+<li><strong>AWS Graviton Processors (e.g., m6g, m7g):</strong>
+Custom-built by AWS using 64-bit Arm Neoverse cores (<code>arm64</code>
+/ <code>aarch64</code>). Graviton instances deliver high
+price-performance efficiency and lower energy consumption, but require
+an Arm-compatible operating system and software binaries.</li>
+</ul>
+<h2 id="why-direct-in-place-hot-swapping-is-not-supported">Why Direct
+In-Place Hot-Swapping Is Not Supported</h2>
+<p>In hardware and virtualization terminology, hot-swapping refers to
+replacing or modifying system components while the system remains
+operational and continues serving traffic without interruption. When
+dealing with a single Amazon EC2 instance, two primary technical
+constraints prevent hot-swapping across Intel, AMD, and Graviton
+families.</p>
+<h3 id="1-hypervisor-and-instance-lifecycle-constraints">1. Hypervisor
+and Instance Lifecycle Constraints</h3>
+<p>Even within the same processor architecture, Amazon EC2 does not
+support changing the instance type of a running instance. When you
+change an instance from <code>m7i.large</code> to
+<code>m7a.large</code>, the instance must be moved to a different
+physical host server equipped with the target processor.</p>
+<p>To perform an in-place instance type change via the AWS Management
+Console, AWS CLI, or SDK:</p>
+<ol type="1">
+<li>The EC2 instance must be stopped
+(<code>aws ec2 stop-instances</code>).</li>
+<li>The <code>instanceType</code> attribute is modified
+(<code>aws ec2 modify-instance-attribute</code>).</li>
+<li>The instance is started (<code>aws ec2 start-instances</code>),
+provisioning it on a new underlying physical host.</li>
+</ol>
+<p>Because this process stops the operating system and severs active
+network connections, it is a cold migration rather than a hot-swap.</p>
+<h3 id="2-instruction-set-architecture-isa-boundaries">2. Instruction
+Set Architecture (ISA) Boundaries</h3>
+<p>Switching between Intel (<code>m6i</code>/<code>m7i</code>) and AMD
+(<code>m6a</code>/<code>m7a</code>) is relatively straightforward during
+a maintenance window because both use the <code>x86_64</code>
+instruction set. An Amazon Machine Image (AMI) and its attached root EBS
+volume configured for <code>x86_64</code> will boot on either Intel or
+AMD hardware (provided the instance uses modern ENA and NVMe drivers,
+which are standard on Nitro-based instances).</p>
+<p>However, transitioning between an x86 instance (<code>m7i</code> or
+<code>m7a</code>) and a Graviton instance (<code>m7g</code>) crosses an
+Instruction Set Architecture boundary from <code>x86_64</code> to
+<code>arm64</code>. If you stop an <code>m7i.large</code> instance and
+attempt to modify its instance type to <code>m7g.large</code>, the AWS
+API will return an <code>InvalidParameterCombination</code> error. The
+root EBS volume contains an <code>x86_64</code> kernel, bootloader, and
+system libraries that cannot execute on an Arm processor. Moving to or
+from Graviton requires launching a completely new EC2 instance using an
+<code>arm64</code>-compatible AMI.</p>
+<h2 id="comparing-transition-paths-across-m-series-instances">Comparing
+Transition Paths Across M-Series Instances</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Source Family</th>
+<th style="text-align: left;">Target Family</th>
+<th style="text-align: left;">Architecture Match</th>
+<th style="text-align: left;">In-Place Resize (Requires Stop)</th>
+<th style="text-align: left;">Zero-Downtime Replacement (Via
+Fleet/LB)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Intel (<code>m6i</code>,
+<code>m7i</code>)</td>
+<td style="text-align: left;">AMD (<code>m6a</code>,
+<code>m7a</code>)</td>
+<td style="text-align: left;">Yes (<code>x86_64</code>)</td>
+<td style="text-align: left;">Supported</td>
+<td style="text-align: left;">Supported</td>
+</tr>
+<tr>
+<td style="text-align: left;">AMD (<code>m6a</code>,
+<code>m7a</code>)</td>
+<td style="text-align: left;">Intel (<code>m6i</code>,
+<code>m7i</code>)</td>
+<td style="text-align: left;">Yes (<code>x86_64</code>)</td>
+<td style="text-align: left;">Supported</td>
+<td style="text-align: left;">Supported</td>
+</tr>
+<tr>
+<td style="text-align: left;">Intel/AMD (<code>x86_64</code>)</td>
+<td style="text-align: left;">Graviton (<code>m6g</code>,
+<code>m7g</code>)</td>
+<td style="text-align: left;">No (<code>x86_64</code> to
+<code>arm64</code>)</td>
+<td style="text-align: left;">Not Supported</td>
+<td style="text-align: left;">Supported (with multi-arch software)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Graviton (<code>m6g</code>,
+<code>m7g</code>)</td>
+<td style="text-align: left;">Intel/AMD (<code>x86_64</code>)</td>
+<td style="text-align: left;">No (<code>arm64</code> to
+<code>x86_64</code>)</td>
+<td style="text-align: left;">Not Supported</td>
+<td style="text-align: left;">Supported (with multi-arch software)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-to-achieve-zero-downtime-switching-in-production">How to
+Achieve Zero-Downtime Switching in Production</h2>
+<p>While a single EC2 instance cannot be hot-swapped in place, you can
+achieve the operational equivalent of hot-swapping at the application
+layer by using immutable infrastructure and horizontal scaling. Instead
+of mutating an existing server, you provision new instances with the
+target processor alongside existing ones, shift traffic over, and
+terminate the old instances.</p>
+<h3 id="1-bluegreen-deployments-with-elastic-load-balancing">1.
+Blue/Green Deployments with Elastic Load Balancing</h3>
+<p>For stateless applications running behind an Application Load
+Balancer (ALB) or Network Load Balancer (NLB), you can switch processor
+types without user impact:</p>
+<ol type="1">
+<li>Launch the new target M-series instances (for example,
+<code>m7g.xlarge</code> running an <code>arm64</code> AMI or
+<code>m7a.xlarge</code> running an <code>x86_64</code> AMI).</li>
+<li>Register the new instances with the load balancer's target
+group.</li>
+<li>Wait for health checks to pass and confirm that the new instances
+are serving traffic properly.</li>
+<li>Deregister the old instances. The load balancer uses connection
+draining (deregistration delay) to allow in-flight requests to complete
+before the old instances are terminated.</li>
+</ol>
+<p>If the total traffic <span class="math inline">\(T\)</span> is
+distributed across <span class="math inline">\(N_{\text{old}}\)</span>
+original instances and <span
+class="math inline">\(N_{\text{new}}\)</span> replacement instances
+during a weighted transition, the effective request rate <span
+class="math inline">\(R\)</span> handled by the new architecture scales
+smoothly as weight <span class="math inline">\(w \in [0, 1]\)</span>
+increases:</p>
+<p><span class="math display">\[R_{\text{new}} = w \cdot T, \quad
+R_{\text{old}} = (1 - w) \cdot T\]</span></p>
+<p>Once <span class="math inline">\(w = 1\)</span> and active
+connections on the old fleet drop to <span
+class="math inline">\(0\)</span>, the transition is complete with zero
+downtime.</p>
+<h3 id="2-mixed-instance-auto-scaling-groups">2. Mixed-Instance Auto
+Scaling Groups</h3>
+<p>Amazon EC2 Auto Scaling Groups (ASGs) allow you to define multiple
+instance types within a single group using a Mixed Instances Policy.</p>
+<ul>
+<li><strong>Intel and AMD Mixing:</strong> Because they share the same
+AMI, a single Launch Template can specify <code>m7i.large</code> and
+<code>m7a.large</code> as overrides. You can update the priority order
+or weights in the Auto Scaling group and trigger an <strong>Instance
+Refresh</strong> to automatically replace Intel instances with AMD
+instances (or vice versa) on a rolling basis.</li>
+<li><strong>Mixing x86 and Graviton:</strong> Because an ASG Launch
+Template specifies a single AMI ID, a single Launch Template cannot
+directly launch both <code>x86_64</code> and <code>arm64</code>
+instances unless you override the Launch Template or use service-level
+abstractions. To perform a rolling swap to Graviton in an ASG, you
+create a new Launch Template version referencing an <code>arm64</code>
+AMI and <code>m7g</code> instance types, then start an Instance
+Refresh.</li>
+</ul>
+<h3 id="3-multi-architecture-containers-with-amazon-ecs-and-eks">3.
+Multi-Architecture Containers with Amazon ECS and EKS</h3>
+<p>The most seamless way to dynamically swap workloads across Intel,
+AMD, and Graviton M-series instances is through containerization using
+Amazon ECS, Amazon EKS, or Karpenter.</p>
+<p>By building multi-architecture container images using Docker Buildx,
+a single image tag in Amazon Elastic Container Registry (ECR) contains
+manifest lists for both <code>linux/amd64</code> and
+<code>linux/arm64</code>. When a container is scheduled onto an EC2
+node:</p>
+<ul>
+<li>If the node is an <code>m7i</code> or <code>m7a</code> instance, the
+container runtime pulls the <code>linux/amd64</code> image layer.</li>
+<li>If the node is an <code>m7g</code> instance, the container runtime
+automatically pulls the <code>linux/arm64</code> image layer.</li>
+</ul>
+<p>With Kubernetes cluster autoscalers like Karpenter, you can define a
+single <code>NodePool</code> that permits <code>m7i</code>,
+<code>m7a</code>, and <code>m7g</code> instances simultaneously.
+Karpenter provisions whichever processor family best fits your cost and
+availability requirements and seamlessly migrates pods across Intel,
+AMD, and Graviton nodes as capacity changes.</p>
+<h2
+id="prerequisites-for-workload-portability-across-architectures">Prerequisites
+for Workload Portability Across Architectures</h2>
+<p>Before designing an architecture that swaps seamlessly between Intel,
+AMD, and Graviton M-series instances, verify the following technical
+requirements:</p>
+<ul>
+<li><strong>Compiled Binaries vs. Interpreted Languages:</strong>
+Interpreted and JIT-compiled languages such as Python, Node.js, Ruby,
+Java (JVM), and .NET (Core/.NET 5+) generally run across
+<code>x86_64</code> and <code>arm64</code> without source code changes,
+provided native C/C++ extensions are compiled for the target
+architecture. Statically compiled languages like Go, Rust, and C++ must
+be cross-compiled for both <code>amd64</code> and
+<code>arm64</code>.</li>
+<li><strong>CPU-Specific Instruction Dependencies:</strong> Even when
+moving between Intel (<code>m7i</code>) and AMD (<code>m7a</code>),
+inspect workloads that rely on hardware-specific extensions or
+cryptographic accelerators (such as Intel AMX or specific AVX-512
+implementations) to ensure performance parity.</li>
+<li><strong>Nitro System Compatibility:</strong> All modern M-series
+instances (<code>m5</code>, <code>m6</code>, <code>m7</code> families)
+are built on the AWS Nitro System. Ensure your AMIs include the latest
+Elastic Network Adapter (ENA) and NVMe block storage drivers so
+instances boot cleanly regardless of the underlying M-series
+family.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-amazon-ec-2-hot-swap-intel-amd-and-graviton-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

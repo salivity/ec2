@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When an EC2 Zonal Reserved Instance Expires? - ec2</title>
+    <meta name="description" content="When an Amazon EC2 Zonal Reserved Instance reaches the end of its one-year or three-year term, your running EC2 instance continues to operate without any interruption, reboot, or state change. Because a Reserved Instance is strictly a billing discount and">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-zonal-reserved-instance-expires">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When an EC2 Zonal Reserved Instance Expires? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-zonal-reserved-instance-expires" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When an Amazon EC2 Zonal Reserved Instance reaches the end of its one-year or three-year term, your running EC2 instance continues to operate without any interruption, reboot, or state change. Because a Reserved Instance is strictly a billing discount and" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-an-ec2-zonal-reserved-instance-expires">What
+Happens When an EC2 Zonal Reserved Instance Expires?</h1>
+<p>When an Amazon EC2 Zonal Reserved Instance reaches the end of its
+one-year or three-year term, your running EC2 instance continues to
+operate without any interruption, reboot, or state change. Because a
+Reserved Instance is strictly a billing discount and capacity
+reservation construct rather than a physical virtual machine, its
+expiration only alters how AWS calculates your hourly compute charges
+and removes your Availability Zone capacity guarantee. Once the
+reservation expires, Amazon Web Services automatically transitions the
+billing rate for the matching running instance to standard On-Demand
+pricing unless another active reservation or Savings Plan applies to the
+usage.</p>
+<h2
+id="understanding-the-separation-between-instances-and-reservations">Understanding
+the Separation Between Instances and Reservations</h2>
+<p>A common misconception in Amazon Web Services is treating a Reserved
+Instance as a distinct server. In reality, when you purchase an EC2
+Zonal Reserved Instance, you are buying two things: a billing discount
+coupon and a regional Availability Zone capacity reservation that match
+specific attributes (instance type, platform, tenancy, and Availability
+Zone).</p>
+<p>When you launch an EC2 instance that matches those attributes, the
+AWS billing engine automatically applies the discounted rate to that
+running resource. At the exact second the Zonal Reserved Instance term
+expires, nothing happens to the underlying hypervisor, network
+interfaces, Elastic Block Store volumes, or memory state of your running
+server. Your workloads remain completely online.</p>
+<h2 id="immediate-billing-changes-upon-expiration">Immediate Billing
+Changes Upon Expiration</h2>
+<p>The primary impact of a Zonal Reserved Instance expiring while the
+matching EC2 instance continues to run is financial. The moment the
+reservation term ends, AWS evaluates your account for other applicable
+discount mechanisms before falling back to default rates:</p>
+<ol type="1">
+<li><strong>Other Active Reserved Instances:</strong> If you have
+another unallocated Regional or Zonal Reserved Instance matching the
+running instance attributes, it immediately takes over the discount
+coverage.</li>
+<li><strong>AWS Savings Plans:</strong> If you have an active Compute
+Savings Plan or EC2 Instance Savings Plan with unused hourly commitment,
+that plan automatically covers the instance usage at its respective
+discounted rate.</li>
+<li><strong>On-Demand Pricing:</strong> If no other commitment discounts
+are available, the running instance immediately reverts to standard
+On-Demand hourly or per-second billing rates.</li>
+</ol>
+<p>To calculate the hourly cost increase when reverting to On-Demand
+pricing, let <span class="math inline">\(R_{\text{OD}}\)</span>
+represent the On-Demand hourly rate and <span
+class="math inline">\(R_{\text{RI}}\)</span> represent the effective
+hourly rate of the expired Zonal Reserved Instance. For <span
+class="math inline">\(N\)</span> continuously running instances
+uncovered over <span class="math inline">\(H\)</span> hours after
+expiration, the additional expenditure <span
+class="math inline">\(\Delta C\)</span> is expressed as:</p>
+<p><span class="math display">\[\Delta C = N \times H \times
+(R_{\text{OD}} - R_{\text{RI}})\]</span></p>
+<p>If an instance runs for a full 730-hour month after expiration
+without renewal, the percentage increase in compute cost <span
+class="math inline">\(P_{\text{increase}}\)</span> compared to the
+reserved rate is:</p>
+<p><span class="math display">\[P_{\text{increase}} = \left(
+\frac{R_{\text{OD}} - R_{\text{RI}}}{R_{\text{RI}}} \right) \times
+100\%\]</span></p>
+<h2 id="loss-of-availability-zone-capacity-reservation">Loss of
+Availability Zone Capacity Reservation</h2>
+<p>Unlike Regional Reserved Instances, which provide instance size
+flexibility across an entire AWS Region without reserving capacity, a
+Zonal Reserved Instance is tied to a specific Availability Zone (such as
+<code>us-east-1a</code>) and includes an On-Demand Capacity
+Reservation.</p>
+<p>While your instance is continuously running at the moment the Zonal
+Reserved Instance expires, the loss of the capacity reservation has no
+immediate operational effect because your instance already occupies its
+physical slot on the AWS host hardware. However, the capacity guarantee
+disappears immediately for future lifecycle events:</p>
+<ul>
+<li><strong>Stopping and Starting the Instance:</strong> If you stop
+your EC2 instance after the Zonal Reserved Instance has expired, you
+release the underlying host hardware. When you attempt to start the
+instance again later, AWS treats it as a new capacity request. If that
+specific Availability Zone is experiencing a hardware shortage for that
+instance family, you may encounter an
+<code>InsufficientInstanceCapacity</code> error.</li>
+<li><strong>Rebooting the Instance:</strong> Performing a standard
+instance reboot (either via the operating system or the AWS API) keeps
+the instance on the same physical host, so it is unaffected by the
+expired capacity reservation.</li>
+<li><strong>Auto Scaling Replacement:</strong> If an Auto Scaling group
+terminates an unhealthy instance and launches a replacement in that
+Availability Zone after the reservation expires, the new launch is no
+longer guaranteed capacity.</li>
+</ul>
+<h2 id="comparing-state-before-and-after-expiration">Comparing State
+Before and After Expiration</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute</th>
+<th style="text-align: left;">Active Zonal Reserved Instance</th>
+<th style="text-align: left;">Expired Zonal Reserved Instance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Running Instance
+Uptime</strong></td>
+<td style="text-align: left;">Continues running normally</td>
+<td style="text-align: left;">Continues running without
+interruption</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hourly Billing Rate</strong></td>
+<td style="text-align: left;">Discounted effective rate (<span
+class="math inline">\(R_{\text{RI}}\)</span>)</td>
+<td style="text-align: left;">Reverts to On-Demand (<span
+class="math inline">\(R_{\text{OD}}\)</span>) or active Savings
+Plan</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>AZ Capacity
+Guarantee</strong></td>
+<td style="text-align: left;">Reserved in the specified Availability
+Zone</td>
+<td style="text-align: left;">No longer reserved; subject to AZ
+availability on stop/start</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Size
+Flexibility</strong></td>
+<td style="text-align: left;">None (locked to exact instance size)</td>
+<td style="text-align: left;">Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-to-prevent-unexpected-cost-spikes">How to Prevent Unexpected
+Cost Spikes</h2>
+<p>To avoid unplanned On-Demand charges and capacity risks when a Zonal
+Reserved Instance approaches expiration, you can implement several
+preventative measures in AWS Cost Management and EC2:</p>
+<ul>
+<li><strong>Configure Expiration Alerts:</strong> Use AWS Cost Explorer
+Reservation Expiration alerts to receive automated email notifications
+7, 30, or 60 days before your Zonal Reserved Instances expire.</li>
+<li><strong>Queue a Renewal Purchase:</strong> AWS allows you to queue
+the purchase of a replacement Reserved Instance up to three years in
+advance. By scheduling the queued purchase to trigger at the exact
+timestamp your current reservation expires, you maintain seamless
+discount and capacity coverage.</li>
+<li><strong>Transition to Savings Plans plus ODCR:</strong> Many
+organizations replace expiring Zonal Reserved Instances by purchasing a
+Compute Savings Plan for flexible billing discounts while separately
+creating an explicit On-Demand Capacity Reservation (ODCR) for critical
+workloads that still require guaranteed Availability Zone capacity.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-zonal-reserved-instance-expires';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When an EC2 Instance Exhausts CPU Credits? - ec2</title>
+    <meta name="description" content="When a burstable Amazon EC2 instance running in Standard mode exhausts its accrued CPU credit balance, its CPU performance is gradually throttled down to its baseline utilization level. The instance does not shut down, reboot, or incur extra usage charges">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-instance-exhausts-cpu-credits">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When an EC2 Instance Exhausts CPU Credits? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-instance-exhausts-cpu-credits" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When a burstable Amazon EC2 instance running in Standard mode exhausts its accrued CPU credit balance, its CPU performance is gradually throttled down to its baseline utilization level. The instance does not shut down, reboot, or incur extra usage charges" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-an-ec2-instance-exhausts-cpu-credits">What
+Happens When an EC2 Instance Exhausts CPU Credits?</h1>
+<p>When a burstable Amazon EC2 instance running in Standard mode
+exhausts its accrued CPU credit balance, its CPU performance is
+gradually throttled down to its baseline utilization level. The instance
+does not shut down, reboot, or incur extra usage charges. Instead, the
+underlying hypervisor restricts the vCPUs from bursting above their
+designated baseline capacity until the instance uses less CPU than its
+baseline and begins accumulating a positive credit balance again.</p>
+<h2 id="understanding-burstable-performance-instances">Understanding
+Burstable Performance Instances</h2>
+<p>Amazon EC2 T-series instances (such as T2, T3, T3a, and T4g) are
+designed to provide a baseline level of CPU performance with the ability
+to burst to higher levels when required by your workload. These
+instances are ideal for workloads that do not use the full CPU often or
+consistently, such as web servers, developer environments, and small
+databases.</p>
+<p>The governance of this bursting capability relies on a credit system.
+Every burstable instance continuously earns CPU credits at a fixed rate
+determined by the instance size. When the instance requires less CPU
+capacity than its baseline, the unused credits are stored in a credit
+balance for later use.</p>
+<h2 id="how-cpu-credits-are-earned-and-spent">How CPU Credits Are Earned
+and Spent</h2>
+<p>A single CPU credit represents the performance of a full vCPU core
+running at <span class="math inline">\(100\%\)</span> utilization for
+one minute. This metric can also be divided across multiple vCPUs or
+different utilization percentages. For example, one CPU credit is
+equivalent to:</p>
+<p><span class="math display">\[\text{1 CPU Credit} = \text{1 vCPU}
+\times 100\% \text{ utilization} \times \text{1 minute}\]</span></p>
+<p><span class="math display">\[\text{1 CPU Credit} = \text{2 vCPUs}
+\times 50\% \text{ utilization} \times \text{1 minute}\]</span></p>
+<p><span class="math display">\[\text{1 CPU Credit} = \text{1 vCPU}
+\times 25\% \text{ utilization} \times \text{4 minutes}\]</span></p>
+<p>The net change in an instance's credit balance over a given minute
+can be expressed with the following formula:</p>
+<p><span class="math display">\[\Delta \text{Credits} = \text{Credits
+Earned} - \text{Credits Spent}\]</span></p>
+<p>If the CPU utilization of your instance stays below its baseline
+threshold, <span class="math inline">\(\text{Credits Earned} &gt;
+\text{Credits Spent}\)</span>, and your accrued balance grows up to a
+maximum cap defined by the instance type. Conversely, when traffic
+spikes or a heavy background job runs, <span
+class="math inline">\(\text{Credits Spent} &gt; \text{Credits
+Earned}\)</span>, and the instance draws down from its accrued balance
+to sustain high CPU performance.</p>
+<h2 id="the-mechanics-of-credit-exhaustion-in-standard-mode">The
+Mechanics of Credit Exhaustion in Standard Mode</h2>
+<p>In Standard mode, an instance relies strictly on its accrued credits
+(and launch credits, if applicable to T2 instances) to burst above the
+baseline. When a sustained high-CPU workload drains the credit balance
+to <span class="math inline">\(0\)</span>, several distinct behaviors
+take effect:</p>
+<h3 id="gradual-performance-reduction">Gradual Performance
+Reduction</h3>
+<p>Rather than dropping instantly from <span
+class="math inline">\(100\%\)</span> utilization to the baseline level,
+Amazon EC2 lowers the instance's CPU utilization incrementally over a
+15-minute interval. This gradual step-down prevents abrupt application
+hangs and gives monitoring alarms or auto-scaling groups a brief window
+to respond before the instance hits its hard baseline ceiling.</p>
+<h3 id="baseline-throttling">Baseline Throttling</h3>
+<p>Once the gradual step-down completes, the instance is strictly capped
+at its baseline performance level. Depending on the specific T-series
+size, this baseline ranges from <span class="math inline">\(5\%\)</span>
+(on a <code>t3.nano</code>) to <span class="math inline">\(40\%\)</span>
+(on a <code>t3.xlarge</code> or <code>t3.2xlarge</code>) per vCPU. While
+throttled, the instance cannot consume more credits than it earns per
+millisecond.</p>
+<h3 id="application-and-os-symptoms">Application and OS Symptoms</h3>
+<p>Because the instance is deprived of compute cycles at the hypervisor
+level, applications running inside the operating system will experience
+degraded performance:</p>
+<ul>
+<li><strong>Increased CPU Steal Time:</strong> Inside a Linux
+environment, tools like <code>top</code> or <code>vmstat</code> will
+show an increase in the <code>%st</code> (steal time) metric, indicating
+that the virtual machine is ready to run tasks, but the hypervisor is
+withholding physical CPU resources.</li>
+<li><strong>Higher Latency:</strong> Web servers and APIs will take
+longer to process requests, resulting in elevated response times and
+potential gateway timeouts.</li>
+<li><strong>Growing Process Queues:</strong> The system load average
+will climb as threads wait in the run queue for available CPU
+cycles.</li>
+<li><strong>Failed Health Checks:</strong> If the baseline CPU is
+insufficient to respond to load balancer pings within the configured
+timeout window, the instance may be marked unhealthy and terminated or
+replaced by an Auto Scaling group.</li>
+</ul>
+<h3 id="cost-predictability">Cost Predictability</h3>
+<p>One of the primary benefits of Standard mode is cost protection. When
+the credit balance hits <span class="math inline">\(0\)</span>, AWS will
+never automatically bill you for extra CPU usage. Your monthly bill
+remains fixed at the standard hourly instance rate, trading away compute
+performance to guarantee predictable pricing.</p>
+<h2 id="standard-mode-vs-unlimited-mode">Standard Mode vs. Unlimited
+Mode</h2>
+<p>To understand Standard mode fully, it helps to contrast it with
+Unlimited mode, which is the default configuration for T3, T3a, and T4g
+instances:</p>
+<ul>
+<li><strong>Standard Mode:</strong> Caps performance at the baseline
+when credits reach <span class="math inline">\(0\)</span>. Never incurs
+surplus charges. Best suited for development environments, testing
+servers, or strict-budget workloads where occasional slowdowns are
+acceptable.</li>
+<li><strong>Unlimited Mode:</strong> Allows the instance to burst above
+the baseline for as long as needed, even after the accrued credit
+balance hits <span class="math inline">\(0\)</span>. If the average CPU
+utilization over a 24-hour period exceeds the baseline, the account is
+billed a flat additional rate per vCPU-hour for the surplus credits
+used.</li>
+</ul>
+<h2 id="how-to-monitor-cpu-credit-balances">How to Monitor CPU Credit
+Balances</h2>
+<p>To avoid unexpected throttling in Standard mode, you should monitor
+two critical Amazon CloudWatch metrics provided automatically for all
+burstable instances:</p>
+<ol type="1">
+<li><strong><code>CPUCreditUsage</code>:</strong> Tracks the number of
+CPU credits spent by the instance during the specified measurement
+period.</li>
+<li><strong><code>CPUCreditBalance</code>:</strong> Tracks the number of
+earned CPU credits that the instance has accrued since it was launched
+or started.</li>
+</ol>
+<p>Setting a CloudWatch alarm that triggers when
+<code>CPUCreditBalance</code> drops below a safe threshold (for example,
+<span class="math inline">\(20\%\)</span> of the maximum credit cap)
+gives operations teams time to intervene before throttling occurs.</p>
+<h2 id="resolving-credit-exhaustion">Resolving Credit Exhaustion</h2>
+<p>If an instance running in Standard mode frequently exhausts its CPU
+credits, you have four primary remediation options:</p>
+<ol type="1">
+<li><strong>Switch to Unlimited Mode:</strong> You can modify the credit
+specification of a running instance from Standard to Unlimited via the
+AWS Management Console or AWS CLI without stopping the instance. This
+immediately restores full bursting capability at the cost of potential
+surplus charges.</li>
+<li><strong>Upgrade to a Larger Burstable Size:</strong> Moving from a
+<code>t3.micro</code> to a <code>t3.small</code> or
+<code>t3.medium</code> increases the baseline CPU percentage, the credit
+earning rate per hour, and the maximum credit storage cap.</li>
+<li><strong>Migrate to Fixed-Performance Instances:</strong> If your
+workload requires sustained high CPU utilization above the baseline,
+burstable instances are often neither performance-optimal nor
+cost-effective. Migrating to a general-purpose M-series or
+compute-optimized C-series instance provides dedicated, unthrottled vCPU
+capacity.</li>
+<li><strong>Optimize the Workload:</strong> Profile your application to
+identify inefficient code, runaway background processes, or unindexed
+database queries that are consuming unnecessary CPU cycles.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-instance-exhausts-cpu-credits';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

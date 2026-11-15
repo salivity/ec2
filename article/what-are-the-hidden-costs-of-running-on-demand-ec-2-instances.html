@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Are the Hidden Costs of Running On-Demand EC2 Instances? - ec2</title>
+    <meta name="description" content="Running On-Demand Amazon EC2 instances often results in higher bills than expected because the base hourly compute rate only covers the virtual machine itself. Organizations frequently overlook additional charges stemming from networking architecture, dat">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-are-the-hidden-costs-of-running-on-demand-ec-2-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Are the Hidden Costs of Running On-Demand EC2 Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-are-the-hidden-costs-of-running-on-demand-ec-2-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Running On-Demand Amazon EC2 instances often results in higher bills than expected because the base hourly compute rate only covers the virtual machine itself. Organizations frequently overlook additional charges stemming from networking architecture, dat" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-are-the-hidden-costs-of-running-on-demand-ec2-instances">What
+Are the Hidden Costs of Running On-Demand EC2 Instances?</h1>
+<p>Running On-Demand Amazon EC2 instances often results in higher bills
+than expected because the base hourly compute rate only covers the
+virtual machine itself. Organizations frequently overlook additional
+charges stemming from networking architecture, data transfer boundaries,
+and commercial software licensing. Public IPv4 address fees, NAT Gateway
+processing rates, cross-availability zone traffic, and per-core
+licensing surcharges for operating systems or enterprise databases can
+quickly multiply the total cost of ownership. Understanding how AWS
+meters these auxiliary resources is essential for accurate cloud
+budgeting and cost optimization.</p>
+<h2 id="networking-infrastructure-charges">Networking Infrastructure
+Charges</h2>
+<p>When deploying EC2 instances, the virtual network components required
+to connect those instances to the internet and to each other introduce
+several continuous and usage-based charges.</p>
+<h3 id="public-ipv4-address-fees">Public IPv4 Address Fees</h3>
+<p>AWS charges an hourly fee for every public IPv4 address associated
+with your account, regardless of whether it is actively attached to a
+running EC2 instance or sitting idle as an unassociated Elastic IP.
+While the hourly rate of <span class="math inline">\(\$0.005\)</span>
+per IP seems minor, it equals roughly <span
+class="math inline">\(\$3.60\)</span> per month per address. Across
+large fleets of auto-scaling instances or microservice architectures
+where nodes are assigned public IPs by default, these charges accumulate
+rapidly.</p>
+<h3 id="nat-gateway-hourly-and-data-processing-costs">NAT Gateway Hourly
+and Data Processing Costs</h3>
+<p>Instances deployed in private subnets require a Network Address
+Translation (NAT) Gateway to access the public internet for software
+updates, external API calls, or third-party integrations. NAT Gateways
+carry two distinct pricing dimensions:</p>
+<ul>
+<li>An hourly availability charge (typically <span
+class="math inline">\(\$0.045\)</span> per hour, or about <span
+class="math inline">\(\$32.40\)</span> per month per gateway).</li>
+<li>A data processing charge (typically <span
+class="math inline">\(\$0.045\)</span> per gigabyte) applied to every
+gigabyte of traffic passing through the gateway.</li>
+</ul>
+<p>For high-throughput workloads pulling container images or sending
+telemetry to external monitoring platforms, the per-gigabyte processing
+fee often exceeds the compute cost of the EC2 instances generating the
+traffic. Furthermore, high availability best practices dictate deploying
+a separate NAT Gateway in each Availability Zone (AZ), multiplying the
+fixed hourly base cost.</p>
+<h3 id="vpc-endpoints-and-privatelink">VPC Endpoints and
+PrivateLink</h3>
+<p>To avoid NAT Gateway charges, architects frequently route traffic to
+AWS services (like Amazon S3 or DynamoDB) using VPC Endpoints. While
+Gateway Endpoints for S3 and DynamoDB are free, Interface Endpoints
+(powered by AWS PrivateLink) used for services like KMS, ECR, or
+CloudWatch Logs incur both an hourly charge per Availability Zone (<span
+class="math inline">\(\$0.01\)</span> per hour) and a per-gigabyte data
+processing fee (<span class="math inline">\(\$0.01\)</span> per GB).</p>
+<h2 id="data-transfer-and-egress-fees">Data Transfer and Egress
+Fees</h2>
+<p>AWS generally allows free inbound data transfer (ingress) from the
+internet into EC2, but charges heavily depending on where data moves
+once it leaves an instance.</p>
+<h3 id="internet-data-egress">Internet Data Egress</h3>
+<p>Any data transferred out from an EC2 instance to the public internet
+is billed per gigabyte on a tiered pricing scale, starting around <span
+class="math inline">\(\$0.09\)</span> per GB for the first <span
+class="math inline">\(10\text{ TB}\)</span> per month. Applications
+serving media, large payloads, or uncached API responses directly from
+EC2 rather than routing through a Content Delivery Network (CDN) like
+Amazon CloudFront face steep monthly egress bills.</p>
+<h3 id="cross-availability-zone-traffic">Cross-Availability Zone
+Traffic</h3>
+<p>One of the most common hidden costs in high-availability
+architectures is inter-AZ data transfer. Whenever an EC2 instance in one
+Availability Zone communicates with an EC2 instance, database, or cache
+in another Availability Zone within the same AWS Region, AWS charges
+<span class="math inline">\(\$0.01\)</span> per GB in each direction.
+Because the sender pays <span class="math inline">\(\$0.01\)</span> per
+GB to send the data and the receiver pays <span
+class="math inline">\(\$0.01\)</span> per GB to receive it, the
+effective cost of moving <span class="math inline">\(1\text{
+GB}\)</span> of data across Availability Zones is:</p>
+<p><span class="math display">\[\text{Effective Cross-AZ Cost} =
+\$0.01\text{/GB (Egress)} + \$0.01\text{/GB (Ingress)} =
+\$0.02\text{/GB}\]</span></p>
+<p>Distributed databases, Apache Kafka clusters, and Kubernetes clusters
+that schedule communicating pods across different AZs without
+topology-aware routing generate substantial cross-AZ transfer bills.
+Even using a private IP address does not exempt cross-AZ traffic from
+this fee.</p>
+<h3 id="public-ip-hairpinning-inside-the-same-az">Public IP Hairpinning
+Inside the Same AZ</h3>
+<p>Data transfer between two EC2 instances inside the exact same
+Availability Zone is free only if the instances communicate using their
+private IPv4 or IPv6 addresses. If two instances in the same AZ
+communicate using their public IPv4 addresses or Elastic IPs, AWS bills
+the traffic at the regional data transfer rate (<span
+class="math inline">\(\$0.01\)</span> per GB in each direction).</p>
+<h3 id="cross-region-replication-and-vpc-peering">Cross-Region
+Replication and VPC Peering</h3>
+<p>Transferring data between EC2 instances located in different AWS
+Regions (via Cross-Region VPC Peering or Transit Gateway) is billed at
+rates ranging from <span class="math inline">\(\$0.02\)</span> to <span
+class="math inline">\(\$0.09\)</span> per GB or higher, depending on the
+source and destination regions. When using AWS Transit Gateway, you also
+pay an hourly attachment fee plus a <span
+class="math inline">\(\$0.02\)</span> per GB data processing fee on top
+of the underlying transfer charges.</p>
+<h2 id="software-licensing-and-compute-surcharges">Software Licensing
+and Compute Surcharges</h2>
+<p>While standard Linux distributions like Amazon Linux, Ubuntu, and
+Debian carry no extra licensing fee on EC2, commercial operating systems
+and enterprise software introduce significant markups.</p>
+<h3 id="license-included-operating-systems">License-Included Operating
+Systems</h3>
+<p>When launching On-Demand EC2 instances with Microsoft Windows Server,
+Red Hat Enterprise Linux (RHEL), or SUSE Linux Enterprise Server (SLES),
+the hourly On-Demand price bundles the software license cost with the
+hardware compute cost.</p>
+<p>For Windows Server, the licensing fee is calculated strictly on the
+number of virtual CPUs (vCPUs) attached to the instance, adding roughly
+<span class="math inline">\(\$0.046\)</span> per hour per vCPU. For
+example, on a <code>c6i.4xlarge</code> instance with <span
+class="math inline">\(16\text{ vCPUs}\)</span>, the base Linux cost
+might be <span class="math inline">\(\$0.68\)</span> per hour, while the
+Windows cost is <span class="math inline">\(\$1.416\)</span> per
+hour—meaning the operating system license alone accounts for more than
+<span class="math inline">\(50\%\)</span> of the hourly rate:</p>
+<p><span class="math display">\[\text{Windows Surcharge} = 16 \times
+\$0.046 = \$0.736\text{/hour}\]</span></p>
+<h3 id="commercial-database-licensing-on-ec2">Commercial Database
+Licensing on EC2</h3>
+<p>Running Microsoft SQL Server (Standard or Enterprise Edition) on an
+On-Demand EC2 instance using AWS License-Included AMIs increases the
+hourly instance rate dramatically. SQL Server Enterprise licensing on
+EC2 costs several times more than the underlying EC2 hardware and
+enforces a minimum charge of <span class="math inline">\(4\text{
+vCPUs}\)</span>, even if you select an instance type with only <span
+class="math inline">\(2\text{ vCPUs}\)</span>. Furthermore, scaling up
+an instance to gain more memory or storage throughput forces you to
+scale up the vCPU count on standard instance families, which immediately
+triggers higher per-core database licensing fees unless you use
+specialized memory-optimized instances with constrained vCPUs (such as
+<code>r6i</code> instances with fewer active cores).</p>
+<h3 id="bring-your-own-license-byol-and-dedicated-hosts">Bring Your Own
+License (BYOL) and Dedicated Hosts</h3>
+<p>Organizations attempting to avoid AWS License-Included markups by
+bringing their own existing Microsoft or Oracle licenses (BYOL) often
+encounter strict vendor mobility rules. Many legacy enterprise licenses
+cannot be run on shared multi-tenant EC2 hardware and require
+<strong>EC2 Dedicated Hosts</strong>. While Dedicated Hosts allow you to
+bind licenses to physical server sockets or cores, you must pay for the
+entire physical host continuously—whether or not you fully pack it with
+virtual instances—shifting the hidden cost from software licensing to
+underutilized physical capacity.</p>
+<h3 id="aws-marketplace-subscriptions">AWS Marketplace
+Subscriptions</h3>
+<p>Deploying pre-configured appliances, security firewalls, or
+observability agents from the AWS Marketplace adds a separate software
+subscription line item to your bill. Even if an instance is resized or
+idle, Marketplace software billed on an hourly or annual contract
+continues to accrue charges independent of standard EC2 compute savings
+plans or discounts.</p>
+<h2 id="storage-and-cpu-bursting-overages">Storage and CPU Bursting
+Overages</h2>
+<p>Two closely related infrastructure mechanisms often masquerade as
+pure compute or networking costs on the monthly invoice:</p>
+<ul>
+<li><strong>T-Family Unlimited Mode Burst Credits:</strong> Burstable
+performance instances (<code>t3</code>, <code>t3a</code>,
+<code>t4g</code>) launch with "Unlimited" mode enabled by default. If an
+instance's average CPU utilization exceeds its baseline threshold over a
+24-hour period, it consumes CPU credits. Once stored credits are
+exhausted, AWS bills <span class="math inline">\(\$0.05\)</span> to
+<span class="math inline">\(\$0.096\)</span> per vCPU-hour for surplus
+CPU usage, which can make a burstable instance more expensive than a
+dedicated general-purpose (<code>m6i</code> or <code>m7g</code>)
+instance.</li>
+<li><strong>EBS Snapshot and Provisioned IOPS Costs:</strong> Every
+On-Demand EC2 instance requires an Amazon Elastic Block Store (EBS) root
+volume. While compute charges stop when an instance is placed in the
+<code>Stopped</code> state, the attached EBS volumes and any associated
+snapshots continue to be billed per gigabyte-month, alongside any
+provisioned IOPS (<code>gp3</code> above baseline or <code>io2</code>)
+configured on the volume.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-are-the-hidden-costs-of-running-on-demand-ec-2-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

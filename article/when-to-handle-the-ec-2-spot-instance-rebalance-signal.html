@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When to Handle the EC2 Spot Instance Rebalance Signal? - ec2</title>
+    <meta name="description" content="An application should handle the Amazon EC2 Spot Instance Rebalance Recommendation signal when its graceful shutdown, state checkpointing, or node replacement processes require more than the standard two minutes provided by the Spot Instance interruption">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-to-handle-the-ec-2-spot-instance-rebalance-signal">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When to Handle the EC2 Spot Instance Rebalance Signal? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-to-handle-the-ec-2-spot-instance-rebalance-signal" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An application should handle the Amazon EC2 Spot Instance Rebalance Recommendation signal when its graceful shutdown, state checkpointing, or node replacement processes require more than the standard two minutes provided by the Spot Instance interruption" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="when-to-handle-the-ec2-spot-instance-rebalance-signal">When to
+Handle the EC2 Spot Instance Rebalance Signal?</h1>
+<p>An application should handle the Amazon EC2 Spot Instance Rebalance
+Recommendation signal when its graceful shutdown, state checkpointing,
+or node replacement processes require more than the standard two minutes
+provided by the Spot Instance interruption notice. While the standard
+termination notice gives a strict two-minute countdown before an
+instance is reclaimed, the rebalance recommendation arrives proactively
+when AWS detects an elevated risk of interruption. This early warning
+allows distributed systems, container orchestrators, and stateful
+workloads to provision replacement capacity and drain workloads safely
+without rushing against a hard two-minute deadline.</p>
+<h2 id="understanding-the-rebalance-recommendation-signal">Understanding
+the Rebalance Recommendation Signal</h2>
+<p>Amazon EC2 Spot Instances offer unused EC2 capacity at a significant
+discount compared to On-Demand pricing, with the trade-off that AWS can
+reclaim the capacity when demand rises. Historically, applications
+relied solely on the Spot Instance interruption notice, which is emitted
+exactly two minutes before termination.</p>
+<p>To improve workload continuity, AWS introduced the EC2 Instance
+Rebalance Recommendation signal. Amazon EC2 emits this signal when a
+Spot Instance is at an elevated risk of interruption, even if an actual
+reclamation has not yet been scheduled. In many cases, the rebalance
+signal arrives several minutes or more before a two-minute interruption
+notice, though it is also possible for an instance to receive a
+rebalance recommendation and never actually be interrupted, or in rare
+cases of rapid capacity shifts, receive the interruption notice
+simultaneously.</p>
+<h2 id="key-scenarios-for-handling-the-rebalance-signal">Key Scenarios
+for Handling the Rebalance Signal</h2>
+<p>Not every workload needs to act on the rebalance signal. If a
+stateless microservice can drain connections and shut down in 15
+seconds, waiting for the standard two-minute interruption notice is
+often sufficient and avoids unnecessary instance churn. However,
+handling the rebalance recommendation is critical in several specific
+scenarios.</p>
+<h3 id="long-graceful-shutdown-and-connection-draining">Long Graceful
+Shutdown and Connection Draining</h3>
+<p>Applications that maintain long-lived connections or process lengthy
+requests often need more than two minutes to wrap up cleanly. Examples
+include:</p>
+<ul>
+<li>WebSocket servers or streaming media relays that must migrate active
+client sessions without dropping frames or connections.</li>
+<li>API gateways or load-balanced backend services handling complex,
+synchronous transactions that take over a minute to complete.</li>
+<li>Queue workers processing single jobs that take several minutes per
+message and cannot be easily paused mid-execution.</li>
+</ul>
+<p>By acting on the rebalance recommendation, the instance can
+immediately deregister from the load balancer or stop pulling new
+messages from the queue while finishing in-flight tasks well ahead of
+any forced termination.</p>
+<h3 id="slow-replacement-provisioning-and-cold-starts">Slow Replacement
+Provisioning and Cold Starts</h3>
+<p>Even if an application shuts down quickly, spinning up a replacement
+node to maintain cluster capacity might take longer than two minutes.
+You should handle the rebalance signal when:</p>
+<ul>
+<li>New EC2 instances require several minutes to boot, run user data
+scripts, download large dependencies, or warm up local caches.</li>
+<li>Containerized workloads on Amazon EKS or Amazon ECS need to pull
+large container images (such as machine learning models) onto a new node
+before pods can transition to a ready state.</li>
+<li>Your architecture requires zero capacity degradation, meaning the
+replacement instance must be healthy and serving traffic before the
+at-risk instance is terminated.</li>
+</ul>
+<p>If the time required to provision a replacement instance (<span
+class="math inline">\(T_{\text{provision}}\)</span>) plus the time
+required to drain the existing instance (<span
+class="math inline">\(T_{\text{drain}}\)</span>) exceeds the standard
+two-minute interruption window (<span class="math inline">\(120\text{
+seconds}\)</span>), relying solely on the interruption notice creates a
+capacity gap:</p>
+<p><span class="math display">\[T_{\text{provision}} + T_{\text{drain}}
+&gt; 120\text{ seconds}\]</span></p>
+<p>Handling the rebalance signal allows you to start <span
+class="math inline">\(T_{\text{provision}}\)</span> proactively so the
+new instance is ready before the old one disappears.</p>
+<h3 id="stateful-workloads-and-large-checkpoints">Stateful Workloads and
+Large Checkpoints</h3>
+<p>Workloads that store intermediate state in memory or on local
+ephemeral NVMe storage (Instance Store) must persist that data to
+durable storage like Amazon S3 or Amazon EBS before termination. You
+should use the rebalance recommendation when:</p>
+<ul>
+<li>Big data frameworks (such as Apache Spark or Presto) need extra time
+to decommission nodes and shuffle blocks of data to other executors in
+the cluster.</li>
+<li>Machine learning training jobs must write multi-gigabyte model
+checkpoints to Amazon S3, where network throughput limits make a
+two-minute upload risky.</li>
+<li>High-performance computing (HPC) simulations need to synchronize
+state across multiple nodes at a specific barrier step before saving
+progress.</li>
+</ul>
+<h2 id="how-to-detect-the-rebalance-signal">How to Detect the Rebalance
+Signal</h2>
+<p>AWS exposes the rebalance recommendation through two primary
+mechanisms: the Instance Metadata Service (IMDS) and Amazon
+EventBridge.</p>
+<h3 id="polling-the-instance-metadata-service">Polling the Instance
+Metadata Service</h3>
+<p>Applications or node agents running directly on the Spot Instance can
+poll the local Instance Metadata Service at regular intervals (for
+example, every 5 seconds). Using IMDSv2, you first retrieve a session
+token and then query the <code>events/recommendations/rebalance</code>
+endpoint:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">TOKEN</span><span class="op">=</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-X</span> PUT <span class="st">&quot;http://169.254.169.254/latest/api/token&quot;</span> <span class="at">-H</span> <span class="st">&quot;X-aws-ec2-metadata-token-ttl-seconds: 21600&quot;</span><span class="va">)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-H</span> <span class="st">&quot;X-aws-ec2-metadata-token: </span><span class="va">$TOKEN</span><span class="st">&quot;</span> <span class="at">-s</span> http://169.254.169.254/latest/meta-data/events/recommendations/rebalance</span></code></pre></div>
+<p>When a recommendation is active, the endpoint returns an HTTP 200
+response containing a JSON payload with the <code>noticeTime</code>
+timestamp:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;noticeTime&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-11-15T10:50:00Z&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>If no recommendation is present, the endpoint returns an HTTP 404
+status code.</p>
+<h3 id="listening-to-amazon-eventbridge-events">Listening to Amazon
+EventBridge Events</h3>
+<p>For centralized orchestration or serverless automation, you can
+configure an Amazon EventBridge rule to capture the signal without
+running a polling agent on the instance. EventBridge emits an event with
+the following structure:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;0&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;12345678-1234-1234-1234-123456789012&quot;</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;detail-type&quot;</span><span class="fu">:</span> <span class="st">&quot;EC2 Instance Rebalance Recommendation&quot;</span><span class="fu">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;aws.ec2&quot;</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;account&quot;</span><span class="fu">:</span> <span class="st">&quot;111122223333&quot;</span><span class="fu">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;time&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-11-15T10:50:00Z&quot;</span><span class="fu">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;region&quot;</span><span class="fu">:</span> <span class="st">&quot;us-east-1&quot;</span><span class="fu">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;resources&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;arn:aws:ec2:us-east-1b:instance/i-0abcdef1234567890&quot;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;detail&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;instance-id&quot;</span><span class="fu">:</span> <span class="st">&quot;i-0abcdef1234567890&quot;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>This event can trigger an AWS Lambda function, an AWS Systems Manager
+Run Command, or an AWS Step Functions workflow to begin draining the
+node and provisioning a replacement.</p>
+<h2
+id="native-aws-integrations-that-handle-the-signal-automatically">Native
+AWS Integrations That Handle the Signal Automatically</h2>
+<p>Before building custom logic to poll IMDS or process EventBridge
+events, evaluate whether your compute platform already handles the
+rebalance recommendation natively:</p>
+<ul>
+<li><strong>Amazon EC2 Auto Scaling</strong>: When you enable the
+Capacity Rebalancing feature on an Auto Scaling group, it automatically
+responds to the rebalance signal by launching a new Spot Instance from a
+diversified pool before terminating the at-risk instance.</li>
+<li><strong>Amazon EKS and Kubernetes</strong>: The open-source AWS Node
+Termination Handler (NTH) and Karpenter both support the rebalance
+recommendation. In Karpenter, enabling interruption handling causes it
+to cordon, drain, and replace nodes as soon as a rebalance signal is
+detected, while NTH can be configured to cordon and taint nodes
+proactively.</li>
+<li><strong>Amazon ECS</strong>: Managed Spot capacity providers and ECS
+container agents can be configured with Spot Instance draining to stop
+placing new tasks on an at-risk instance and safely migrate running
+tasks.</li>
+<li><strong>EC2 Fleet</strong>: Fleet configurations running in
+<code>maintain</code> mode can automatically launch replacement Spot
+capacity upon receiving a rebalance recommendation.</li>
+</ul>
+<h2 id="when-to-ignore-the-rebalance-signal">When to Ignore the
+Rebalance Signal</h2>
+<p>While the rebalance recommendation improves availability for
+slow-draining or slow-booting workloads, acting on it unconditionally
+can sometimes increase costs or cause unnecessary churn. Because the
+signal only indicates an elevated risk rather than a guaranteed
+interruption, immediately terminating an instance upon receiving the
+signal might discard a node that would have continued running for
+hours.</p>
+<p>You should consider ignoring the rebalance recommendation—and relying
+solely on the two-minute interruption notice—when:</p>
+<ol type="1">
+<li>Your workload is completely stateless and terminates cleanly in
+under 60 seconds.</li>
+<li>Your cluster maintains enough over-provisioned headroom to absorb
+the sudden loss of a node while a replacement boots.</li>
+<li>Your jobs are short-lived batch tasks where restarting a failed
+two-minute task is cheaper than preemptively migrating nodes on every
+risk warning.</li>
+</ol>
+<p>For most production environments, the optimal strategy is a hybrid
+approach: upon receiving the rebalance recommendation, stop scheduling
+new work onto the instance and begin launching a replacement node in the
+background, but allow existing short-running tasks to continue until
+either they finish naturally or the two-minute interruption notice
+arrives.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-to-handle-the-ec-2-spot-instance-rebalance-signal';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

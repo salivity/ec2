@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Enable Unlimited Mode on AWS EC2 T3 and T4g Instances? - ec2</title>
+    <meta name="description" content="This article explains why developers enable Unlimited mode on Amazon EC2 T3 and T4g burstable instances, detailing how the CPU credit mechanism works, the performance benefits of sustaining high CPU utilization during traffic spikes, and the cost consider">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/why-enable-unlimited-mode-on-aws-ec-2-t-3-and-t-4-g-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Why Enable Unlimited Mode on AWS EC2 T3 and T4g Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/why-enable-unlimited-mode-on-aws-ec-2-t-3-and-t-4-g-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explains why developers enable Unlimited mode on Amazon EC2 T3 and T4g burstable instances, detailing how the CPU credit mechanism works, the performance benefits of sustaining high CPU utilization during traffic spikes, and the cost consider" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="why-enable-unlimited-mode-on-aws-ec2-t3-and-t4g-instances">Why
+Enable Unlimited Mode on AWS EC2 T3 and T4g Instances?</h1>
+<p>This article explains why developers enable Unlimited mode on Amazon
+EC2 T3 and T4g burstable instances, detailing how the CPU credit
+mechanism works, the performance benefits of sustaining high CPU
+utilization during traffic spikes, and the cost considerations involved
+when exceeding baseline thresholds.</p>
+<h2 id="understanding-burstable-performance-instances">Understanding
+Burstable Performance Instances</h2>
+<p>Amazon EC2 T3 and T4g instances are burstable performance instances
+designed to provide a baseline level of CPU performance with the ability
+to burst above that baseline when workloads demand extra processing
+power. Under the hood, this capability is governed by CPU credits.</p>
+<p>When an instance operates below its designated baseline CPU
+utilization (for example, <span class="math inline">\(20\%\)</span> on a
+<code>t3.small</code> or <code>t4g.small</code>), it continuously earns
+CPU credits. When the workload requires more processing power than the
+baseline—such as during application startup, code compilation, or sudden
+web traffic spikes—the instance consumes these accumulated credits to
+burst up to <span class="math inline">\(100\%\)</span> of its vCPU
+capacity. One CPU credit is equal to one vCPU running at <span
+class="math inline">\(100\%\)</span> utilization for one minute, which
+can be expressed mathematically as:</p>
+<p><span class="math display">\[\text{CPU Credits} = \text{Number of
+vCPUs} \times \text{Utilization} \times \text{Time in
+Minutes}\]</span></p>
+<h2 id="standard-mode-vs-unlimited-mode">Standard Mode vs. Unlimited
+Mode</h2>
+<p>To understand why Unlimited mode is useful, it helps to contrast it
+with Standard mode:</p>
+<ul>
+<li><strong>Standard Mode:</strong> When a burstable instance runs out
+of accrued CPU credits during a sustained workload, its CPU performance
+is throttled back down to the baseline level. If the baseline is <span
+class="math inline">\(10\%\)</span> or <span
+class="math inline">\(20\%\)</span>, the application can suddenly become
+sluggish, unresponsive, or fail health checks until demand drops and
+credits are replenished.</li>
+<li><strong>Unlimited Mode:</strong> When Unlimited mode is enabled
+(which is the default setting for T3 and T4g instances), the instance is
+never throttled down to its baseline when its accrued credit balance
+reaches zero. Instead, it is allowed to burst at high CPU utilization
+for as long as needed to handle the workload.</li>
+</ul>
+<h2 id="key-reasons-to-enable-unlimited-mode">Key Reasons to Enable
+Unlimited Mode</h2>
+<p>Developers choose to keep or enable Unlimited mode on T3 and T4g
+instances for several practical reasons:</p>
+<h3 id="1-preventing-performance-degradation-during-traffic-spikes">1.
+Preventing Performance Degradation During Traffic Spikes</h3>
+<p>Production web servers, APIs, and microservices often experience
+unpredictable traffic surges. In Standard mode, a prolonged traffic
+spike can exhaust the CPU credit balance, causing severe latency or
+timeouts once throttling kicks in. Unlimited mode guarantees that the
+instance maintains full vCPU performance throughout the entire spike,
+protecting the user experience and meeting service-level agreements
+(SLAs).</p>
+<h3 id="2-handling-periodic-intensive-workloads">2. Handling Periodic
+Intensive Workloads</h3>
+<p>Many workloads sit mostly idle but occasionally run heavy batch jobs,
+automated backups, security scans, CI/CD builds, or cron tasks. If a
+batch job takes longer than anticipated and consumes all accrued
+credits, Unlimited mode ensures the job finishes at full speed rather
+than stalling out at baseline CPU performance for hours.</p>
+<h3 id="3-borrowing-future-credits-without-immediate-charges">3.
+Borrowing Future Credits Without Immediate Charges</h3>
+<p>When an instance in Unlimited mode exhausts its accrued credits, it
+does not immediately incur extra charges. Instead, EC2 allows the
+instance to borrow "surplus credits" against future credit earnings. If
+the workload drops back below the baseline later in the 24-hour rolling
+window, the instance earns credits that pay down the surplus balance. As
+long as the average CPU utilization over a 24-hour period stays at or
+below the baseline, the developer pays <strong>$0</strong> in additional
+burst charges.</p>
+<h3 id="4-right-sizing-instances-for-cost-efficiency">4. Right-Sizing
+Instances for Cost Efficiency</h3>
+<p>Without Unlimited mode, developers worried about occasional CPU
+throttling often over-provision their infrastructure by choosing larger
+burstable instances or migrating to fixed-performance instance families
+(like M6i or M7g). Those fixed-performance instances cost significantly
+more per hour even when sitting idle. Unlimited mode lets teams run
+cost-effective T3 or T4g instances for variable workloads while
+retaining a safety net of on-demand compute power when required.</p>
+<h2 id="cost-considerations-and-when-to-avoid-unlimited-mode">Cost
+Considerations and When to Avoid Unlimited Mode</h2>
+<p>While Unlimited mode prevents throttling, developers must monitor how
+often their instances consume surplus credits. If an instance's average
+CPU utilization remains above the baseline over a 24-hour period (or
+when the instance is terminated), AWS bills for the net surplus credits
+consumed at a flat rate per vCPU-hour.</p>
+<p>If a T3 or T4g instance runs at or near <span
+class="math inline">\(100\%\)</span> CPU utilization continuously in
+Unlimited mode, the accumulated surplus credit charges can make the
+instance more expensive than a comparably sized fixed-performance
+instance (such as an M-family or C-family instance). Developers should
+therefore avoid Unlimited mode—or migrate to a non-burstable instance
+family—in the following scenarios:</p>
+<ul>
+<li><strong>Consistently High CPU Workloads:</strong> Applications like
+video encoding, continuous data streaming, or high-throughput compute
+engines that constantly require high vCPU usage are more economical on
+M, C, or R instance families.</li>
+<li><strong>Strict Budget Caps in Development Environments:</strong> In
+non-production or sandbox environments where runaway loops, buggy code,
+or misconfigured processes could accidentally peg the CPU at <span
+class="math inline">\(100\%\)</span> for days, switching to Standard
+mode acts as a hard cost control to prevent unexpected surplus credit
+charges.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/why-enable-unlimited-mode-on-aws-ec-2-t-3-and-t-4-g-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

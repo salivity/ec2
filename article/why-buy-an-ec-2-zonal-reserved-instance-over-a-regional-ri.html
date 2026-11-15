@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why buy an EC2 Zonal Reserved Instance over a Regional RI? - ec2</title>
+    <meta name="description" content="A customer purchases an Amazon EC2 Zonal Reserved Instance instead of a Regional Reserved Instance primarily to guarantee compute capacity in a specific Availability Zone. While both options provide the exact same billing discount for a one-year or three-">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/why-buy-an-ec-2-zonal-reserved-instance-over-a-regional-ri">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Why buy an EC2 Zonal Reserved Instance over a Regional RI? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/why-buy-an-ec-2-zonal-reserved-instance-over-a-regional-ri" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="A customer purchases an Amazon EC2 Zonal Reserved Instance instead of a Regional Reserved Instance primarily to guarantee compute capacity in a specific Availability Zone. While both options provide the exact same billing discount for a one-year or three-" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="why-buy-an-ec2-zonal-reserved-instance-over-a-regional-ri">Why
+buy an EC2 Zonal Reserved Instance over a Regional RI?</h1>
+<p>A customer purchases an Amazon EC2 Zonal Reserved Instance instead of
+a Regional Reserved Instance primarily to guarantee compute capacity in
+a specific Availability Zone. While both options provide the exact same
+billing discount for a one-year or three-year commitment, a Regional
+Reserved Instance only offers cost savings alongside Availability Zone
+and instance size flexibility, without reserving actual hardware. When
+mission-critical workloads, strict disaster recovery plans, or
+latency-sensitive architectures require guaranteed instance launch
+capabilities within a specific Availability Zone, a Zonal Reserved
+Instance is the necessary choice.</p>
+<h2 id="understanding-ec2-reserved-instance-scopes">Understanding EC2
+Reserved Instance Scopes</h2>
+<p>When purchasing an Amazon EC2 Reserved Instance (RI), you can scope
+the reservation to either a Region or a specific Availability Zone (AZ).
+Both scopes offer significant cost reductions compared to On-Demand
+pricing, typically up to 72% depending on the term length, payment
+option, and instance class. If we denote the On-Demand hourly rate as
+<span class="math inline">\(R_{\text{OD}}\)</span> and the discounted
+Reserved Instance rate as <span
+class="math inline">\(R_{\text{RI}}\)</span>, the total cost savings
+<span class="math inline">\(S\)</span> over <span
+class="math inline">\(t\)</span> hours is expressed as:</p>
+<p><span class="math display">\[S = (R_{\text{OD}} - R_{\text{RI}})
+\times t\]</span></p>
+<p>Because the discount rate <span
+class="math inline">\(R_{\text{RI}}\)</span> is identical whether you
+select a Zonal or Regional scope, the decision between the two comes
+down to trading flexibility for capacity assurance.</p>
+<h2 id="the-primary-advantage-capacity-reservation">The Primary
+Advantage: Capacity Reservation</h2>
+<p>The single biggest reason to purchase a Zonal Reserved Instance is
+that it includes an automatic capacity reservation in the designated
+Availability Zone.</p>
+<p>When you buy a Regional RI, you are purchasing a billing construct.
+AWS applies the discount to matching running instances anywhere in the
+Region, but if you stop an instance and try to start it later during a
+peak demand event or an AZ outage elsewhere, AWS does not guarantee that
+hardware will be available to launch your instance.</p>
+<p>With a Zonal RI, AWS sets aside the exact compute capacity matching
+your reservation's attributes:</p>
+<ul>
+<li><strong>Instance Type and Size</strong> (e.g.,
+<code>m6i.xlarge</code>)</li>
+<li><strong>Availability Zone</strong> (e.g.,
+<code>us-east-1a</code>)</li>
+<li><strong>Platform</strong> (e.g., Linux/UNIX, Windows)</li>
+<li><strong>Tenancy</strong> (e.g., Default or Dedicated)</li>
+</ul>
+<p>That capacity remains reserved for your account for the entire
+duration of the RI term, ensuring you can launch matching instances
+whenever needed, even if the Availability Zone is experiencing high
+demand.</p>
+<h2 id="key-scenarios-for-choosing-a-zonal-ri">Key Scenarios for
+Choosing a Zonal RI</h2>
+<h3 id="1-mission-critical-and-disaster-recovery-workloads">1.
+Mission-Critical and Disaster Recovery Workloads</h3>
+<p>Organizations with strict Recovery Time Objectives (RTO) cannot
+afford <code>InsufficientInstanceCapacity</code> errors when scaling up
+during a failover or recovery event. Zonal RIs ensure that standby or
+pilot-light environments in a target AZ have the guaranteed compute
+slots required to scale immediately.</p>
+<h3 id="2-high-demand-or-specialized-instance-families">2. High-Demand
+or Specialized Instance Families</h3>
+<p>Certain specialized instances—such as GPU-accelerated instances
+(<code>p4d</code>, <code>g5</code>) or high-memory instances—often
+experience high utilization across AWS Regions. Purchasing a Zonal RI
+locks in access to these scarce resources in your chosen AZ.</p>
+<h3 id="3-stateful-and-zonal-bound-architectures">3. Stateful and
+Zonal-Bound Architectures</h3>
+<p>Many enterprise applications rely on resources that are pinned to a
+specific Availability Zone:</p>
+<ul>
+<li><strong>Amazon EBS Volumes:</strong> EBS volumes are bound to a
+single AZ. If an instance is stopped and restarted, it must launch in
+the same AZ to reattach to its existing EBS storage.</li>
+<li><strong>Colocation for Low Latency:</strong> Applications requiring
+sub-millisecond latency to a primary database node (such as an Amazon
+RDS primary instance in <code>us-west-2b</code>) must run in the exact
+same AZ to avoid cross-AZ data transfer latency and charges.</li>
+</ul>
+<h3 id="4-strict-multi-az-quorums">4. Strict Multi-AZ Quorums</h3>
+<p>Distributed systems like Apache Kafka, ZooKeeper, or etcd require an
+exact balance of nodes across specific Availability Zones to maintain
+quorum and fault tolerance. Zonal RIs guarantee that replacement nodes
+can always be launched into the exact AZ needed to restore cluster
+balance.</p>
+<h2 id="trade-offs-what-you-give-up-with-a-zonal-ri">Trade-offs: What
+You Give Up with a Zonal RI</h2>
+<p>While Zonal RIs provide capacity assurance, they lack the two main
+conveniences of Regional RIs:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Zonal Reserved Instance</th>
+<th style="text-align: left;">Regional Reserved Instance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Capacity Reservation</strong></td>
+<td style="text-align: left;">Yes (in the specified AZ)</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Discount Percentage</strong></td>
+<td style="text-align: left;">Identical</td>
+<td style="text-align: left;">Identical</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>AZ Flexibility</strong></td>
+<td style="text-align: left;">No (locked to one AZ)</td>
+<td style="text-align: left;">Yes (applies to any AZ in the Region)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Size
+Flexibility</strong></td>
+<td style="text-align: left;">No (locked to exact size)</td>
+<td style="text-align: left;">Yes (for Linux/UNIX default tenancy)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Scope Modification</strong></td>
+<td style="text-align: left;">Can be switched to Regional</td>
+<td style="text-align: left;">Can be switched to Zonal</td>
+</tr>
+</tbody>
+</table>
+<p>With a Regional RI on Linux/UNIX with default tenancy, the discount
+automatically scales across instance sizes within the same family using
+normalization factors. For example, one <code>c6i.2xlarge</code>
+Regional RI (<span class="math inline">\(NF = 16\)</span>) can cover
+four <code>c6i.large</code> instances (<span class="math inline">\(4
+\times 4 = 16\)</span>). A Zonal RI does not allow size flexibility; if
+you reserve a <code>c6i.2xlarge</code> in <code>us-east-1a</code>, the
+discount and capacity reservation apply strictly to
+<code>c6i.2xlarge</code> instances in <code>us-east-1a</code>.</p>
+<h2 id="modifying-between-zonal-and-regional-scopes">Modifying Between
+Zonal and Regional Scopes</h2>
+<p>AWS allows you to modify your Reserved Instances after purchase at no
+extra cost, provided the footprint of the reservation remains the same.
+If you initially purchase a Zonal RI for capacity protection and later
+decide your architecture has evolved to favor multi-AZ autoscaling and
+size flexibility, you can modify the Zonal RI into a Regional RI (and
+vice versa) through the AWS Management Console or AWS CLI, subject to
+current capacity availability in the target AZ when switching from
+Regional to Zonal.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/why-buy-an-ec-2-zonal-reserved-instance-over-a-regional-ri';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When an EC2 Capacity Block for ML Expires? - ec2</title>
+    <meta name="description" content="When an Amazon EC2 Capacity Block for Machine Learning reaches the end of its reservation period, AWS automatically terminates all running instances within the reservation and changes the Capacity Block state to expired. Thirty minutes before the reservat">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-capacity-block-for-ml-expires">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When an EC2 Capacity Block for ML Expires? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-capacity-block-for-ml-expires" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When an Amazon EC2 Capacity Block for Machine Learning reaches the end of its reservation period, AWS automatically terminates all running instances within the reservation and changes the Capacity Block state to expired. Thirty minutes before the reservat" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-an-ec2-capacity-block-for-ml-expires">What
+Happens When an EC2 Capacity Block for ML Expires?</h1>
+<p>When an Amazon EC2 Capacity Block for Machine Learning reaches the
+end of its reservation period, AWS automatically terminates all running
+instances within the reservation and changes the Capacity Block state to
+expired. Thirty minutes before the reservation ends, Amazon EC2 begins
+the termination process, sending an interruption notice via Amazon
+EventBridge to allow your workloads to save checkpoints and gracefully
+shut down before the capacity is reclaimed at the exact end time.</p>
+<h2 id="the-expiration-timeline">The Expiration Timeline</h2>
+<p>Amazon EC2 Capacity Blocks for ML are designed to provide
+predictable, fixed-duration access to GPU instances. Because this
+capacity is often scheduled for other customers immediately following
+your reservation, the end time is strictly enforced. The expiration
+process follows two distinct phases:</p>
+<ol type="1">
+<li><strong>30 Minutes Before Expiration (<span
+class="math inline">\(t_{end} - 30\text{ minutes}\)</span>):</strong>
+<ul>
+<li>The status of the Capacity Block transitions to
+<code>expiring</code>.</li>
+<li>You can no longer launch new instances into the Capacity Block
+during this final 30-minute window.</li>
+<li>Amazon EC2 emits an instance interruption warning via Amazon
+EventBridge and makes the notice available through the Instance Metadata
+Service (IMDS).</li>
+<li>Amazon EC2 begins draining and terminating instances running inside
+the Capacity Block.</li>
+</ul></li>
+<li><strong>At the Expiration Time (<span
+class="math inline">\(t_{end}\)</span>):</strong>
+<ul>
+<li>The status of the Capacity Block transitions to
+<code>expired</code>.</li>
+<li>Any remaining instances that have not yet finished shutting down are
+forcibly terminated by AWS.</li>
+<li>The underlying compute capacity is released back to AWS.</li>
+</ul></li>
+</ol>
+<p>If we denote the scheduled end time as <span
+class="math inline">\(t_{end}\)</span>, the guaranteed uninterrupted
+operational window <span class="math inline">\(W\)</span> for your
+instances is governed by:</p>
+<p><span class="math display">\[W = [t_{start}, t_{end} - 30\text{
+minutes}]\]</span></p>
+<h2 id="what-happens-to-your-instances-and-storage">What Happens to Your
+Instances and Storage?</h2>
+<p>Unlike standard On-Demand Capacity Reservations—where instances
+continue running as regular On-Demand instances after the reservation
+expires—instances inside a Capacity Block for ML cannot continue running
+past the reservation window.</p>
+<ul>
+<li><strong>EC2 Instances:</strong> All instances targeting the Capacity
+Block are permanently terminated, regardless of their configured
+shutdown behavior. You cannot stop and restart them once the block
+expires.</li>
+<li><strong>Instance Store Volumes:</strong> Any data stored on local
+NVMe instance store volumes is permanently erased when the instances
+terminate.</li>
+<li><strong>Amazon EBS Volumes:</strong> By default, root EBS volumes
+with the <code>DeleteOnTermination</code> attribute set to
+<code>true</code> are deleted. Attached data volumes with
+<code>DeleteOnTermination</code> set to <code>false</code> will detach
+and remain in your account, preserving your data.</li>
+<li><strong>Shared Storage (Amazon S3, FSx for Lustre, EFS):</strong>
+Data written to external storage services remains completely intact and
+is the recommended destination for model checkpoints and training
+artifacts.</li>
+</ul>
+<h2 id="monitoring-expiration-events">Monitoring Expiration Events</h2>
+<p>To prevent data loss during distributed training or inference
+workloads, you should configure automated workflows to listen for
+expiration events. Amazon EC2 publishes events to Amazon EventBridge at
+key intervals:</p>
+<ul>
+<li><strong>Capacity Block Expiration Warning:</strong> Sent when the
+Capacity Block enters the <code>expiring</code> state 30 minutes prior
+to <span class="math inline">\(t_{end}\)</span>.</li>
+<li><strong>EC2 Instance Rebalance / Interruption Notice:</strong> Sent
+to individual instances as they are scheduled for termination.</li>
+</ul>
+<p>You can capture these events using an EventBridge rule or by polling
+the instance metadata endpoint locally from your training nodes:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-H</span> <span class="st">&quot;X-aws-ec2-metadata-token: </span><span class="va">$TOKEN</span><span class="st">&quot;</span> http://169.254.169.254/latest/meta-data/events/recommendations/rebalance</span></code></pre></div>
+<h2 id="best-practices-before-your-capacity-block-ends">Best Practices
+Before Your Capacity Block Ends</h2>
+<p>To ensure a smooth transition when your Capacity Block reaches the
+end of its reservation period, implement the following practices:</p>
+<ol type="1">
+<li><strong>Schedule Final Checkpoints Early:</strong> Configure your
+training scripts to write their final model checkpoints to Amazon S3 or
+Amazon FSx for Lustre prior to <span class="math inline">\(t_{end} -
+30\text{ minutes}\)</span>. Do not wait until the final minute of the
+reservation, as instance termination begins 30 minutes before the
+official end time.</li>
+<li><strong>Automate Graceful Shutdowns:</strong> Use Amazon EventBridge
+rules triggered by the <code>expiring</code> state change to invoke AWS
+Systems Manager Run Command or a lifecycle hook in your orchestrator
+(such as Amazon EKS or Slurm) to flush logs and save intermediate
+states.</li>
+<li><strong>Preserve Persistent EBS Volumes:</strong> Verify that any
+EBS volumes holding critical datasets or checkpoints have
+<code>DeleteOnTermination</code> disabled before the termination window
+begins:</li>
+</ol>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-instance-attribute <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-id</span> i-1234567890abcdef0 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--block-device-mappings</span> <span class="st">&quot;[{</span><span class="dt">\&quot;</span><span class="st">DeviceName</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">/dev/sdf</span><span class="dt">\&quot;</span><span class="st">,</span><span class="dt">\&quot;</span><span class="st">Ebs</span><span class="dt">\&quot;</span><span class="st">:{</span><span class="dt">\&quot;</span><span class="st">DeleteOnTermination</span><span class="dt">\&quot;</span><span class="st">:false}}]&quot;</span></span></code></pre></div>
+<ol start="4" type="1">
+<li><strong>Extend or Book Follow-up Capacity in Advance:</strong> If
+you anticipate needing more time, you can check if an extension is
+available for your existing Capacity Block using the AWS Management
+Console or AWS CLI
+(<code>describe-capacity-block-extension-offerings</code>). If an
+extension is available and purchased before the block expires, your
+instances will continue running seamlessly into the new window without
+interruption.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-capacity-block-for-ml-expires';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

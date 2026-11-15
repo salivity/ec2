@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When an EC2 Root Volume Has DeleteOnTermination? - ec2</title>
+    <meta name="description" content="When an Amazon EC2 instance is terminated and the DeleteOnTermination attribute on its root Amazon Elastic Block Store volume is set to true, AWS automatically and permanently deletes that root EBS volume along with all the data stored on it. The instance">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-root-volume-has-delete-on-termination">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When an EC2 Root Volume Has DeleteOnTermination? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-root-volume-has-delete-on-termination" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When an Amazon EC2 instance is terminated and the DeleteOnTermination attribute on its root Amazon Elastic Block Store volume is set to true, AWS automatically and permanently deletes that root EBS volume along with all the data stored on it. The instance" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-happens-when-an-ec2-root-volume-has-deleteontermination">What
+Happens When an EC2 Root Volume Has DeleteOnTermination?</h1>
+<p>When an Amazon EC2 instance is terminated and the DeleteOnTermination
+attribute on its root Amazon Elastic Block Store volume is set to true,
+AWS automatically and permanently deletes that root EBS volume along
+with all the data stored on it. The instance transitions through the
+shutting-down state before reaching the terminated state, during which
+AWS detaches and destroys the root storage resource without creating an
+automatic backup or snapshot. Once the termination process completes,
+the deleted root volume cannot be recovered unless you previously
+created an EBS snapshot or configured a backup policy, though any
+additional non-root EBS volumes attached to the instance may persist if
+their individual DeleteOnTermination attributes are set to false.</p>
+<h2 id="understanding-the-deleteontermination-attribute">Understanding
+the DeleteOnTermination Attribute</h2>
+<p>Amazon Elastic Block Store (EBS) provides block-level storage volumes
+for use with Amazon EC2 instances. Every EBS volume attached to an
+instance is governed by a block device mapping configuration, which
+includes the <code>DeleteOnTermination</code> boolean attribute. This
+attribute instructs the AWS control plane on how to handle the lifecycle
+of the storage volume when its parent compute instance is permanently
+destroyed.</p>
+<p>By default, Amazon EC2 sets <code>DeleteOnTermination</code> to
+<code>true</code> for the root EBS volume—the volume that holds the
+operating system boot image and system files—while setting it to
+<code>false</code> for any additional data volumes attached to the
+instance. This default behavior is designed to prevent orphaned boot
+volumes from accumulating in your AWS account and generating unnecessary
+storage charges after temporary or scaled-down compute instances are
+terminated.</p>
+<h2 id="step-by-step-lifecycle-during-instance-termination">Step-by-Step
+Lifecycle During Instance Termination</h2>
+<p>When you issue a <code>TerminateInstances</code> API call via the AWS
+Management Console, AWS CLI, or an SDK, a specific sequence of events
+unfolds:</p>
+<ol type="1">
+<li><strong>State Transition to Shutting-Down</strong>: The EC2 instance
+immediately changes its state from <code>running</code> (or
+<code>stopped</code>) to <code>shutting-down</code>. During this phase,
+the guest operating system receives an ACPI shutdown signal to
+gracefully stop running processes and flush file system buffers.</li>
+<li><strong>Evaluation of Block Device Mappings</strong>: The EC2
+service inspects the block device mapping table associated with the
+instance to check the <code>DeleteOnTermination</code> flag for every
+attached EBS volume.</li>
+<li><strong>Volume Detachment and Destruction</strong>: Because
+<code>DeleteOnTermination</code> is set to <code>true</code> on the root
+volume, AWS detaches the root volume as soon as the instance halts and
+immediately initiates an asynchronous deletion of the EBS volume.</li>
+<li><strong>Final State Transition to Terminated</strong>: The instance
+enters the <code>terminated</code> state. The root volume disappears
+from your list of active EBS volumes, and billing for both the EC2
+compute capacity and the root EBS storage ceases immediately.</li>
+</ol>
+<p>If we denote the total monthly storage cost <span
+class="math inline">\(C\)</span> of a root volume with size <span
+class="math inline">\(S\)</span> (in gigabytes) and price rate <span
+class="math inline">\(R\)</span> per gigabyte-month over an active
+fraction of the month <span class="math inline">\(t \in [0, 1]\)</span>,
+terminating the instance stops storage accumulation at time <span
+class="math inline">\(t\)</span>:</p>
+<p><span class="math display">\[C = S \times R \times t\]</span></p>
+<p>Once the volume is deleted at termination, <span
+class="math inline">\(S\)</span> becomes <span
+class="math inline">\(0\)</span> for the remainder of the billing cycle
+<span class="math inline">\((1 - t)\)</span>, eliminating ongoing
+storage costs for that volume.</p>
+<h2 id="impact-on-data-and-additional-volumes">Impact on Data and
+Additional Volumes</h2>
+<p>Understanding the distinction between the root volume and secondary
+volumes is critical for preventing accidental data loss:</p>
+<ul>
+<li><strong>Root EBS Volume</strong>: All operating system
+configurations, local logs, application binaries, and user files stored
+on the root partition (such as <code>/dev/xvda</code> or
+<code>/dev/sda1</code>) are permanently erased. No automatic snapshot is
+taken prior to deletion.</li>
+<li><strong>Additional Attached EBS Volumes</strong>: Secondary EBS
+volumes attached to the instance have <code>DeleteOnTermination</code>
+set to <code>false</code> by default. Unless explicitly modified to
+<code>true</code>, these volumes are simply detached when the instance
+terminates, remaining in the <code>available</code> state in your AWS
+account with their data intact.</li>
+<li><strong>EBS Snapshots</strong>: Existing Amazon EBS snapshots that
+were previously created from the root volume are unaffected by the
+termination and deletion of the root volume. Snapshots are stored
+independently in Amazon S3 managed storage.</li>
+</ul>
+<h2 id="how-to-check-the-current-deleteontermination-setting">How to
+Check the Current DeleteOnTermination Setting</h2>
+<p>Before terminating an instance, you can inspect the current
+<code>DeleteOnTermination</code> status of its root volume using the AWS
+CLI. Run the <code>describe-instances</code> command and query the
+<code>BlockDeviceMappings</code> array:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-instances <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-ids</span> i-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">&quot;Reservations[*].Instances[*].BlockDeviceMappings[*].[DeviceName,Ebs.VolumeId,Ebs.DeleteOnTermination]&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output</span> table</span></code></pre></div>
+<p>If the output shows <code>True</code> next to the root device name
+(for example, <code>/dev/xvda</code>), the volume will be destroyed upon
+termination.</p>
+<h2 id="how-to-prevent-root-volume-deletion-before-terminating">How to
+Prevent Root Volume Deletion Before Terminating</h2>
+<p>If you want to terminate an EC2 instance but preserve its root EBS
+volume for forensic analysis, data recovery, or attaching to a new
+instance, you can modify the <code>DeleteOnTermination</code> attribute
+while the instance is still running or stopped. You do not need to
+reboot the instance to change this setting.</p>
+<p>Using the AWS CLI, execute the <code>modify-instance-attribute</code>
+command:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-instance-attribute <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-id</span> i-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--block-device-mappings</span> <span class="st">&quot;[{</span><span class="dt">\&quot;</span><span class="st">DeviceName</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">/dev/xvda</span><span class="dt">\&quot;</span><span class="st">,</span><span class="dt">\&quot;</span><span class="st">Ebs</span><span class="dt">\&quot;</span><span class="st">:{</span><span class="dt">\&quot;</span><span class="st">DeleteOnTermination</span><span class="dt">\&quot;</span><span class="st">:false}}]&quot;</span></span></code></pre></div>
+<p>Once updated to <code>false</code>, terminating the EC2 instance will
+leave the root EBS volume in the <code>available</code> state in your
+account rather than deleting it.</p>
+<h2 id="best-practices-for-protecting-root-volume-data">Best Practices
+for Protecting Root Volume Data</h2>
+<p>To avoid unintended data loss when working with ephemeral or
+replaceable EC2 instances, follow these operational best practices:</p>
+<ul>
+<li><strong>Store Persistent Data on Separate Volumes</strong>: Keep
+application databases, user uploads, and critical state on secondary EBS
+volumes, Amazon EFS, or Amazon S3 rather than on the root operating
+system volume.</li>
+<li><strong>Automate Snapshots with Amazon Data Lifecycle Manager
+(DLM)</strong>: Configure automated snapshot policies so that periodic
+backups of critical volumes exist even if an instance is accidentally
+terminated.</li>
+<li><strong>Enable Termination Protection</strong>: For production
+instances where the root volume holds indispensable state, enable EC2
+termination protection to prevent accidental termination via the
+console, CLI, or API until the protection flag is explicitly
+disabled.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-root-volume-has-delete-on-termination';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

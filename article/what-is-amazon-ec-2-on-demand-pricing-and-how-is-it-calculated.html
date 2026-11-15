@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Is Amazon EC2 On-Demand Pricing and How Is It Calculated? - ec2</title>
+    <meta name="description" content="Amazon EC2 On-Demand pricing is a pay-as-you-go billing model that allows users to pay for compute capacity by the hour or by the second without any long-term commitments or upfront payments. This article explores how the On-Demand pricing model works in">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-amazon-ec-2-on-demand-pricing-and-how-is-it-calculated">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Is Amazon EC2 On-Demand Pricing and How Is It Calculated? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-amazon-ec-2-on-demand-pricing-and-how-is-it-calculated" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 On-Demand pricing is a pay-as-you-go billing model that allows users to pay for compute capacity by the hour or by the second without any long-term commitments or upfront payments. This article explores how the On-Demand pricing model works in" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-is-amazon-ec2-on-demand-pricing-and-how-is-it-calculated">What
+Is Amazon EC2 On-Demand Pricing and How Is It Calculated?</h1>
+<p>Amazon EC2 On-Demand pricing is a pay-as-you-go billing model that
+allows users to pay for compute capacity by the hour or by the second
+without any long-term commitments or upfront payments. This article
+explores how the On-Demand pricing model works in Amazon Elastic Compute
+Cloud, the factors that influence instance rates, how billing increments
+are structured across different operating systems, and the mathematical
+formulas used to calculate total compute costs.</p>
+<h2
+id="understanding-the-amazon-ec2-on-demand-pricing-model">Understanding
+the Amazon EC2 On-Demand Pricing Model</h2>
+<p>Amazon Elastic Compute Cloud (Amazon EC2) provides scalable computing
+capacity in the Amazon Web Services (AWS) cloud. Among its various
+purchasing options—such as Reserved Instances, Savings Plans, and Spot
+Instances—the On-Demand pricing model is the default and most flexible
+option.</p>
+<p>With On-Demand instances, you only pay for the exact time your
+instances are in a running state. There are no minimum spend
+commitments, long-term contracts, or upfront fees. You have full control
+over the lifecycle of the instance, deciding when to launch, stop,
+hibernate, start, or terminate it. When you stop or terminate an
+instance, compute billing stops immediately, although any attached
+storage volumes like Amazon Elastic Block Store (EBS) may continue to
+incur storage charges until deleted.</p>
+<h2 id="key-factors-that-determine-on-demand-rates">Key Factors That
+Determine On-Demand Rates</h2>
+<p>Before calculating the total cost of an On-Demand instance, it is
+important to understand the variables that dictate the base rate of the
+instance:</p>
+<ul>
+<li><strong>Instance Type and Size:</strong> AWS categorizes instances
+into families based on workload optimization (General Purpose, Compute
+Optimized, Memory Optimized, Storage Optimized, and Accelerated
+Computing). Within each family, the size (such as <code>large</code>,
+<code>xlarge</code>, or <code>2xlarge</code>) determines the number of
+virtual CPUs (vCPUs), memory (RAM), network performance, and local
+instance storage. Generally, doubling the instance size within the same
+family doubles the price.</li>
+<li><strong>AWS Region:</strong> Prices vary depending on the geographic
+location (Region) of the data center due to local infrastructure,
+energy, and operational costs.</li>
+<li><strong>Operating System and Software Licensing:</strong> Instances
+running open-source Linux distributions (such as Amazon Linux, Ubuntu,
+or Debian) carry the lowest base rates because they do not include
+commercial licensing fees. Instances running Microsoft Windows Server,
+Red Hat Enterprise Linux (RHEL), SUSE Linux Enterprise Server (SLES), or
+pre-installed commercial software (like SQL Server) have higher rates to
+cover license costs.</li>
+<li><strong>Tenancy:</strong> By default, On-Demand instances run on
+shared hardware (Shared Tenancy). If compliance or licensing requires
+Dedicated Instances or Dedicated Hosts, additional hourly charges or
+higher per-instance rates apply.</li>
+</ul>
+<h2 id="how-billing-increments-work-per-second-vs-per-hour-billing">How
+Billing Increments Work: Per-Second vs. Per-Hour Billing</h2>
+<p>AWS calculates On-Demand usage using either per-second or per-hour
+billing increments, depending on the operating system and how the
+software is licensed:</p>
+<ol type="1">
+<li><strong>Per-Second Billing:</strong> Applies to instances running
+open-source Linux distributions (Amazon Linux, Ubuntu), Windows Server,
+and Red Hat Enterprise Linux (RHEL). Per-second billing features a
+60-second (1-minute) minimum charge every time an instance is launched
+or started from a stopped state. After the first 60 seconds, usage is
+billed down to the exact second.</li>
+<li><strong>Per-Hour Billing:</strong> Applies to specific commercial
+distributions or third-party AWS Marketplace AMIs that do not support
+per-second billing. Under per-hour billing, any partial hour of usage is
+rounded up to the nearest full hour. Even if an instance runs for only
+10 minutes before being stopped, it is billed for a full hour. Note that
+if you stop and restart an instance multiple times within the same clock
+hour under per-hour billing, each start triggers a new one-hour billing
+minimum.</li>
+</ol>
+<h2 id="how-to-calculate-amazon-ec2-on-demand-costs">How to Calculate
+Amazon EC2 On-Demand Costs</h2>
+<p>Even when an instance is billed by the second, AWS publishes its
+On-Demand prices as an hourly rate (<span
+class="math inline">\(R_{\text{hour}}\)</span>). To calculate the exact
+cost of an instance, you convert the running duration into hours or
+convert the hourly rate into a per-second rate.</p>
+<h3 id="1-per-second-billing-formula">1. Per-Second Billing Formula</h3>
+<p>For instances eligible for per-second billing (assuming the instance
+runs for at least the 60-second minimum), the total compute cost (<span
+class="math inline">\(C_{\text{total}}\)</span>) is calculated by
+multiplying the published hourly rate (<span
+class="math inline">\(R_{\text{hour}}\)</span>) by the total number of
+seconds the instance ran (<span
+class="math inline">\(t_{\text{seconds}}\)</span>) divided by <span
+class="math inline">\(3600\)</span> seconds per hour:</p>
+<p><span class="math display">\[C_{\text{total}} = R_{\text{hour}}
+\times \left(\frac{\max(t_{\text{seconds}},
+60)}{3600}\right)\]</span></p>
+<p>If you run <span class="math inline">\(N\)</span> identical instances
+simultaneously for the same duration, the formula becomes:</p>
+<p><span class="math display">\[C_{\text{total}} = N \times
+R_{\text{hour}} \times \left(\frac{\max(t_{\text{seconds}},
+60)}{3600}\right)\]</span></p>
+<h4 id="example-calculation-per-second-billing">Example Calculation
+(Per-Second Billing)</h4>
+<p>Suppose you launch a Linux <code>m6i.large</code> instance with an
+On-Demand rate of <span class="math inline">\(\$0.096\)</span> per hour.
+You run a batch processing job that takes exactly 2 hours, 15 minutes,
+and 30 seconds, and then terminate the instance.</p>
+<p>First, convert the total running time into seconds:</p>
+<p><span class="math display">\[t_{\text{seconds}} = (2 \times 3600) +
+(15 \times 60) + 30 = 7200 + 900 + 30 = 8130 \text{
+seconds}\]</span></p>
+<p>Next, apply the per-second billing formula:</p>
+<p><span class="math display">\[C_{\text{total}} = \$0.096 \times
+\left(\frac{8130}{3600}\right) = \$0.096 \times 2.258333 =
+\$0.2168\]</span></p>
+<p>Your total On-Demand compute charge for that workload is <span
+class="math inline">\(\$0.2168\)</span> (rounded to the nearest cent on
+the monthly invoice).</p>
+<h3 id="2-monthly-continuous-usage-calculation">2. Monthly Continuous
+Usage Calculation</h3>
+<p>If you plan to run an On-Demand instance continuously for an entire
+month, AWS pricing calculators standardize a month as <span
+class="math inline">\(730\)</span> hours (calculated as <span
+class="math inline">\(\frac{365 \text{ days} \times 24 \text{ hours}}{12
+\text{ months}}\)</span>). In practice, a specific calendar month will
+have <span class="math inline">\(672\)</span> hours (28 days), <span
+class="math inline">\(696\)</span> hours (29 days), <span
+class="math inline">\(720\)</span> hours (30 days), or <span
+class="math inline">\(744\)</span> hours (31 days).</p>
+<p>Using the standard 730-hour average, the monthly cost (<span
+class="math inline">\(C_{\text{month}}\)</span>) is:</p>
+<p><span class="math display">\[C_{\text{month}} = N \times
+R_{\text{hour}} \times 730\]</span></p>
+<p>For a single instance at <span class="math inline">\(\$0.096\)</span>
+per hour running continuously:</p>
+<p><span class="math display">\[C_{\text{month}} = 1 \times \$0.096
+\times 730 = \$70.08\]</span></p>
+<h3 id="3-unlimited-mode-charges-for-burstable-instances-t-family">3.
+Unlimited Mode Charges for Burstable Instances (T-Family)</h3>
+<p>If you use burstable performance instances (such as <code>t3</code>,
+<code>t3a</code>, or <code>t4g</code>), On-Demand pricing includes an
+additional calculation if the instance runs in <strong>Unlimited
+mode</strong> and exceeds its baseline CPU utilization over a 24-hour
+period.</p>
+<p>When average CPU usage exceeds the baseline and accrued CPU credits
+are exhausted, you pay a flat surplus rate per vCPU-hour (<span
+class="math inline">\(R_{\text{vCPU}}\)</span>). The total cost is the
+base On-Demand compute cost plus the surplus CPU cost:</p>
+<p><span class="math display">\[C_{\text{burstable}} = C_{\text{total}}
++ \left(\text{Surplus vCPU-Hours} \times
+R_{\text{vCPU}}\right)\]</span></p>
+<h2 id="additional-costs-associated-with-ec2-instances">Additional Costs
+Associated with EC2 Instances</h2>
+<p>When calculating the full cost of running an Amazon EC2 workload, the
+On-Demand instance rate only covers the compute capacity (vCPU and
+memory). A complete total cost of ownership (TCO) calculation must also
+factor in peripheral services:</p>
+<ul>
+<li><strong>Amazon EBS Storage:</strong> Charged per gigabyte-month
+(<span class="math inline">\(\text{GB-month}\)</span>) provisioned, plus
+additional charges for provisioned IOPS or throughput depending on the
+volume type (such as <code>gp3</code> or <code>io2</code>). EBS charges
+continue even when the EC2 instance is in a <code>stopped</code>
+state.</li>
+<li><strong>Public IPv4 Addresses:</strong> AWS charges an hourly fee
+(<span class="math inline">\(\$0.005\)</span> per hour) for all public
+IPv4 addresses associated with your account, whether attached to a
+running EC2 instance or idle as an unattached Elastic IP address.</li>
+<li><strong>Data Transfer:</strong> Data transferred into EC2 from the
+internet is generally free, while data transferred out to the internet
+or across different Availability Zones and Regions is billed per
+gigabyte (<span class="math inline">\(\text{GB}\)</span>).</li>
+</ul>
+<p><span class="math display">\[C_{\text{complete}} = C_{\text{compute}}
++ C_{\text{storage}} + C_{\text{IPv4}} +
+C_{\text{data\_transfer}}\]</span></p>
+<h2 id="when-to-use-the-on-demand-pricing-model">When to Use the
+On-Demand Pricing Model</h2>
+<p>Because On-Demand pricing does not offer the volume discounts of
+Savings Plans (up to 72% off) or Spot Instances (up to 90% off), it is
+best suited for specific operational scenarios:</p>
+<ul>
+<li><strong>Unpredictable or Spiky Workloads:</strong> Applications with
+short-term, irregular, or erratic traffic patterns that cannot be
+forecasted in advance.</li>
+<li><strong>New Application Development and Testing:</strong>
+Environments where developers spin up instances for a few hours to test
+code or benchmark instance types before committing to a 1-year or 3-year
+Savings Plan.</li>
+<li><strong>Mission-Critical Short-Term Jobs:</strong> Workloads that
+only run briefly (from a few minutes to a few days) where the job cannot
+tolerate the interruption risk of Spot Instances.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-amazon-ec-2-on-demand-pricing-and-how-is-it-calculated';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

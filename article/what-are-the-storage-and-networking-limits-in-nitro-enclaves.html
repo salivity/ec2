@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What are the storage and networking limits in Nitro Enclaves? - ec2</title>
+    <meta name="description" content="Amazon EC2 Nitro Enclaves are isolated compute environments engineered with strict hardware and architectural boundaries that eliminate all direct persistent storage and external network connectivity. This overview explains how an enclave operates exclusi">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-are-the-storage-and-networking-limits-in-nitro-enclaves">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What are the storage and networking limits in Nitro Enclaves? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-are-the-storage-and-networking-limits-in-nitro-enclaves" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Nitro Enclaves are isolated compute environments engineered with strict hardware and architectural boundaries that eliminate all direct persistent storage and external network connectivity. This overview explains how an enclave operates exclusi" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-are-the-storage-and-networking-limits-in-nitro-enclaves">What
+are the storage and networking limits in Nitro Enclaves?</h1>
+<p>Amazon EC2 Nitro Enclaves are isolated compute environments
+engineered with strict hardware and architectural boundaries that
+eliminate all direct persistent storage and external network
+connectivity. This overview explains how an enclave operates exclusively
+in volatile system memory allocated from its parent instance, completely
+detached from block storage volumes and Elastic Network Interfaces,
+while relying on a local virtual socket channel for all input and output
+operations.</p>
+<h2 id="persistent-storage-constraints">Persistent Storage
+Constraints</h2>
+<p>An Amazon EC2 Nitro Enclave has no attached persistent storage and
+cannot directly mount external storage services such as Amazon Elastic
+Block Store (EBS), Amazon Elastic File System (EFS), or Amazon S3. When
+an enclave is launched from the parent EC2 instance, the Nitro
+Hypervisor carves out dedicated CPU cores and a fixed portion of system
+memory from the parent instance's hardware resources.</p>
+<p>The entire runtime environment of the enclave, which is packaged as
+an Enclave Image File (EIF), is loaded directly into this dedicated
+volatile memory as an initial ramdisk (<code>initramfs</code>). Because
+the root filesystem resides completely in RAM, several storage
+constraints apply:</p>
+<ul>
+<li><strong>Total Volatility:</strong> Any files created, modified, or
+stored inside the enclave's filesystem exist only in memory and are
+permanently erased as soon as the enclave terminates or the parent
+instance stops.</li>
+<li><strong>Memory-Bound Capacity:</strong> The available space for both
+the operating system image, application binaries, and temporary runtime
+data is strictly bounded by the RAM allocated to the enclave at launch.
+If the parent instance has total memory <span
+class="math inline">\(M_{\text{parent}}\)</span> and allocates <span
+class="math inline">\(M_{\text{enclave}}\)</span> to the enclave, the
+total storage and working memory inside the enclave cannot exceed <span
+class="math inline">\(M_{\text{enclave}} &lt;
+M_{\text{parent}}\)</span>.</li>
+<li><strong>Persistence via Parent Proxy:</strong> To persist state or
+retrieve external datasets, the enclave application must encrypt the
+data in memory and transmit it over the local virtual socket to a helper
+process on the parent instance, which then writes the encrypted payload
+to an EBS volume or external storage service.</li>
+</ul>
+<h2 id="external-networking-constraints">External Networking
+Constraints</h2>
+<p>Nitro Enclaves have no external network interfaces, no IP addresses,
+no routing tables for public or VPC traffic, and no access to an Elastic
+Network Interface (ENI). An enclave cannot directly initiate or accept
+TCP/IP connections over a Virtual Private Cloud (VPC) or the public
+internet, nor can it query the EC2 Instance Metadata Service (IMDS) or
+resolve DNS names directly.</p>
+<p>The only communication mechanism available to a Nitro Enclave is a
+point-to-point virtual socket (<code>AF_VSOCK</code>) interface provided
+by the Nitro Hypervisor. This virtual socket connects the enclave
+exclusively to the parent EC2 instance that spawned it.</p>
+<p>All network communication must obey the following constraints:</p>
+<ul>
+<li><strong>CID-Based Addressing:</strong> Instead of IP addresses and
+subnet masks, <code>vsock</code> connections use a 32-bit Context
+Identifier (CID) and a 32-bit port number. The parent EC2 instance is
+always assigned a fixed CID of <span class="math inline">\(3\)</span>,
+while the enclave is assigned a unique CID (such as <span
+class="math inline">\(16\)</span>) upon creation.</li>
+<li><strong>Mandatory Traffic Forwarding:</strong> For an enclave to
+communicate with external endpoints such as AWS Key Management Service
+(KMS) or a remote HTTPS API, a proxy service (such as
+<code>vsock-proxy</code> or <code>socat</code>) must run on the parent
+EC2 instance. The enclave sends frames over the local <code>vsock</code>
+channel to CID <span class="math inline">\(3\)</span>, and the parent
+proxy forwards those packets over the parent instance's standard network
+interface.</li>
+<li><strong>End-to-End Cryptographic Security:</strong> Because the
+parent EC2 instance acts as an untrusted network relay for all external
+traffic, the enclave must terminate TLS sessions and perform
+cryptographic verification inside its own isolated memory space so the
+parent instance only handles encrypted ciphertext.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-are-the-storage-and-networking-limits-in-nitro-enclaves';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

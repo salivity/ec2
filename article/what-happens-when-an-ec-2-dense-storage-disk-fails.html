@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When an EC2 Dense Storage Disk Fails? - ec2</title>
+    <meta name="description" content="When a physical disk fails on a multi-drive dense storage instance in Amazon EC2, the affected instance store volume becomes inaccessible and any data stored exclusively on that drive is lost. Unlike Amazon Elastic Block Store volumes, which are network-a">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-dense-storage-disk-fails">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When an EC2 Dense Storage Disk Fails? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-dense-storage-disk-fails" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When a physical disk fails on a multi-drive dense storage instance in Amazon EC2, the affected instance store volume becomes inaccessible and any data stored exclusively on that drive is lost. Unlike Amazon Elastic Block Store volumes, which are network-a" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-an-ec2-dense-storage-disk-fails">What Happens
+When an EC2 Dense Storage Disk Fails?</h1>
+<p>When a physical disk fails on a multi-drive dense storage instance in
+Amazon EC2, the affected instance store volume becomes inaccessible and
+any data stored exclusively on that drive is lost. Unlike Amazon Elastic
+Block Store volumes, which are network-attached and automatically
+replicated across multiple servers within an Availability Zone, EC2
+instance store volumes reside directly on the physical disks attached to
+the host computer. Despite the loss of a single drive, the EC2 instance
+itself continues to run normally, and all other healthy drives attached
+to the instance remain operational unless the failed disk was part of an
+unredundant array or held critical operating system files. Because
+hardware failures are an expected reality in large-scale infrastructure,
+architectures relying on dense storage instances such as the d2, d3, or
+i3 families must implement software-level redundancy, distributed file
+systems, or regular automated backups to prevent permanent data loss and
+service interruption.</p>
+<h2 id="understanding-ec2-dense-storage-instances">Understanding EC2
+Dense Storage Instances</h2>
+<p>Amazon EC2 dense storage instances, such as the D2, D3, and D3en
+instance families, are designed for workloads that require high
+sequential read and write access to very large datasets. These instances
+come equipped with multiple locally attached hard disk drives (HDDs) or
+non-volatile memory express (NVMe) solid-state drives (SSDs) known as
+instance store volumes.</p>
+<p>Instance store volumes provide temporary block-level storage. Because
+the drives are physically attached to the underlying host server, they
+avoid the network latency associated with Amazon Elastic Block Store
+(EBS) and deliver high random and sequential I/O performance at a lower
+cost per gigabyte. However, this direct hardware attachment means there
+is no built-in AWS abstraction layer replicating your data behind the
+scenes. Each mounted instance store device maps directly to a physical
+drive on the host rack.</p>
+<h2 id="immediate-impact-of-a-single-drive-failure">Immediate Impact of
+a Single Drive Failure</h2>
+<p>When one of the physical drives in a multi-drive instance experiences
+a hardware failure, several immediate events occur across the operating
+system and the AWS management plane:</p>
+<ol type="1">
+<li><strong>Input/Output Errors:</strong> The operating system kernel
+begins logging I/O errors (such as
+<code>blk_update_request: I/O error</code> in Linux <code>dmesg</code>
+or <code>/var/log/messages</code>) whenever an application attempts to
+read from or write to the affected block device.</li>
+<li><strong>File System Degradation:</strong> If the drive is formatted
+with an independent file system (such as XFS or ext4), the kernel will
+typically remount the file system as read-only to prevent further
+corruption, or the mount point will become completely unresponsive.</li>
+<li><strong>Instance Continuity:</strong> A single failed instance store
+volume does not cause the EC2 instance to stop, reboot, or terminate,
+provided the root volume is hosted on Amazon EBS (which is the standard
+configuration for modern dense storage instances). The remaining healthy
+physical drives continue to function without performance
+degradation.</li>
+<li><strong>AWS Health Notifications:</strong> AWS detects the
+underlying hardware fault on the host and posts an event to the AWS
+Health Dashboard and Amazon EventBridge. While AWS notifies you of the
+degraded hardware, AWS technicians cannot hot-swap a physical drive in a
+running instance without affecting your workload, meaning remediation
+requires action from the user.</li>
+</ol>
+<h2 id="how-storage-configuration-determines-data-survival">How Storage
+Configuration Determines Data Survival</h2>
+<p>The exact impact of a disk failure on your applications depends
+entirely on how the multiple drives are configured within the operating
+system.</p>
+<h3 id="independent-mount-points-jbod">Independent Mount Points
+(JBOD)</h3>
+<p>In a "Just a Bunch of Disks" (JBOD) configuration, each block device
+(for example, <code>/dev/nvme1n1</code>, <code>/dev/nvme2n1</code>,
+etc.) is formatted and mounted to its own directory, such as
+<code>/data1</code>, <code>/data2</code>, and <code>/data3</code>.</p>
+<p>When a drive fails in a JBOD setup, only the data on that specific
+mount point is lost. Distributed data stores such as Apache Hadoop
+(HDFS), Apache Kafka, and Elasticsearch are specifically designed to use
+JBOD configurations. They handle disk failures natively by replicating
+data chunks or shards across multiple disks and multiple EC2 instances.
+If one drive fails, the application detects the dead mount point, stops
+routing requests to it, and serves reads from replica nodes.</p>
+<h3 id="raid-0-striping">RAID 0 (Striping)</h3>
+<p>Many workloads combine multiple instance store volumes into a single
+logical volume using Linux <code>mdadm</code> or Logical Volume Manager
+(LVM) in a RAID 0 array to maximize throughput and aggregate storage
+capacity. In RAID 0, data blocks are striped across all <span
+class="math inline">\(N\)</span> drives in the array with no parity or
+mirroring.</p>
+<p>If a single disk fails in a RAID 0 array, the entire logical volume
+fails and <strong>100% of the data across all drives in the array is
+lost</strong>. Furthermore, the probability of experiencing a failure
+increases with the number of drives. If a single drive has a probability
+<span class="math inline">\(p\)</span> of failing over a given period,
+the probability <span class="math inline">\(P_{\text{fail}}\)</span> of
+a RAID 0 array with <span class="math inline">\(N\)</span> drives
+failing is:</p>
+<p><span class="math display">\[P_{\text{fail}} = 1 - (1 -
+p)^N\]</span></p>
+<p>On a <code>d3.8xlarge</code> instance with 24 physical drives, a RAID
+0 array is significantly more vulnerable to failure than a single disk.
+RAID 0 should only be used when the instance holds purely ephemeral
+scratch data or when the instance is part of a larger cluster that
+replicates data across multiple EC2 nodes.</p>
+<h3 id="raid-1-raid-5-raid-6-and-raid-10">RAID 1, RAID 5, RAID 6, and
+RAID 10</h3>
+<p>To protect against single-drive failures at the operating system
+level without relying on multi-node application replication,
+administrators configure redundant software RAID arrays:</p>
+<ul>
+<li><strong>RAID 1 / RAID 10:</strong> Mirrors data across drive pairs.
+If a disk fails, the array operates in a degraded state with virtually
+no performance penalty, reading from the surviving mirror drive.</li>
+<li><strong>RAID 5:</strong> Stripes data and parity across at least
+three drives. It can survive the loss of <span
+class="math inline">\(1\)</span> drive. For an array of <span
+class="math inline">\(N\)</span> drives each of capacity <span
+class="math inline">\(C\)</span>, the usable capacity <span
+class="math inline">\(U\)</span> is:</li>
+</ul>
+<p><span class="math display">\[U = (N - 1) \times C\]</span></p>
+<ul>
+<li><strong>RAID 6:</strong> Stripes data and dual parity across at
+least four drives. It can survive the simultaneous loss of <span
+class="math inline">\(2\)</span> drives, yielding a usable capacity
+of:</li>
+</ul>
+<p><span class="math display">\[U = (N - 2) \times C\]</span></p>
+<p>When a disk fails in a RAID 1, 5, 6, or 10 array, the logical file
+system remains online and accessible, though RAID 5 and RAID 6 arrays
+will experience degraded read and write performance because missing
+blocks must be reconstructed on the fly using parity calculations.</p>
+<h2 id="how-to-recover-from-a-failed-instance-store-disk">How to Recover
+from a Failed Instance Store Disk</h2>
+<p>Because you cannot replace an individual physical hard drive on an
+active EC2 host without moving the instance to new hardware, recovery
+requires migrating the workload to a healthy underlying host server.</p>
+<h3 id="1-isolate-the-failed-drive-if-continuing-temporarily">1. Isolate
+the Failed Drive (If Continuing Temporarily)</h3>
+<p>If your instance is part of a distributed cluster (like HDFS or
+Cassandra) and can tolerate running with <span class="math inline">\(N -
+1\)</span> drives until a scheduled maintenance window, unmount the
+failed drive and remove it from your application's configuration so the
+OS stops attempting I/O operations against the dead device.</p>
+<h3 id="2-back-up-surviving-data">2. Back Up Surviving Data</h3>
+<p>Before changing the instance state, ensure that any critical data
+remaining on healthy drives (or on a degraded RAID array) is backed up
+to Amazon S3, Amazon EFS, or an Amazon EBS volume.</p>
+<h3 id="3-stop-and-start-the-instance-or-replace-via-auto-scaling">3.
+Stop and Start the Instance (Or Replace via Auto Scaling)</h3>
+<p>To get a fresh set of healthy physical disks, the instance must be
+moved to a new physical host:</p>
+<ul>
+<li><strong>Stop and Start:</strong> Perform a <strong>Stop</strong>
+action followed by a <strong>Start</strong> action from the EC2 console
+or CLI. Stopping and starting an EBS-backed instance migrates the
+virtual machine to a new physical host computer with a completely new
+set of healthy instance store drives. <strong>Note:</strong> Simply
+issuing an OS-level <strong>Reboot</strong> will not fix the problem,
+because a reboot keeps the instance on the exact same physical host with
+the broken drive. Furthermore, stopping an instance erases all data on
+all attached instance store volumes.</li>
+<li><strong>Instance Replacement:</strong> In production environments,
+the preferred approach is to terminate the degraded instance and launch
+a replacement instance (either manually or via an EC2 Auto Scaling
+group), allowing your cluster software or automated bootstrap scripts to
+format the new drives and re-sync the required data from peer nodes or
+Amazon S3.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-dense-storage-disk-fails';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

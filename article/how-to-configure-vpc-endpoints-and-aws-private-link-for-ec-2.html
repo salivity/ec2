@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Configure VPC Endpoints and AWS PrivateLink for EC2? - ec2</title>
+    <meta name="description" content="This article explains how to configure AWS VPC Endpoints and AWS PrivateLink so isolated Amazon EC2 instances in private subnets can securely access AWS APIs without needing an Internet Gateway or NAT Gateway. By setting up Gateway Endpoints for Amazon S3">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-configure-vpc-endpoints-and-aws-private-link-for-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Configure VPC Endpoints and AWS PrivateLink for EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-configure-vpc-endpoints-and-aws-private-link-for-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explains how to configure AWS VPC Endpoints and AWS PrivateLink so isolated Amazon EC2 instances in private subnets can securely access AWS APIs without needing an Internet Gateway or NAT Gateway. By setting up Gateway Endpoints for Amazon S3" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-configure-vpc-endpoints-and-aws-privatelink-for-ec2">How
+to Configure VPC Endpoints and AWS PrivateLink for EC2?</h1>
+<p>This article explains how to configure AWS VPC Endpoints and AWS
+PrivateLink so isolated Amazon EC2 instances in private subnets can
+securely access AWS APIs without needing an Internet Gateway or NAT
+Gateway. By setting up Gateway Endpoints for Amazon S3 and DynamoDB
+alongside Interface Endpoints powered by AWS PrivateLink for other AWS
+services, you keep all network traffic entirely within the AWS backbone
+network. You will learn the architectural differences between endpoint
+types, how to configure security groups and route tables, how to enable
+private DNS resolution, and how to apply endpoint policies to enforce
+least-privilege access.</p>
+<h2 id="understanding-vpc-endpoints-and-aws-privatelink">Understanding
+VPC Endpoints and AWS PrivateLink</h2>
+<p>When Amazon EC2 instances are deployed in isolated private subnets
+without internet routing (no Internet Gateway and no NAT Gateway),
+standard requests to public AWS service endpoints fail because traffic
+has no path to reach public IP addresses. VPC Endpoints solve this by
+providing private connectivity between your Virtual Private Cloud (VPC)
+and supported AWS services.</p>
+<p>There are two primary types of VPC Endpoints used to reach AWS
+APIs:</p>
+<ol type="1">
+<li><strong>Interface VPC Endpoints (AWS PrivateLink):</strong> Powered
+by AWS PrivateLink, Interface Endpoints provision an Elastic Network
+Interface (ENI) with a private IP address directly inside your subnet.
+Traffic destined for an AWS API (such as Amazon SQS, AWS KMS, Amazon
+CloudWatch, or AWS Systems Manager) is directed to this private IP
+address via DNS resolution.</li>
+<li><strong>Gateway VPC Endpoints:</strong> Used exclusively for Amazon
+S3 and Amazon DynamoDB. Instead of creating an ENI inside your subnet, a
+Gateway Endpoint acts as a target in your VPC route table. Traffic
+destined for S3 or DynamoDB is routed using an AWS-managed prefix list
+directly over the AWS private network.</li>
+</ol>
+<h2 id="prerequisites-for-isolated-ec2-connectivity">Prerequisites for
+Isolated EC2 Connectivity</h2>
+<p>Before creating VPC Endpoints, ensure your VPC and EC2 environment
+meet the following network and identity requirements:</p>
+<ul>
+<li><strong>VPC DNS Settings:</strong> For Interface Endpoints to
+seamlessly override public service hostnames (like
+<code>sqs.us-east-1.amazonaws.com</code>) with private IP addresses,
+your VPC must have both <code>enableDnsHostnames</code> and
+<code>enableDnsSupport</code> set to <code>true</code>.</li>
+<li><strong>IAM Instance Profile:</strong> Isolated EC2 instances still
+require AWS Identity and Access Management (IAM) permissions to
+authenticate API calls. Attach an IAM role with the necessary policies
+to your EC2 instance.</li>
+<li><strong>Network Capacity:</strong> Ensure your target private
+subnets have available IPv4 addresses so AWS PrivateLink can allocate an
+ENI per Availability Zone.</li>
+</ul>
+<p>To verify and enable DNS settings on your VPC using the AWS CLI, run
+the following commands:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-vpc-attribute <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--vpc-id</span> vpc-0a1b2c3d4e5f6g7h8 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--enable-dns-support</span> <span class="st">&quot;{</span><span class="dt">\&quot;</span><span class="st">Value</span><span class="dt">\&quot;</span><span class="st">:true}&quot;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-vpc-attribute <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--vpc-id</span> vpc-0a1b2c3d4e5f6g7h8 <span class="dt">\</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--enable-dns-hostnames</span> <span class="st">&quot;{</span><span class="dt">\&quot;</span><span class="st">Value</span><span class="dt">\&quot;</span><span class="st">:true}&quot;</span></span></code></pre></div>
+<h2 id="step-1-configure-security-groups-for-interface-endpoints">Step
+1: Configure Security Groups for Interface Endpoints</h2>
+<p>Because Interface Endpoints deploy Elastic Network Interfaces into
+your subnets, they are protected by VPC Security Groups. You must create
+a Security Group for the VPC Endpoint that allows inbound HTTPS (port
+443) traffic from your isolated EC2 instances.</p>
+<ol type="1">
+<li>Create a Security Group specifically for your VPC Endpoints (e.g.,
+<code>vpce-security-group</code>).</li>
+<li>Add an inbound rule permitting TCP port <code>443</code> from the
+Security Group attached to your isolated EC2 instances, or from the CIDR
+block of your private subnets (such as <code>10.0.1.0/24</code>).</li>
+<li>Ensure your EC2 instance Security Group allows outbound TCP port
+<code>443</code> traffic to the endpoint Security Group or VPC
+CIDR.</li>
+</ol>
+<p>Using the AWS CLI, you can create the endpoint Security Group and
+authorize ingress traffic from a VPC CIDR of
+<code>10.0.0.0/16</code>:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 create-security-group <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--group-name</span> vpce-tls-sg <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--description</span> <span class="st">&quot;Allow HTTPS from VPC to Interface Endpoints&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--vpc-id</span> vpc-0a1b2c3d4e5f6g7h8</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 authorize-security-group-ingress <span class="dt">\</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--group-id</span> sg-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">--protocol</span> tcp <span class="dt">\</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">--port</span> 443 <span class="dt">\</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">--cidr</span> 10.0.0.0/16</span></code></pre></div>
+<h2 id="step-2-create-an-interface-vpc-endpoint-aws-privatelink">Step 2:
+Create an Interface VPC Endpoint (AWS PrivateLink)</h2>
+<p>To allow an isolated EC2 instance to communicate with most AWS APIs
+(for example, AWS KMS, Amazon EC2 API, or AWS Systems Manager), create
+an Interface VPC Endpoint.</p>
+<h3 id="using-the-aws-management-console">Using the AWS Management
+Console</h3>
+<ol type="1">
+<li>Open the <strong>Amazon VPC Console</strong> and navigate to
+<strong>Endpoints</strong> in the left navigation pane.</li>
+<li>Choose <strong>Create endpoint</strong>.</li>
+<li>Enter a name tag (for example, <code>vpce-kms-private</code>).</li>
+<li>Under <strong>Service category</strong>, keep <strong>AWS
+services</strong> selected.</li>
+<li>In the <strong>Services</strong> list, filter for your desired
+service (e.g., <code>com.amazonaws.us-east-1.kms</code>) and ensure the
+<strong>Type</strong> is <strong>Interface</strong>.</li>
+<li>Select your target <strong>VPC</strong>.</li>
+<li>Under <strong>Additional settings</strong>, ensure <strong>Enable
+DNS name</strong> (Private DNS) is checked. This creates a Route 53
+private hosted zone managed by AWS so existing SDKs and CLI commands
+automatically resolve standard regional endpoints to the private ENI IP
+addresses without code changes.</li>
+<li>Select the <strong>Subnets</strong> (one per Availability Zone where
+your isolated EC2 instances reside).</li>
+<li>Select the <strong>Security group</strong> created in Step 1
+(<code>vpce-tls-sg</code>).</li>
+<li>Under <strong>Policy</strong>, choose <strong>Full access</strong>
+or define a custom VPC Endpoint Policy to restrict which principals and
+resources can be accessed through this endpoint.</li>
+<li>Click <strong>Create endpoint</strong>.</li>
+</ol>
+<h3 id="using-the-aws-cli">Using the AWS CLI</h3>
+<p>You can create the same Interface Endpoint with Private DNS enabled
+via the AWS CLI:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 create-vpc-endpoint <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--vpc-id</span> vpc-0a1b2c3d4e5f6g7h8 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--vpc-endpoint-type</span> Interface <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--service-name</span> com.amazonaws.us-east-1.kms <span class="dt">\</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--subnet-ids</span> subnet-01111111111111111 subnet-02222222222222222 <span class="dt">\</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--security-group-ids</span> sg-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--private-dns-enabled</span></span></code></pre></div>
+<h3
+id="required-endpoints-for-aws-systems-manager-session-manager">Required
+Endpoints for AWS Systems Manager Session Manager</h3>
+<p>If your EC2 instances are completely isolated and you want shell
+access without SSH keys, bastions, or public IP addresses, configure the
+following Interface Endpoints for AWS Systems Manager (SSM):</p>
+<ul>
+<li><code>com.amazonaws.&lt;region&gt;.ssm</code> (Systems Manager core
+service)</li>
+<li><code>com.amazonaws.&lt;region&gt;.ssmmessages</code> (Session
+Manager channel communication)</li>
+<li><code>com.amazonaws.&lt;region&gt;.ec2messages</code> (Run Command
+and SSM Agent messaging)</li>
+</ul>
+<h2 id="step-3-create-a-gateway-vpc-endpoint-for-s3-and-dynamodb">Step
+3: Create a Gateway VPC Endpoint for S3 and DynamoDB</h2>
+<p>For Amazon S3 and Amazon DynamoDB, Gateway Endpoints are generally
+preferred for general API access because they incur no hourly or
+data-processing charges and scale automatically via your VPC route
+tables (note that S3 also supports Interface Endpoints if you require
+access from on-premises networks via VPN or Direct Connect).</p>
+<h3 id="using-the-aws-management-console-1">Using the AWS Management
+Console</h3>
+<ol type="1">
+<li>In the <strong>Amazon VPC Console</strong>, navigate to
+<strong>Endpoints</strong> and click <strong>Create
+endpoint</strong>.</li>
+<li>Select <strong>AWS services</strong> and search for
+<code>com.amazonaws.&lt;region&gt;.s3</code> with the
+<strong>Gateway</strong> type.</li>
+<li>Select your <strong>VPC</strong>.</li>
+<li>Select the <strong>Route tables</strong> associated with your
+isolated private subnets. AWS will automatically inject a route linking
+the S3 prefix list (e.g., <code>pl-63a5400a</code>) to the Gateway
+Endpoint ID (<code>vpce-xxxx</code>).</li>
+<li>Configure your endpoint policy and click <strong>Create
+endpoint</strong>.</li>
+</ol>
+<h3 id="using-the-aws-cli-1">Using the AWS CLI</h3>
+<p>Run the following command to provision an S3 Gateway Endpoint and
+attach it to your private route table:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 create-vpc-endpoint <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--vpc-id</span> vpc-0a1b2c3d4e5f6g7h8 <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--vpc-endpoint-type</span> Gateway <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--service-name</span> com.amazonaws.us-east-1.s3 <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--route-table-ids</span> rtb-0987654321fedcba0</span></code></pre></div>
+<h2 id="step-4-harden-access-with-vpc-endpoint-policies">Step 4: Harden
+Access with VPC Endpoint Policies</h2>
+<p>By default, VPC Endpoints allow full access to the target service for
+any IAM principal in the VPC that has valid IAM credentials. To
+implement defense-in-depth and prevent data exfiltration from isolated
+instances to unauthorized external AWS accounts, attach a restrictive
+VPC Endpoint Policy.</p>
+<p>For example, the following policy restricts an S3 Gateway Endpoint so
+EC2 instances can only read and write objects within your organization's
+specific bucket (<code>my-isolated-app-bucket</code>), blocking access
+to any external S3 buckets:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;2012-10-17&quot;</span><span class="fu">,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Statement&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;RestrictToSpecificBucket&quot;</span><span class="fu">,</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Principal&quot;</span><span class="fu">:</span> <span class="st">&quot;*&quot;</span><span class="fu">,</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;s3:GetObject&quot;</span><span class="ot">,</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;s3:PutObject&quot;</span><span class="ot">,</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;s3:ListBucket&quot;</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;arn:aws:s3:::my-isolated-app-bucket&quot;</span><span class="ot">,</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;arn:aws:s3:::my-isolated-app-bucket/*&quot;</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Note that if your isolated EC2 instances use <code>yum</code>,
+<code>dnf</code>, or <code>apt</code> to install packages from Amazon
+Linux or Ubuntu repositories hosted on S3, or pull container images from
+Amazon ECR (which stores image layers in S3), you must also permit
+<code>s3:GetObject</code> to the respective AWS-owned regional S3
+buckets in your S3 Gateway Endpoint policy.</p>
+<h2 id="step-5-verify-private-connectivity-from-the-ec2-instance">Step
+5: Verify Private Connectivity from the EC2 Instance</h2>
+<p>Once your endpoints transition to the <code>Available</code> state,
+connect to your isolated EC2 instance (for example, via AWS Systems
+Manager Session Manager) and verify that traffic is resolving and
+routing privately.</p>
+<h3 id="1-verify-dns-resolution-for-interface-endpoints">1. Verify DNS
+Resolution for Interface Endpoints</h3>
+<p>Use <code>dig</code> or <code>nslookup</code> to verify that the
+standard AWS service hostname resolves to a private IP address inside
+your VPC CIDR range rather than a public IP address:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">dig</span> +short kms.us-east-1.amazonaws.com</span></code></pre></div>
+<p>If Private DNS is working properly, the output will show the private
+IPv4 addresses of the endpoint ENIs inside your subnets (such as
+<code>10.0.1.45</code> and <code>10.0.2.88</code>).</p>
+<h3 id="2-test-tcp-connectivity-and-api-execution">2. Test TCP
+Connectivity and API Execution</h3>
+<p>Test port 443 connectivity and run an AWS CLI command against the
+service:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> kms list-keys <span class="at">--region</span> us-east-1</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 ls s3://my-isolated-app-bucket <span class="at">--region</span> us-east-1</span></code></pre></div>
+<p>If both commands return results without hanging or timing out, your
+isolated EC2 instance is successfully communicating with AWS APIs over
+AWS PrivateLink and Gateway Endpoints without traversing the public
+internet.</p>
+<h2 id="troubleshooting-common-issues">Troubleshooting Common
+Issues</h2>
+<ul>
+<li><strong>Connection Timeouts
+(<code>Connect timeout on endpoint URL</code>):</strong>
+<ul>
+<li>For <strong>Interface Endpoints</strong>, verify that Private DNS is
+enabled on the endpoint and that <code>enableDnsSupport</code> and
+<code>enableDnsHostnames</code> are enabled on the VPC. Check that the
+endpoint's Security Group allows inbound TCP port <code>443</code> from
+the EC2 instance's private IP or Security Group.</li>
+<li>For <strong>Gateway Endpoints</strong>, verify that the route table
+associated with the EC2 instance's subnet contains a route targeting the
+<code>vpce-...</code> ID for the service's prefix list, and ensure
+Network ACLs allow ephemeral return traffic.</li>
+</ul></li>
+<li><strong>Region Mismatch:</strong> VPC Endpoints are regional
+constructs. If your EC2 instance and VPC Endpoints are in
+<code>us-east-1</code>, ensure your AWS CLI or SDK explicitly targets
+<code>us-east-1</code> (e.g.,
+<code>AWS_DEFAULT_REGION=us-east-1</code>). Cross-region API calls will
+attempt to route to the internet unless inter-region VPC peering and
+custom DNS routing are configured.</li>
+<li><strong>Access Denied (<code>AccessDenied</code> or
+<code>403 Forbidden</code>):</strong> When a call fails immediately with
+an authorization error rather than a network timeout, PrivateLink
+connectivity is functioning properly. Check three places: the EC2
+instance's IAM Role policy, the VPC Endpoint Policy, and any
+resource-based policy on the target service (such as an S3 bucket policy
+or KMS key policy, especially if it uses an <code>aws:SourceVpce</code>
+or <code>aws:SourceVpc</code> condition).</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-configure-vpc-endpoints-and-aws-private-link-for-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

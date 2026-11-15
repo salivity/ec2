@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can EC2 Mac instances mount Amazon EFS and Amazon FSx? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 Mac instances can mount shared network storage from both Amazon Elastic File System and Amazon FSx. By using standard network file protocols built into macOS, such as Network File System and Server Message Block, EC2 Mac instances can conn">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-ec-2-mac-instances-mount-amazon-efs-and-amazon-f-sx">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can EC2 Mac instances mount Amazon EFS and Amazon FSx? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-ec-2-mac-instances-mount-amazon-efs-and-amazon-f-sx" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 Mac instances can mount shared network storage from both Amazon Elastic File System and Amazon FSx. By using standard network file protocols built into macOS, such as Network File System and Server Message Block, EC2 Mac instances can conn" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="can-ec2-mac-instances-mount-amazon-efs-and-amazon-fsx">Can EC2
+Mac instances mount Amazon EFS and Amazon FSx?</h1>
+<p>Yes, Amazon EC2 Mac instances can mount shared network storage from
+both Amazon Elastic File System and Amazon FSx. By using standard
+network file protocols built into macOS, such as Network File System and
+Server Message Block, EC2 Mac instances can connect to scalable shared
+storage across an Amazon Virtual Private Cloud. This capability allows
+development teams to share build artifacts, source code, media assets,
+and continuous integration caches across multiple macOS environments and
+other compute platforms without duplicating data on local Amazon Elastic
+Block Store volumes.</p>
+<h2 id="supported-storage-services-and-protocols">Supported Storage
+Services and Protocols</h2>
+<p>macOS includes native client support for the NFS (v3 and v4) and SMB
+protocols, enabling direct integration with several AWS storage
+services:</p>
+<ul>
+<li><strong>Amazon EFS</strong>: Supports NFSv4.0 and NFSv4.1. EC2 Mac
+instances can mount EFS file systems either through the standard macOS
+<code>mount_nfs</code> utility or by installing the
+<code>amazon-efs-utils</code> package via Homebrew, which provides
+Transport Layer Security (TLS) encryption in transit and simplifies
+mounting by file system ID.</li>
+<li><strong>Amazon FSx for NetApp ONTAP</strong>: Supports both NFS (v3,
+v4.0, v4.1) and SMB protocols, making it suitable for multiprotocol
+environments where macOS, Linux, and Windows instances access the same
+datasets.</li>
+<li><strong>Amazon FSx for OpenZFS</strong>: Supports NFS (v3, v4.0,
+v4.1), offering low-latency shared file storage for macOS build and test
+workloads.</li>
+<li><strong>Amazon FSx for Windows File Server</strong>: Supports the
+SMB protocol, allowing EC2 Mac instances to connect to Active
+Directory-integrated shared folders alongside Windows workloads.</li>
+</ul>
+<p>Note that <strong>Amazon FSx for Lustre</strong> does not provide a
+native macOS client and cannot be mounted directly on EC2 Mac
+instances.</p>
+<h2 id="network-and-security-prerequisites">Network and Security
+Prerequisites</h2>
+<p>Before mounting an Amazon EFS or Amazon FSx file system on an EC2 Mac
+instance, ensure the following network requirements are met:</p>
+<ol type="1">
+<li><strong>VPC Connectivity</strong>: The EC2 Mac instance and the
+storage mount target (or file system endpoint) must reside in the same
+VPC, or have routing configured via VPC peering or AWS Transit
+Gateway.</li>
+<li><strong>Security Groups</strong>:
+<ul>
+<li>For <strong>Amazon EFS</strong> and <strong>FSx over NFS</strong>,
+the security group attached to the file system mount target must allow
+inbound TCP traffic on port <code>2049</code> from the EC2 Mac
+instance's security group or subnet CIDR.</li>
+<li>For <strong>Amazon FSx over SMB</strong>, the file system's security
+group must allow inbound TCP traffic on port <code>445</code> from the
+EC2 Mac instance.</li>
+</ul></li>
+<li><strong>DNS Resolution</strong>: Enable DNS hostnames and DNS
+resolution in your VPC settings so the instance can resolve the file
+system's DNS name.</li>
+</ol>
+<h2 id="mounting-amazon-efs-on-an-ec2-mac-instance">Mounting Amazon EFS
+on an EC2 Mac Instance</h2>
+<p>You can mount an Amazon EFS file system using either the native macOS
+NFS client or the AWS-provided <code>amazon-efs-utils</code> mount
+helper.</p>
+<h3 id="option-1-using-the-native-macos-nfs-client">Option 1: Using the
+Native macOS NFS Client</h3>
+<ol type="1">
+<li><p>Connect to your EC2 Mac instance via SSH or screen sharing and
+create a local mount point directory:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkdir <span class="at">-p</span> /Volumes/efs</span></code></pre></div></li>
+<li><p>Mount the EFS file system using its DNS name or mount target IP
+address:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount <span class="at">-t</span> nfs <span class="at">-o</span> nfsvers=4.0,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-0123456789abcdef0.efs.us-east-1.amazonaws.com:/ /Volumes/efs</span></code></pre></div></li>
+</ol>
+<h3 id="option-2-using-amazon-efs-utils-via-homebrew">Option 2: Using
+amazon-efs-utils via Homebrew</h3>
+<p>If you require encryption in transit or IAM authorization, install
+<code>amazon-efs-utils</code>:</p>
+<ol type="1">
+<li><p>Install the utility using Homebrew:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install amazon-efs-utils</span></code></pre></div></li>
+<li><p>Mount the file system with TLS enabled:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount <span class="at">-t</span> efs <span class="at">-o</span> tls fs-0123456789abcdef0:/ /Volumes/efs</span></code></pre></div></li>
+</ol>
+<h2 id="mounting-amazon-fsx-on-an-ec2-mac-instance">Mounting Amazon FSx
+on an EC2 Mac Instance</h2>
+<h3
+id="mounting-via-nfs-fsx-for-netapp-ontap-or-fsx-for-openzfs">Mounting
+via NFS (FSx for NetApp ONTAP or FSx for OpenZFS)</h3>
+<ol type="1">
+<li><p>Create a directory for the mount point:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkdir <span class="at">-p</span> /Volumes/fsx-nfs</span></code></pre></div></li>
+<li><p>Run the <code>mount</code> command using the storage virtual
+machine (SVM) or file system DNS endpoint and junction path:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount <span class="at">-t</span> nfs <span class="at">-o</span> nfsvers=4.1,rsize=1048576,wsize=1048576,hard,noresvport svm-0123456789abcdef0.fs-0123456789abcdef0.fsx.us-east-1.amazonaws.com:/vol1 /Volumes/fsx-nfs</span></code></pre></div></li>
+</ol>
+<h3
+id="mounting-via-smb-fsx-for-windows-file-server-or-fsx-for-netapp-ontap">Mounting
+via SMB (FSx for Windows File Server or FSx for NetApp ONTAP)</h3>
+<ol type="1">
+<li><p>Create a local mount directory owned by the active macOS
+user:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> ~/fsx-smb</span></code></pre></div></li>
+<li><p>Mount the SMB share using <code>mount_smbfs</code>:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mount_smbfs</span> <span class="st">&#39;//DOMAIN;username:password@amznfsx01234567.corp.example.com/share&#39;</span> ~/fsx-smb</span></code></pre></div></li>
+</ol>
+<h2 id="best-practices-and-considerations-for-macos">Best Practices and
+Considerations for macOS</h2>
+<ul>
+<li><p><strong>Use the <code>noresvport</code> Option for NFS</strong>:
+When mounting NFS shares on macOS, always include the
+<code>noresvport</code> mount option. This allows the macOS NFS client
+to use non-reserved source ports and ensures seamless reconnection if a
+network connection drops temporarily.</p></li>
+<li><p><strong>Prevent Finder Metadata Overhead</strong>: By default,
+macOS creates <code>.DS_Store</code> files on network volumes, which
+adds metadata IOPS overhead. Disable <code>.DS_Store</code> creation on
+network volumes by running the following command and restarting the
+instance:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">defaults</span> write com.apple.desktopservices DSDontWriteNetworkStores <span class="at">-bool</span> TRUE</span></code></pre></div></li>
+<li><p><strong>Consider Workload I/O Patterns</strong>: Xcode builds
+that compile thousands of small intermediate files generate high
+metadata operations. While Amazon EFS and Amazon FSx work well for
+storing shared SDKs, Xcode archives, dependency caches, and media
+assets, placing active Xcode <code>DerivedData</code> directories on
+local Amazon EBS gp3 or io2 volumes alongside shared network storage
+often yields the best build performance.</p></li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-ec-2-mac-instances-mount-amazon-efs-and-amazon-f-sx';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

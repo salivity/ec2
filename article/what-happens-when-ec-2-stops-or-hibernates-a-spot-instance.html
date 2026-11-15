@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When EC2 Stops or Hibernates a Spot Instance? - ec2</title>
+    <meta name="description" content="When Amazon EC2 reclaims a Spot Instance configured to stop or hibernate rather than terminate, your underlying storage volumes and instance state are preserved until spare compute capacity becomes available again. By default, Spot Instances are terminate">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-ec-2-stops-or-hibernates-a-spot-instance">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When EC2 Stops or Hibernates a Spot Instance? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-ec-2-stops-or-hibernates-a-spot-instance" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When Amazon EC2 reclaims a Spot Instance configured to stop or hibernate rather than terminate, your underlying storage volumes and instance state are preserved until spare compute capacity becomes available again. By default, Spot Instances are terminate" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-ec2-stops-or-hibernates-a-spot-instance">What
+Happens When EC2 Stops or Hibernates a Spot Instance?</h1>
+<p>When Amazon EC2 reclaims a Spot Instance configured to stop or
+hibernate rather than terminate, your underlying storage volumes and
+instance state are preserved until spare compute capacity becomes
+available again. By default, Spot Instances are terminated when AWS
+needs the capacity back, which permanently deletes the instance and its
+ephemeral state. Changing the interruption behavior to stop or hibernate
+allows stateful workloads, databases, and in-memory applications to
+survive capacity interruptions and automatically resume once EC2
+fulfills the persistent Spot request.</p>
+<h2
+id="understanding-spot-instance-interruption-behaviors">Understanding
+Spot Instance Interruption Behaviors</h2>
+<p>Amazon EC2 Spot Instances allow you to bid on spare AWS compute
+capacity at steep discounts compared to On-Demand pricing. Because AWS
+can reclaim this capacity at any time, every Spot Instance has an
+Configurable Interruption Behavior setting. You must configure a
+persistent Spot request to use the stop or hibernate options, as
+one-time Spot requests only support termination.</p>
+<p>The three available interruption behaviors are:</p>
+<ul>
+<li><strong>Terminate (Default):</strong> EC2 sends a two-minute
+warning, shuts down the operating system, deletes the instance, and
+closes the Spot request (unless managed by a Spot Fleet or Auto Scaling
+group).</li>
+<li><strong>Stop:</strong> EC2 sends a two-minute warning, performs a
+standard operating system shutdown, and places the instance in a
+<code>stopped</code> state while keeping the root Amazon EBS volume
+attached.</li>
+<li><strong>Hibernate:</strong> EC2 triggers an immediate hibernation
+sequence, saving the contents of the instance's RAM to the root Amazon
+EBS volume before shutting down the underlying virtual machine.</li>
+</ul>
+<h2 id="what-happens-when-interruption-behavior-is-set-to-stop">What
+Happens When Interruption Behavior is Set to Stop</h2>
+<p>When your Spot Instance is configured to <strong>Stop</strong> on
+interruption and EC2 needs to reclaim the capacity, the following
+sequence of events occurs:</p>
+<ol type="1">
+<li><strong>Two-Minute Interruption Notice:</strong> EC2 publishes an
+interruption notice to the Instance Metadata Service (IMDS) and Amazon
+EventBridge two minutes before reclaiming the instance.</li>
+<li><strong>Operating System Shutdown:</strong> At the end of the
+two-minute window, EC2 sends an ACPI shutdown signal to the guest
+operating system, halting running processes and unmounting file systems
+cleanly.</li>
+<li><strong>State Transition and Storage Preservation:</strong> The
+instance transitions to the <code>stopped</code> state. The contents of
+RAM (in-memory data) are lost, as with any standard reboot or stop
+action. However, the root EBS volume and any attached secondary EBS
+volumes are preserved alongside your instance ID, private IP addresses,
+and network interface configurations.</li>
+<li><strong>Billing Adjustments:</strong> While the instance is stopped,
+you are not charged for EC2 compute usage. You continue to pay standard
+rates for the provisioned EBS storage volumes and any Elastic IP
+addresses associated with the stopped instance.</li>
+<li><strong>Automatic Restart:</strong> Because stopping an instance
+requires a persistent Spot request, the request remains in an
+<code>open</code> state. As soon as spare Spot capacity becomes
+available in that Availability Zone at or below your maximum price, EC2
+automatically starts the instance. It boots from the root volume just
+like a newly started machine.</li>
+</ol>
+<h2
+id="what-happens-when-interruption-behavior-is-set-to-hibernate">What
+Happens When Interruption Behavior is Set to Hibernate</h2>
+<p>When your Spot Instance is configured to <strong>Hibernate</strong>
+on interruption, the goal is to preserve both the persistent disk
+storage and the active in-memory state of your applications:</p>
+<ol type="1">
+<li><strong>Immediate Hibernation Trigger:</strong> Unlike the
+<code>terminate</code> and <code>stop</code> behaviors, a hibernating
+Spot Instance <strong>does not</strong> wait for a two-minute warning
+period before acting. As soon as EC2 decides to reclaim the instance, it
+immediately signals the operating system to begin hibernation. You still
+receive an EventBridge notification, but the hibernation starts right
+away to ensure the RAM dump completes before capacity is forcibly
+revoked.</li>
+<li><strong>Saving RAM to EBS:</strong> The guest operating system
+freezes all running threads and writes the entire contents of the
+instance memory (RAM) to a swap file or partition on the root Amazon EBS
+volume. If an instance has <span class="math inline">\(R\text{
+GiB}\)</span> of RAM, the root volume must have at least <span
+class="math inline">\(R\text{ GiB}\)</span> of free, contiguous space
+allocated for hibernation.</li>
+<li><strong>Shutdown and Storage Preservation:</strong> Once the memory
+dump finishes, the virtual machine powers down and enters the
+<code>stopped</code> state. Any ephemeral instance store volumes are
+lost, but all EBS volumes, network interfaces, and security attributes
+remain intact.</li>
+<li><strong>Billing Adjustments:</strong> Just like a stopped instance,
+you pay $0 for compute while the instance is hibernated, though you
+continue to pay for the EBS volumes (which are now slightly larger to
+accommodate the RAM allocation).</li>
+<li><strong>Automatic Resume:</strong> When Spot capacity returns, EC2
+restarts the instance. During boot, the kernel reads the saved memory
+image from the root EBS volume back into RAM and unfreezes the
+processes. Your applications resume execution from the exact millisecond
+they were interrupted, without needing to reload caches or re-initialize
+services.</li>
+</ol>
+<h2 id="comparing-stop-vs-hibernate-vs-terminate">Comparing Stop vs.
+Hibernate vs. Terminate</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Terminate</th>
+<th style="text-align: left;">Stop</th>
+<th style="text-align: left;">Hibernate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Spot Request Type</strong></td>
+<td style="text-align: left;">One-time or Persistent</td>
+<td style="text-align: left;">Persistent only</td>
+<td style="text-align: left;">Persistent only</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>2-Minute Warning Grace
+Period</strong></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No (Hibernates immediately)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Root EBS Volume
+Preserved</strong></td>
+<td style="text-align: left;">Optional
+(<code>DeleteOnTermination</code>)</td>
+<td style="text-align: left;">Yes (Required)</td>
+<td style="text-align: left;">Yes (Required &amp; Encrypted)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>RAM (In-Memory State)
+Saved</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Private IP &amp; Instance ID
+Kept</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Compute Charges When
+Offline</strong></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">None</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>EBS Storage Charges When
+Offline</strong></td>
+<td style="text-align: left;">None (if deleted)</td>
+<td style="text-align: left;">Standard EBS rates</td>
+<td style="text-align: left;">Standard EBS rates</td>
+</tr>
+</tbody>
+</table>
+<h2
+id="prerequisites-and-limitations-for-stop-and-hibernate">Prerequisites
+and Limitations for Stop and Hibernate</h2>
+<p>You cannot enable <code>stop</code> or <code>hibernate</code> on
+every EC2 instance configuration. AWS enforces strict technical
+requirements, particularly for hibernation:</p>
+<ul>
+<li><strong>EBS-Backed Instances Only:</strong> Both <code>stop</code>
+and <code>hibernate</code> require an Amazon EBSvolume as the root
+device. Instances backed by ephemeral Instance Store volumes only
+support termination.</li>
+<li><strong>Encryption Requirement for Hibernation:</strong> To use
+hibernate, the root EBS volume <strong>must be encrypted</strong> to
+protect sensitive in-memory data when it is written to disk.</li>
+<li><strong>Root Volume Size:</strong> For hibernation, the root EBS
+volume must be large enough to store the operating system, applications,
+and the entire RAM dump. The total required root storage <span
+class="math inline">\(S_{\text{total}}\)</span> can be expressed as:
+<span class="math display">\[S_{\text{total}} \ge S_{\text{OS}} +
+S_{\text{apps}} + R_{\text{RAM}}\]</span></li>
+<li><strong>Supported Instance Families and RAM Limits:</strong>
+Hibernation is only supported on specific C, I, M, R, and T instance
+families, and generally requires the instance to have less than <span
+class="math inline">\(150\text{ GiB}\)</span> of RAM (for Linux) or
+<span class="math inline">\(16\text{ GiB}\)</span> to <span
+class="math inline">\(64\text{ GiB}\)</span> of RAM (for Windows), as
+larger memory footprints take too long to flush to disk during an
+interruption.</li>
+<li><strong>AMI Support:</strong> The Amazon Machine Image (AMI) must
+have the <code>ec2-hibinit-agent</code> (or <code>hibinit-agent</code>)
+installed and configured to allocate the necessary swap space upon first
+boot.</li>
+<li><strong>Manual Termination While Stopped:</strong> If you no longer
+need a stopped or hibernated Spot Instance, you must both cancel the
+persistent Spot request <strong>and</strong> terminate the stopped
+instance; canceling the request alone will leave the stopped instance
+and its EBS volumes accruing storage charges.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-ec-2-stops-or-hibernates-a-spot-instance';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

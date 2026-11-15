@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does Amazon EFS Handle Concurrent Cross-AZ Writes? - ec2</title>
+    <meta name="description" content="When multiple Amazon EC2 instances across different Availability Zones write concurrently to the same standard Amazon Elastic File System, the service maintains data integrity using the Network File System version 4 protocol. Standard EFS replicates data">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-amazon-efs-handle-concurrent-cross-az-writes">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does Amazon EFS Handle Concurrent Cross-AZ Writes? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-amazon-efs-handle-concurrent-cross-az-writes" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When multiple Amazon EC2 instances across different Availability Zones write concurrently to the same standard Amazon Elastic File System, the service maintains data integrity using the Network File System version 4 protocol. Standard EFS replicates data" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-amazon-efs-handle-concurrent-cross-az-writes">How Does
+Amazon EFS Handle Concurrent Cross-AZ Writes?</h1>
+<p>When multiple Amazon EC2 instances across different Availability
+Zones write concurrently to the same standard Amazon Elastic File
+System, the service maintains data integrity using the Network File
+System version 4 protocol. Standard EFS replicates data synchronously
+across multiple Availability Zones before acknowledging any write
+operation, ensuring durability and immediate cross-zone visibility.
+Concurrent modifications are governed by close-to-open consistency
+semantics and POSIX-compliant byte-range locking, which allow
+distributed applications to coordinate file access safely without data
+corruption, though uncoordinated writes to the exact same byte range
+will result in the last write winning.</p>
+<h2 id="synchronous-multi-az-replication-and-durability">Synchronous
+Multi-AZ Replication and Durability</h2>
+<p>A standard Amazon EFS file system stores data and metadata
+redundantly across multiple Availability Zones within an AWS Region.
+When an EC2 instance writes data to EFS through a local mount target,
+the write operation is not immediately considered complete when it
+reaches the initial storage node. Instead, EFS synchronously replicates
+the data across multiple Availability Zones.</p>
+<p>If an instance writes a data block of size <span
+class="math inline">\(B\)</span>, the total round-trip latency <span
+class="math inline">\(L_{\text{write}}\)</span> includes the local
+network transit time <span
+class="math inline">\(T_{\text{local}}\)</span> to the mount target and
+the inter-AZ replication time <span
+class="math inline">\(T_{\text{sync}}\)</span>:</p>
+<p><span class="math display">\[L_{\text{write}} = T_{\text{local}} +
+T_{\text{sync}} + T_{\text{commit}}\]</span></p>
+<p>Only after the data is durably committed across multiple Availability
+Zones does EFS return a success acknowledgment to the NFS client on the
+EC2 instance. This architecture guarantees that if an entire
+Availability Zone becomes unavailable, no acknowledged writes are lost,
+and instances in surviving Availability Zones continue operating against
+the exact same state of the file system.</p>
+<h2 id="close-to-open-consistency-in-nfsv4">Close-to-Open Consistency in
+NFSv4</h2>
+<p>Amazon EFS uses the NFSv4.1 (and NFSv4.0) protocol, which implements
+a consistency model known as close-to-open consistency. Because NFS
+clients on EC2 instances cache file data and attributes locally in
+memory to improve performance, concurrent access across different
+instances requires explicit synchronization boundaries.</p>
+<p>Under close-to-open consistency:</p>
+<ol type="1">
+<li>When an application on Instance A modifies a file and calls the
+<code>close()</code> system call, the NFS client flushes all dirty
+cached data blocks to the EFS service and waits for durable
+persistence.</li>
+<li>When an application on Instance B in another Availability Zone
+subsequently calls <code>open()</code> on that same file, its NFS client
+validates its local cache against the EFS metadata state.</li>
+<li>Because the file modification time and change attribute have been
+updated by Instance A, Instance B invalidates its stale local page cache
+and fetches the updated data directly from EFS.</li>
+</ol>
+<p>This guarantees that any file closed by one instance is immediately
+and completely visible to any other instance that opens the file
+afterward, regardless of which Availability Zone the instances reside
+in.</p>
+<h2 id="uncoordinated-concurrent-writes-to-the-same-file">Uncoordinated
+Concurrent Writes to the Same File</h2>
+<p>When multiple EC2 instances open the same file simultaneously and
+write to it without closing the file or using file locks, the outcome
+depends on which byte ranges are being modified and how data flushing is
+handled.</p>
+<h3 id="disjoint-byte-ranges">Disjoint Byte Ranges</h3>
+<p>If Instance A writes to bytes <span class="math inline">\(0\)</span>
+through <span class="math inline">\(4095\)</span> and Instance B writes
+to bytes <span class="math inline">\(4096\)</span> through <span
+class="math inline">\(8191\)</span>, both updates can succeed without
+overwriting each other, provided the writes align cleanly with page
+boundaries or are flushed explicitly using <code>fsync()</code>. When
+both instances eventually close the file or call <code>fsync()</code>,
+EFS merges the changes into the underlying file object.</p>
+<h3 id="overlapping-byte-ranges">Overlapping Byte Ranges</h3>
+<p>If multiple instances write to the exact same byte range concurrently
+without coordination, a race condition occurs. EFS processes incoming
+RPC write requests sequentially as they arrive at the storage layer. In
+this scenario, the file system enforces last-writer-wins semantics at
+the block or byte range level. Because NFS clients buffer writes locally
+in page caches before flushing them asynchronously, the order in which
+application <code>write()</code> calls occur in wall-clock time may not
+match the order in which flush requests reach EFS. Without explicit
+synchronization, overlapping concurrent writes from multiple instances
+can result in interleaved data blocks and corrupted file structures.</p>
+<h3 id="appending-data-across-instances">Appending Data Across
+Instances</h3>
+<p>Standard POSIX <code>O_APPEND</code> semantics are not strictly
+atomic across distributed NFS clients. When an instance opens a file in
+append mode, the NFS client determines the end-of-file offset based on
+its cached file attributes. If two instances in different Availability
+Zones append to a shared log file simultaneously, both clients might
+read the same current file size <span class="math inline">\(S\)</span>
+and issue writes starting at offset <span
+class="math inline">\(S\)</span>, causing one instance's log entry to
+overwrite the other's.</p>
+<h2
+id="coordinating-access-with-file-locking-and-direct-io">Coordinating
+Access with File Locking and Direct I/O</h2>
+<p>To prevent race conditions and data corruption during concurrent
+cross-AZ writes, applications rely on three primary mechanisms supported
+by Amazon EFS:</p>
+<ul>
+<li><strong>POSIX Advisory Locking (<code>fcntl</code> and
+<code>flock</code>):</strong> NFSv4 integrates stateful locking directly
+into the protocol. An application on an EC2 instance can request an
+exclusive write lock or a shared read lock on a whole file or a specific
+byte range <span class="math inline">\([x, y]\)</span>. EFS maintains
+the authoritative lock state centrally. When a lock is acquired or
+released, the client automatically flushes dirty cache pages and
+invalidates stale reads for that byte range, guaranteeing serialized,
+strongly consistent updates across all Availability Zones.</li>
+<li><strong>Explicit Cache Flushing (<code>fsync</code>):</strong>
+Calling <code>fsync()</code> or <code>fdatasync()</code> forces the
+local NFS client on the EC2 instance to immediately transmit all
+buffered writes to EFS and wait for multi-AZ persistence without closing
+the file descriptor.</li>
+<li><strong>Direct I/O (<code>O_DIRECT</code>):</strong> Opening files
+with the <code>O_DIRECT</code> flag bypasses the operating system page
+cache on the EC2 instance entirely. Every read and write operation goes
+directly over the network to the EFS mount target. When combined with
+byte-range locking or application-level offset coordination, Direct I/O
+eliminates cache coherency delays across instances.</li>
+<li><strong>Atomic Rename Pattern:</strong> For configuration files or
+shared artifacts, instances often write new content to a temporary,
+uniquely named file in the same directory, flush it with
+<code>fsync()</code>, close it, and execute a POSIX
+<code>rename()</code> operation over the target filename. In EFS,
+<code>rename()</code> is atomic, ensuring that concurrent readers across
+any Availability Zone see either the complete old file or the complete
+new file, never a partially written file.</li>
+</ul>
+<h2
+id="performance-and-throughput-behavior-across-availability-zones">Performance
+and Throughput Behavior Across Availability Zones</h2>
+<p>When hundreds or thousands of EC2 instances write concurrently to a
+single EFS file system, throughput and IOPS scale elastically, but
+contended resources behave differently than uncontended ones:</p>
+<ul>
+<li><strong>Aggregate Bandwidth:</strong> Each Availability Zone uses
+its own EFS mount target. Aggregate throughput is shared across the
+entire file system, meaning concurrent writes from multiple Availability
+Zones draw from the same file system throughput pool (whether configured
+in Elastic, Provisioned, or Bursting throughput mode).</li>
+<li><strong>Metadata Contention:</strong> Writing to separate files
+spread across separate directories scales horizontally with minimal
+contention. Conversely, if many instances concurrently create, delete,
+or append to the exact same file or within a single directory, EFS must
+serialize the metadata mutations and lock state transitions, which
+increases per-operation latency.</li>
+<li><strong>Cross-AZ Mount Target Traffic:</strong> If an EC2 instance
+mounts an EFS mount target located in its own Availability Zone, there
+are no EC2 inter-AZ data transfer charges for the EFS traffic, as the
+synchronous multi-AZ replication happens internally within the EFS
+service boundary. Mounting a mount target located in a different
+Availability Zone incurs standard cross-AZ data transfer fees and adds
+network latency.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-amazon-efs-handle-concurrent-cross-az-writes';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do EC2 Dedicated Hosts Show Physical Cores and Sockets? - ec2</title>
+    <meta name="description" content="An Amazon EC2 Dedicated Host is a physical server with EC2 instance capacity fully dedicated to your use, offering direct visibility into the underlying hardware topology, including the exact number of physical processor sockets and physical CPU cores. Un">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-ec-2-dedicated-hosts-show-physical-cores-and-sockets">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do EC2 Dedicated Hosts Show Physical Cores and Sockets? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-ec-2-dedicated-hosts-show-physical-cores-and-sockets" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon EC2 Dedicated Host is a physical server with EC2 instance capacity fully dedicated to your use, offering direct visibility into the underlying hardware topology, including the exact number of physical processor sockets and physical CPU cores. Un" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-ec2-dedicated-hosts-show-physical-cores-and-sockets">How
+Do EC2 Dedicated Hosts Show Physical Cores and Sockets?</h1>
+<p>An Amazon EC2 Dedicated Host is a physical server with EC2 instance
+capacity fully dedicated to your use, offering direct visibility into
+the underlying hardware topology, including the exact number of physical
+processor sockets and physical CPU cores. Unlike standard multi-tenant
+EC2 instances or Dedicated Instances that abstract hardware into virtual
+CPUs (vCPUs), Dedicated Hosts expose hardware-level specifications
+through the AWS Management Console, AWS CLI, and AWS APIs. This
+transparency allows organizations to bring their own socket-bound or
+core-bound enterprise software licenses, track instance placement at the
+physical server level, and satisfy strict regulatory compliance and
+auditing requirements.</p>
+<h2
+id="understanding-the-hardware-abstraction-gap-in-standard-cloud-environments">Understanding
+the Hardware Abstraction Gap in Standard Cloud Environments</h2>
+<p>In a standard cloud computing environment, the hypervisor abstracts
+the physical hardware away from the user. When you launch a standard
+on-demand EC2 instance, AWS allocates a specific number of vCPUs to your
+virtual machine. Typically, each vCPU corresponds to a single
+hyperthread on an Intel or AMD processor core, though on AWS Graviton
+processors, each vCPU maps directly to a single physical core.</p>
+<p>For a multi-threaded processor architecture, the relationship between
+vCPUs and physical hardware can be expressed as:</p>
+<p><span class="math display">\[\text{Total vCPUs} = \text{Physical
+Sockets} \times \text{Cores per Socket} \times \text{Threads per
+Core}\]</span></p>
+<p>While this abstraction is ideal for elastic workloads, it creates
+significant obstacles for enterprise software compliance. Legacy
+licensing models from vendors such as Microsoft, Oracle, and VMware
+often calculate costs based on the total number of physical sockets or
+physical cores present on the underlying host server, regardless of how
+many virtual machines are running or how few vCPUs are assigned to them.
+Without visibility into the physical server specifications and control
+over where instances are placed, organizations cannot prove to auditors
+that their workloads are restricted to a compliant number of physical
+sockets or cores.</p>
+<h2 id="how-ec2-dedicated-hosts-expose-physical-hardware-topology">How
+EC2 Dedicated Hosts Expose Physical Hardware Topology</h2>
+<p>Amazon EC2 Dedicated Hosts remove the hypervisor abstraction barrier
+for hardware inventory by allocating an entire physical server to a
+single AWS account. When you allocate a Dedicated Host, you select a
+specific instance family or instance type (such as <code>m5</code>,
+<code>c6i</code>, or <code>r5.metal</code>), and AWS provisions a
+physical machine with a fixed, transparent hardware configuration.</p>
+<h3 id="direct-visibility-via-aws-console-and-api">Direct Visibility via
+AWS Console and API</h3>
+<p>Once a Dedicated Host is allocated, AWS exposes its hardware
+properties directly in your account metadata. You can inspect these
+attributes using the AWS Management Console or programmatically via the
+<code>DescribeHosts</code> API call
+(<code>aws ec2 describe-hosts</code>).</p>
+<p>The API response contains a <code>HostProperties</code> object that
+explicitly reports:</p>
+<ul>
+<li><strong><code>Sockets</code></strong>: The exact number of physical
+CPU sockets installed on the server motherboard.</li>
+<li><strong><code>Cores</code></strong>: The total number of physical
+processor cores across all sockets on the host (excluding
+hyperthreading).</li>
+<li><strong><code>TotalVCpus</code></strong>: The total number of
+virtual CPUs available for instance allocation on the host.</li>
+<li><strong><code>InstanceType</code> or
+<code>InstanceFamily</code></strong>: The supported compute
+configuration for the physical server.</li>
+</ul>
+<p>For example, when querying an <code>m5</code> Dedicated Host, the
+<code>HostProperties</code> output will explicitly show <span
+class="math inline">\(2\)</span> physical sockets, <span
+class="math inline">\(48\)</span> physical cores, and <span
+class="math inline">\(96\)</span> total vCPUs. An auditor does not need
+to guess the underlying hardware architecture or rely on vCPU conversion
+ratios; the physical hardware metrics are documented directly in the
+resource configuration.</p>
+<h2 id="core-mechanisms-supporting-compliance-and-auditing">Core
+Mechanisms Supporting Compliance and Auditing</h2>
+<p>Visibility into physical sockets and cores is only the first step in
+achieving compliance. Auditors require proof that licenses are bound to
+specific physical servers, that hardware does not silently change over
+time, and that historical usage is tracked accurately. EC2 Dedicated
+Hosts provide several mechanisms to enforce and document these
+requirements.</p>
+<h3 id="persistent-host-ids-and-host-affinity">Persistent Host IDs and
+Host Affinity</h3>
+<p>Every Dedicated Host is assigned a unique, persistent identifier
+(<code>HostId</code>). When you launch an EC2 instance onto a Dedicated
+Host, you can configure <strong>Host Affinity</strong>. Setting affinity
+to <code>host</code> establishes a strict binding between the instance
+and that specific physical server. If the instance is stopped and
+restarted, AWS guarantees it will only restart on that exact
+<code>HostId</code>.</p>
+<p>This prevents license mobility violations. Many enterprise software
+agreements prohibit moving a licensed workload across different physical
+servers more than once every 90 days (to prevent "license multiplexing"
+across a cluster). By pinning an instance to a known <code>HostId</code>
+with a documented socket and core count, administrators can prove that
+the software remained on the same physical hardware for the required
+duration.</p>
+<h3 id="automated-license-tracking-with-aws-license-manager">Automated
+License Tracking with AWS License Manager</h3>
+<p>To streamline compliance reporting, EC2 Dedicated Hosts integrate
+natively with <strong>AWS License Manager</strong>. Administrators can
+define custom licensing rules inside License Manager that mirror the
+terms of their enterprise agreements, such as:</p>
+<ul>
+<li>Specifying whether the license is measured by <strong>Physical
+Cores</strong> or <strong>Physical Sockets</strong>.</li>
+<li>Setting hard or soft limits on the total number of sockets or cores
+that can be consumed across the environment.</li>
+<li>Enforcing minimum host allocation periods to comply with vendor
+reassignment rules.</li>
+</ul>
+<p>Whenever an instance is launched on a Dedicated Host, AWS License
+Manager automatically queries the host's physical socket and core
+counts, deducts the appropriate amount from the available license pool,
+and blocks non-compliant launches if a hard limit is reached.</p>
+<h3 id="immutable-audit-trails-with-aws-config-and-cloudtrail">Immutable
+Audit Trails with AWS Config and CloudTrail</h3>
+<p>For external compliance audits and regulatory frameworks (such as
+PCI-DSS, HIPAA, or FedRAMP), organizations must provide historical
+evidence of hardware isolation and license adherence. Dedicated Hosts
+integrate with <strong>AWS Config</strong> and <strong>AWS
+CloudTrail</strong> to generate a verifiable audit trail:</p>
+<ul>
+<li><strong>AWS Config</strong> continuously records the configuration
+state of each Dedicated Host. It tracks exactly when a host was
+allocated, its physical socket and core properties, and a chronological
+timeline of every EC2 instance <code>InstanceId</code> that was placed
+on or removed from that host.</li>
+<li><strong>AWS CloudTrail</strong> logs every API action related to
+host allocation, capacity modification, instance placement, and host
+release, providing timestamped proof of hardware lifecycle events.</li>
+</ul>
+<h2 id="dedicated-hosts-vs-dedicated-instances">Dedicated Hosts vs.
+Dedicated Instances</h2>
+<p>A common point of confusion in cloud compliance is the difference
+between <strong>EC2 Dedicated Instances</strong> and <strong>EC2
+Dedicated Hosts</strong>. While both guarantee that your instances run
+on physical hardware dedicated to a single customer account, they differ
+fundamentally in hardware visibility:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">EC2 Dedicated Host</th>
+<th style="text-align: left;">EC2 Dedicated Instance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Hardware Isolation</strong></td>
+<td style="text-align: left;">Single-tenant physical server</td>
+<td style="text-align: left;">Single-tenant physical server</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Visibility of Physical
+Sockets</strong></td>
+<td style="text-align: left;">Yes (Explicitly reported)</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Visibility of Physical
+Cores</strong></td>
+<td style="text-align: left;">Yes (Explicitly reported)</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Placement
+Control</strong></td>
+<td style="text-align: left;">Full control over specific
+<code>HostId</code></td>
+<td style="text-align: left;">No control (Managed by AWS)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Reboot Server
+Persistence</strong></td>
+<td style="text-align: left;">Guaranteed to stay on the same host</td>
+<td style="text-align: left;">May move to a different physical server on
+stop/start</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>BYOL Compliance
+Suitability</strong></td>
+<td style="text-align: left;">Supports socket-bound and core-bound
+licenses</td>
+<td style="text-align: left;">Does not support socket/core-bound
+tracking</td>
+</tr>
+</tbody>
+</table>
+<p>Because Dedicated Instances abstract the underlying host and may
+migrate across different physical servers when stopped and started, they
+cannot be used to satisfy compliance requirements that demand visibility
+into physical sockets and cores. Dedicated Hosts are specifically
+engineered to bridge this gap, providing the exact hardware telemetry
+required for enterprise licensing and strict regulatory governance.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-ec-2-dedicated-hosts-show-physical-cores-and-sockets';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

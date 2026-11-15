@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Maximize Redis and Memcached Throughput on EC2 R-Series? - ec2</title>
+    <meta name="description" content="Maximizing throughput for distributed caching layers like Redis and Memcached on Amazon EC2 R-series instances requires aligning the software architecture with the underlying hardware resources. By tuning Linux kernel network parameters, selecting network">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-maximize-redis-and-memcached-throughput-on-ec-2-r-series">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Maximize Redis and Memcached Throughput on EC2 R-Series? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-maximize-redis-and-memcached-throughput-on-ec-2-r-series" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Maximizing throughput for distributed caching layers like Redis and Memcached on Amazon EC2 R-series instances requires aligning the software architecture with the underlying hardware resources. By tuning Linux kernel network parameters, selecting network" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="how-to-maximize-redis-and-memcached-throughput-on-ec2-r-series">How
+to Maximize Redis and Memcached Throughput on EC2 R-Series?</h1>
+<p>Maximizing throughput for distributed caching layers like Redis and
+Memcached on Amazon EC2 R-series instances requires aligning the
+software architecture with the underlying hardware resources. By tuning
+Linux kernel network parameters, selecting network-optimized R-series
+variants, configuring multi-threaded input and output processing, and
+applying efficient client-side patterns like pipelining, engineers can
+eliminate CPU and network bottlenecks to achieve millions of operations
+per second at sub-millisecond latencies.</p>
+<h2 id="selecting-the-right-ec2-r-series-variant">Selecting the Right
+EC2 R-Series Variant</h2>
+<p>Amazon EC2 R-series instances are memory-optimized virtual machines
+designed for memory-intensive workloads such as in-memory caches,
+real-time big data analytics, and high-performance databases. They
+provide a fixed 1:8 vCPU-to-GiB memory ratio, ensuring ample RAM for
+caching large datasets while keeping compute costs predictable. However,
+because in-memory caching operations are computationally lightweight,
+distributed caches frequently saturate network bandwidth or
+packets-per-second (PPS) quotas long before exhausting memory or CPU
+capacity.</p>
+<p>To maximize throughput, selecting the right instance generation and
+suffix is critical:</p>
+<ul>
+<li><strong>AWS Graviton Instances (R7g, R8g):</strong> Powered by
+custom Arm-based AWS Graviton processors, these instances provide
+significant price-performance improvements over x86 counterparts. Unlike
+Intel or AMD x86 instances where each vCPU is a simultaneous
+multithreading (SMT) hyperthread sharing a physical core, each vCPU on a
+Graviton instance is a dedicated physical core. This eliminates thread
+contention on L1/L2 caches and execution units, providing highly
+predictable latency and higher throughput per vCPU for both Redis and
+Memcached.</li>
+<li><strong>Network-Optimized Variants (R6in, R7i, R7g):</strong>
+Caching workloads are heavily bound by network I/O and interrupt
+processing. Instances with the <code>n</code> suffix (such as
+<code>r6in</code>) offer up to 200 Gbps of network bandwidth and
+dramatically higher packet-per-second allowances compared to baseline
+instances.</li>
+<li><strong>Elastic Network Adapter (ENA) Express:</strong> On supported
+R-series instances, enabling ENA Express utilizes the AWS Scalable
+Reliable Datagram (SRD) protocol to dynamically route packets across
+multiple network paths. While single-flow bandwidth limits still apply,
+SRD avoids congestion drops and tail-latency spikes during micro-bursts
+of cache traffic.</li>
+</ul>
+<h2 id="overcoming-threading-and-cpu-bottlenecks">Overcoming Threading
+and CPU Bottlenecks</h2>
+<p>Redis and Memcached handle concurrency differently, and optimizing
+each engine requires aligning its threading model with the vCPU count of
+the R-series host.</p>
+<h3 id="redis-io-threading-and-multi-instance-sharding">Redis: I/O
+Threading and Multi-Instance Sharding</h3>
+<p>Historically, Redis executed all command processing and network I/O
+on a single main thread. While the single-threaded event loop avoids
+lock contention and context-switching overhead, a single core generally
+maxes out around 100,000 to 150,000 operations per second due to Linux
+socket read/write system call overhead.</p>
+<p>In Redis 6.0 and later, you can offload network socket reads, command
+parsing, and packet writes to dedicated background threads while keeping
+data structure execution single-threaded. On an R-series instance with 8
+or more vCPUs, configure the following parameters in
+<code>redis.conf</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">io-threads 4</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">io-threads-do-reads yes</span></span></code></pre></div>
+<p>A common rule of thumb is to set <code>io-threads</code> to roughly
+half or three-quarters of the available physical cores (generally
+between 4 and 8 threads; going beyond 8 threads rarely yields additional
+gains for a single process).</p>
+<p>If your R-series instance has a large core count (for example, an
+<code>r7g.4xlarge</code> with 16 vCPUs or an <code>r7g.8xlarge</code>
+with 32 vCPUs), a single Redis process cannot saturate the machine even
+with I/O threads enabled. To utilize all vCPUs, deploy multiple Redis
+server processes per EC2 instance—each bound to a distinct port and
+pinned to specific CPU cores using <code>taskset</code> or the
+<code>server_cpulist</code>, <code>bio_cpulist</code>, and
+<code>aof_rewrite_cpulist</code> directives in
+<code>redis.conf</code>:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">server_cpulist 0-3</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">bio_cpulist 4,5</span></span></code></pre></div>
+<h3 id="memcached-scaling-worker-threads">Memcached: Scaling Worker
+Threads</h3>
+<p>Unlike Redis, Memcached is natively multi-threaded, using
+<code>libevent</code> to distribute incoming connections and command
+processing across worker threads. You configure the number of worker
+threads using the <code>-t</code> startup flag:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">memcached</span> <span class="at">-m</span> 57344 <span class="at">-t</span> 8 <span class="at">-c</span> 16384 <span class="at">-o</span> modern</span></code></pre></div>
+<p>While it is tempting to set <code>-t</code> equal to the total number
+of vCPUs on massive R-series instances, Memcached uses internal mutex
+locks around the slab allocator and the global hash table (segmented
+into lock buckets). When scaling beyond 8 to 16 threads under
+write-heavy or hot-key workloads, thread lock contention can degrade
+throughput. You can mitigate hash table lock contention by increasing
+the hash power multiplier (<code>-o hashpower=24</code>) and using the
+<code>modern</code> options profile, which enables segmented LRU queues
+and reduces global lock acquisition.</p>
+<h2 id="linux-kernel-and-network-stack-tuning">Linux Kernel and Network
+Stack Tuning</h2>
+<p>When processing hundreds of thousands of small TCP packets per second
+on an EC2 R-series instance, the default Linux kernel network stack
+becomes a major bottleneck. Applying the following <code>sysctl</code>
+and driver optimizations ensures the operating system can keep up with
+the ENA network card:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Increase the maximum number of open file descriptors</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">fs.file-max </span><span class="ot">=</span><span class="st"> </span><span class="dv">2097152</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Expand the backlog of incoming connections waiting to be accepted</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="dt">net.core.somaxconn </span><span class="ot">=</span><span class="st"> </span><span class="dv">65535</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="dt">net.ipv4.tcp_max_syn_backlog </span><span class="ot">=</span><span class="st"> </span><span class="dv">65535</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Increase the queue size for packets waiting for CPU processing</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="dt">net.core.netdev_max_backlog </span><span class="ot">=</span><span class="st"> </span><span class="dv">65535</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Expand ephemeral port range and optimize TIME_WAIT socket handling</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="dt">net.ipv4.ip_local_port_range </span><span class="ot">=</span><span class="st"> 1024 65535</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="dt">net.ipv4.tcp_tw_reuse </span><span class="ot">=</span><span class="st"> </span><span class="dv">1</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Increase TCP read and write buffer limits for high-bandwidth links</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="dt">net.core.rmem_max </span><span class="ot">=</span><span class="st"> </span><span class="dv">16777216</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="dt">net.core.wmem_max </span><span class="ot">=</span><span class="st"> </span><span class="dv">16777216</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="dt">net.ipv4.tcp_rmem </span><span class="ot">=</span><span class="st"> 4096 87380 16777216</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="dt">net.ipv4.tcp_wmem </span><span class="ot">=</span><span class="st"> 4096 65536 16777216</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable TCP BBR congestion control for higher throughput and lower latency</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="dt">net.core.default_qdisc </span><span class="ot">=</span><span class="st"> fq</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="dt">net.ipv4.tcp_congestion_control </span><span class="ot">=</span><span class="st"> bbr</span></span></code></pre></div>
+<p>Beyond <code>sysctl</code> settings, you must optimize how the
+Elastic Network Adapter (ENA) distributes hardware interrupts across
+vCPUs:</p>
+<ol type="1">
+<li><strong>Receive Side Scaling (RSS) and IRQ Affinity:</strong> Ensure
+that the <code>irqbalance</code> daemon is either properly distributing
+ENA TX/RX queues across all vCPUs or manually pin ENA interrupt queues
+to dedicated cores that do not run the primary Redis event loop.</li>
+<li><strong>Interrupt Moderation:</strong> Use <code>ethtool -C</code>
+to inspect and adjust adaptive RX/TX interrupt coalescing. Lowering
+<code>rx-usecs</code> reduces tail latency at the cost of higher CPU
+interrupt usage, whereas slightly increasing it under extreme PPS load
+batches packets per interrupt to maximize raw throughput.</li>
+<li><strong>MTU and Jumbo Frames:</strong> Within an AWS VPC, configure
+the network interface to use an MTU of 9001 (Jumbo Frames) if caching
+larger payloads (above 1.5 KB). This reduces packet fragmentation and
+lowers the PPS burden on the ENA card.</li>
+</ol>
+<h2 id="memory-management-optimization-on-high-ram-instances">Memory
+Management Optimization on High-RAM Instances</h2>
+<p>Because R-series instances offer anywhere from 16 GiB
+(<code>r7g.medium</code>) to over 1,500 GiB of RAM
+(<code>r7i.48xlarge</code>), operating system memory management settings
+have a direct impact on sustained throughput.</p>
+<h3 id="disabling-transparent-huge-pages-thp">Disabling Transparent Huge
+Pages (THP)</h3>
+<p>Linux Transparent Huge Pages attempt to allocate 2 MB memory pages
+instead of standard 4 KB pages to reduce Translation Lookaside Buffer
+(TLB) misses. However, for in-memory caches with frequent small
+allocations and deallocations, THP causes memory fragmentation bloat and
+severe latency spikes during background compaction or when Redis forks a
+child process for snapshotting. Disable THP at boot time:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> never <span class="op">&gt;</span> /sys/kernel/mm/transparent_hugepage/enabled</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> never <span class="op">&gt;</span> /sys/kernel/mm/transparent_hugepage/defrag</span></code></pre></div>
+<h3 id="tuning-virtual-memory-and-swappiness">Tuning Virtual Memory and
+Swappiness</h3>
+<p>A caching layer must never swap to Amazon EBS storage, as even a
+single page fault over the network block device will stall an event loop
+thread for milliseconds. Set <code>vm.swappiness</code> to
+<code>0</code> (or <code>1</code> on newer kernels where <code>0</code>
+disables swap entirely) and set <code>vm.overcommit_memory = 1</code> so
+background forks in Redis do not fail due to conservative kernel virtual
+memory checks:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">vm.swappiness </span><span class="ot">=</span><span class="st"> </span><span class="dv">1</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">vm.overcommit_memory </span><span class="ot">=</span><span class="st"> </span><span class="dv">1</span></span></code></pre></div>
+<h3 id="preventing-fork-stalls-and-defragmentation">Preventing Fork
+Stalls and Defragmentation</h3>
+<p>To maximize pure caching throughput in Redis, disable disk
+persistence (<code>save ""</code> and <code>appendonly no</code>) on
+dedicated caching nodes. Without RDB snapshots or AOF rewrites, Redis
+never invokes the <code>fork()</code> system call, avoiding
+Copy-on-Write (CoW) page faults and allowing you to safely allocate up
+to 85%–90% of the R-series instance's memory via the
+<code>maxmemory</code> directive. Additionally, enable active memory
+defragmentation (<code>activedefrag yes</code>) with
+<code>jemalloc</code> to reclaim fragmented memory incrementally without
+pausing client traffic.</p>
+<p>For Memcached, prevent page reassignment pauses by pre-allocating
+slab memory at startup (using the <code>-L</code> flag if configured
+with explicit Linux HugePages) and tuning the slab growth factor
+(<code>-f</code>, defaulting to <code>1.25</code>) to match your
+application's object size distribution.</p>
+<h2 id="client-side-and-protocol-level-optimizations">Client-Side and
+Protocol-Level Optimizations</h2>
+<p>Even the fastest EC2 R-series instance cannot achieve high throughput
+if clients interact with the cache inefficiently. By Little's Law, the
+maximum concurrency <span class="math inline">\(L\)</span> required to
+sustain a target throughput <span class="math inline">\(\lambda\)</span>
+given an average request round-trip time <span
+class="math inline">\(W\)</span> is:</p>
+<p><span class="math display">\[L = \lambda \cdot W\]</span></p>
+<p>If a client executes commands sequentially over a single TCP
+connection with a network round-trip time <span class="math inline">\(W
+= 0.25\text{ ms}\)</span> (<span class="math inline">\(0.00025\text{
+s}\)</span>), the maximum throughput for that connection is capped
+at:</p>
+<p><span class="math display">\[\lambda = \frac{1}{0.00025\text{ s}} =
+4,000\text{ ops/sec}\]</span></p>
+<p>To multiply <span class="math inline">\(\lambda\)</span> without
+opening thousands of connections, implement the following client
+patterns:</p>
+<ul>
+<li><strong>Pipelining and Batching:</strong> If a batch of <span
+class="math inline">\(N\)</span> commands is pipelined in a single write
+syscall, the effective throughput per connection scales to:</li>
+</ul>
+<p><span class="math display">\[\lambda_{\text{pipelined}} =
+\frac{N}{W_{\text{network}} + N \cdot T_{\text{exec}}}\]</span></p>
+<p>where <span class="math inline">\(T_{\text{exec}}\)</span> is the
+microsecond-level server execution time per command. Grouping 50 to 100
+commands via Redis pipelines or multi-key operations (<code>MGET</code>,
+<code>MSET</code> in Redis; <code>get</code> with multiple keys in
+Memcached) reduces both network round trips and Linux kernel context
+switches between user space and kernel space
+(<code>read()</code>/<code>write()</code> syscalls), frequently boosting
+single-node throughput by an order of magnitude.</p>
+<ul>
+<li><strong>Connection Pooling and Multiplexing:</strong> Opening and
+closing TCP connections per request triggers TCP three-way handshakes
+(and TLS handshakes if encrypted), saturating CPU cores and exhausting
+ephemeral ports. Use persistent connection pools or asynchronous
+multiplexing clients (such as Lettuce for Java or <code>redis-py</code>
+async pools) to maintain a fixed number of warm connections.</li>
+<li><strong>Placement Groups:</strong> Deploy the EC2 instances running
+your application tier and your R-series caching instances within the
+same Availability Zone and inside a <strong>Cluster Placement
+Group</strong>. This ensures the instances are physically located on
+close hardware racks with non-blocking bisection bandwidth, minimizing
+<span class="math inline">\(W_{\text{network}}\)</span> and allowing ENA
+interfaces to reach their peak packet-per-second ratings.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-maximize-redis-and-memcached-throughput-on-ec-2-r-series';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

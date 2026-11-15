@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EC2 Storage Optimized Instances vs High-Performance EBS? - ec2</title>
+    <meta name="description" content="Choosing between Amazon EC2 Storage Optimized instances and high-performance Amazon Elastic Block Store volumes depends on your application&#39;s requirements for latency, data persistence, throughput, and operational flexibility. Storage Optimized instances">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/ec-2-storage-optimized-instances-vs-high-performance-ebs">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="EC2 Storage Optimized Instances vs High-Performance EBS? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/ec-2-storage-optimized-instances-vs-high-performance-ebs" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Choosing between Amazon EC2 Storage Optimized instances and high-performance Amazon Elastic Block Store volumes depends on your application&#39;s requirements for latency, data persistence, throughput, and operational flexibility. Storage Optimized instances" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="ec2-storage-optimized-instances-vs-high-performance-ebs">EC2
+Storage Optimized Instances vs High-Performance EBS?</h1>
+<p>Choosing between Amazon EC2 Storage Optimized instances and
+high-performance Amazon Elastic Block Store volumes depends on your
+application's requirements for latency, data persistence, throughput,
+and operational flexibility. Storage Optimized instances utilize
+physically attached local NVMe solid-state drives known as instance
+store, delivering sub-millisecond latency and massive random
+input/output operations per second for temporary or replicated data.
+High-performance EBS volumes provide network-attached block storage that
+persists independently of the compute instance lifecycle, offering
+built-in durability, snapshots, and dynamic scaling at the cost of
+slightly higher latency and network bandwidth consumption. This article
+breaks down the architectural differences, performance metrics,
+durability models, and cost structures of both options to help you
+select the optimal storage architecture for your workloads.</p>
+<h2 id="understanding-the-core-architectural-differences">Understanding
+the Core Architectural Differences</h2>
+<p>The fundamental distinction between these two storage options lies in
+where the physical drives reside relative to the host server.</p>
+<h3 id="ec2-storage-optimized-instances-instance-store">EC2 Storage
+Optimized Instances (Instance Store)</h3>
+<p>Storage Optimized instances (such as the I3, I3en, I4i, and Im4gn
+families) feature Non-Volatile Memory Express (NVMe) SSDs or hard disk
+drives physically installed inside the same host server as the CPU and
+memory. Because data travels directly across the local PCIe bus rather
+than over a network fabric, overhead is minimal.</p>
+<p>However, instance store volumes are ephemeral. The lifecycle of the
+data is strictly tied to the lifecycle of the running EC2 instance.</p>
+<h3 id="high-performance-ebs-volumes">High-Performance EBS Volumes</h3>
+<p>High-performance EBS volumes (specifically General Purpose SSD
+<code>gp3</code> and Provisioned IOPS SSD <code>io2</code> Block
+Express) are network-attached storage devices. When an EC2 instance
+reads from or writes to an EBS volume, the storage traffic traverses the
+AWS Nitro System network fabric between the compute host and the
+separate EBS storage cluster.</p>
+<p>Because the storage layer is decoupled from the compute layer, EBS
+volumes persist even when the attached EC2 instance is stopped or
+terminated, and they automatically replicate data within their
+Availability Zone to protect against hardware failures.</p>
+<h2 id="performance-comparison-iops-throughput-and-latency">Performance
+Comparison: IOPS, Throughput, and Latency</h2>
+<p>When evaluating raw storage performance, local NVMe instance store
+leads in maximum IOPS and lowest latency, while EBS <code>io2</code>
+Block Express narrows the gap for persistent network storage.</p>
+<p><span class="math display">\[\text{Throughput} = \text{IOPS} \times
+\text{I/O Block Size}\]</span></p>
+<h3 id="latency-and-jitter">Latency and Jitter</h3>
+<ul>
+<li><strong>Storage Optimized Instance Store:</strong> Delivers
+ultra-low, consistent latency typically under <span
+class="math inline">\(100\ \mu\text{s}\)</span> (microseconds). Because
+there is no network hop, jitter (latency variance) is virtually
+nonexistent.</li>
+<li><strong>High-Performance EBS:</strong> Standard SSD volumes
+(<code>gp3</code>) deliver single-digit millisecond latency, while
+<code>io2</code> Block Express volumes achieve sub-millisecond average
+latency (around <span class="math inline">\(250\ \mu\text{s}\)</span> to
+<span class="math inline">\(500\ \mu\text{s}\)</span>). While
+exceptionally fast for network storage, EBS is still subject to minor
+network stack overhead compared to local PCIe buses.</li>
+</ul>
+<h3 id="iops-and-throughput-limits">IOPS and Throughput Limits</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Storage Option</th>
+<th style="text-align: left;">Max IOPS (Per Volume / Instance)</th>
+<th style="text-align: left;">Max Throughput</th>
+<th style="text-align: left;">Latency Profile</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>EC2 Instance Store (e.g.,
+I4i)</strong></td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(3,750,000\ \text{IOPS}\)</span></td>
+<td style="text-align: left;">Up to <span class="math inline">\(30\
+\text{GB/s}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(&lt; 100\
+\mu\text{s}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>EBS io2 Block
+Express</strong></td>
+<td style="text-align: left;">Up to <span class="math inline">\(256,000\
+\text{IOPS}\)</span></td>
+<td style="text-align: left;">Up to <span class="math inline">\(4,000\
+\text{MB/s}\)</span></td>
+<td style="text-align: left;">Sub-millisecond</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>EBS gp3</strong></td>
+<td style="text-align: left;">Up to <span class="math inline">\(16,000\
+\text{IOPS}\)</span></td>
+<td style="text-align: left;">Up to <span class="math inline">\(1,000\
+\text{MB/s}\)</span></td>
+<td style="text-align: left;">Single-digit ms</td>
+</tr>
+</tbody>
+</table>
+<p>It is also important to note that EBS volumes are constrained by the
+<strong>EBS-optimized bandwidth</strong> and <strong>maximum IOPS limits
+of the attached EC2 instance</strong>. Even if you attach multiple
+<code>io2</code> Block Express volumes capable of <span
+class="math inline">\(256,000\ \text{IOPS}\)</span> each, your total
+throughput cannot exceed the network storage cap of the host EC2
+instance (for example, <span class="math inline">\(260,000\
+\text{IOPS}\)</span> and <span class="math inline">\(10,000\
+\text{MB/s}\)</span> on many current-generation general-purpose and
+compute-optimized instances). Local NVMe drives bypass the EBS network
+interface entirely.</p>
+<h2 id="data-durability-persistence-and-lifecycle">Data Durability,
+Persistence, and Lifecycle</h2>
+<p>The most critical trade-off between local NVMe storage and EBS is how
+data survives hardware faults and instance state changes.</p>
+<h3 id="when-instance-store-data-persists-vs-when-it-is-lost">When
+Instance Store Data Persists vs. When It Is Lost</h3>
+<p>Data on an EC2 Storage Optimized instance store volume
+<strong>persists</strong> only during:</p>
+<ul>
+<li>Operating system-initiated reboots (<code>sudo reboot</code>).</li>
+<li>EC2 console or API reboot commands
+(<code>RebootInstances</code>).</li>
+</ul>
+<p>Data on an instance store volume is <strong>permanently lost</strong>
+when:</p>
+<ul>
+<li>The instance is stopped (<code>StopInstances</code>) or
+hibernated.</li>
+<li>The instance is terminated (<code>TerminateInstances</code>).</li>
+<li>The underlying physical host drive or server experiences a hardware
+failure.</li>
+</ul>
+<p>Because AWS does not replicate instance store data across multiple
+drives or servers, applications using Storage Optimized instances must
+handle replication, sharding, and backups at the application layer (for
+example, Apache Cassandra, ScyllaDB, Elasticsearch, or Kafka clusters
+distributed across multiple Availability Zones).</p>
+<h3 id="ebs-durability-and-snapshot-capabilities">EBS Durability and
+Snapshot Capabilities</h3>
+<p>High-performance EBS volumes are engineered for standalone durability
+without requiring application-level clustering:</p>
+<ul>
+<li><strong>Annual Failure Rate (AFR):</strong> <code>gp3</code> volumes
+offer <span class="math inline">\(99.8\%\)</span> to <span
+class="math inline">\(99.9\%\)</span> durability, while <code>io2</code>
+Block Express volumes provide <span
+class="math inline">\(99.999\%\)</span> durability (an AFR of <span
+class="math inline">\(0.001\%\)</span>), making them suitable for
+mission-critical, single-instance commercial databases like Oracle or
+Microsoft SQL Server.</li>
+<li><strong>Point-in-Time Snapshots:</strong> EBS supports incremental,
+crash-consistent (and multi-volume application-consistent) snapshots
+backed up directly to Amazon S3.</li>
+<li><strong>Lifecycle Independence:</strong> You can stop an instance to
+save compute costs while retaining the EBS volume, or detach the volume
+and reattach it to a newly upgraded instance type in minutes.</li>
+</ul>
+<h2 id="scalability-and-operational-flexibility">Scalability and
+Operational Flexibility</h2>
+<h3 id="coupling-vs-decoupling-resources">Coupling vs. Decoupling
+Resources</h3>
+<p>With Storage Optimized instances, compute (vCPU and RAM) and storage
+(capacity and IOPS) scale in fixed ratios determined by the instance
+size. If your database needs <span class="math inline">\(15\
+\text{TB}\)</span> of local NVMe storage on an <code>i4i</code>
+instance, you are forced to pay for <code>i4i.8xlarge</code> (<span
+class="math inline">\(32\ \text{vCPUs}\)</span> and <span
+class="math inline">\(256\ \text{GiB}\)</span> RAM), even if your
+workload only utilizes <span class="math inline">\(8\
+\text{vCPUs}\)</span>. Furthermore, resizing storage requires
+provisioning new instances and migrating data across the cluster.</p>
+<p>High-performance EBS decouples storage from compute:</p>
+<ol type="1">
+<li>You can attach a high-IOPS <code>io2</code> volume to a
+memory-optimized (<code>r7i</code>) or compute-optimized
+(<code>c7i</code>) instance with the exact vCPU and RAM footprint your
+workload requires.</li>
+<li>Using <strong>EBS Elastic Volumes</strong>, you can dynamically
+increase volume capacity, adjust provisioned IOPS, or change volume
+types (<code>gp3</code> to <code>io2</code>) on the fly with zero
+downtime.</li>
+<li><code>io2</code> volumes support <strong>EBS Multi-Attach</strong>,
+allowing a single volume to be concurrently attached to up to 16
+Nitro-based instances within the same Availability Zone for clustered
+Linux applications (such as Oracle RAC or GFS2).</li>
+</ol>
+<h2 id="cost-structure-and-economic-trade-offs">Cost Structure and
+Economic Trade-offs</h2>
+<p>Calculating total cost of ownership requires looking at both direct
+infrastructure billing and indirect operational overhead.</p>
+<h3 id="storage-optimized-instance-pricing">Storage Optimized Instance
+Pricing</h3>
+<p>The cost of the local NVMe SSDs is bundled directly into the hourly
+EC2 instance price. If your workload continuously drives ratusan of
+thousands of IOPS (<span class="math inline">\(&gt;100,000\
+\text{IOPS}\)</span>), Storage Optimized instances are drastically more
+cost-effective than EBS because there are no per-IOPS or per-MB/s
+provisioned charges.</p>
+<p>However, hidden costs include:</p>
+<ul>
+<li><strong>Over-provisioning:</strong> Paying for extra vCPUs/RAM just
+to get larger local disks (or vice versa).</li>
+<li><strong>Replication Overhead:</strong> Running 3x or more nodes
+across Availability Zones solely to guarantee data durability, plus
+paying for cross-AZ data transfer fees during replication and node
+rebuilds.</li>
+</ul>
+<h3 id="high-performance-ebs-pricing">High-Performance EBS Pricing</h3>
+<p>High-performance EBS (<code>gp3</code> and <code>io2</code>) uses a
+modular pricing model where you pay separately for three dimensions:</p>
+<p><span class="math display">\[\text{Monthly EBS Cost} =
+(\text{Capacity}_{\text{GB}} \times R_{\text{GB}}) +
+(\text{IOPS}_{\text{prov}} \times R_{\text{IOPS}}) +
+(\text{Throughput}_{\text{prov}} \times R_{\text{MB/s}})\]</span></p>
+<ul>
+<li><strong>gp3:</strong> Extremely cost-effective for moderate
+high-performance workloads. It includes a free baseline of <span
+class="math inline">\(3,000\ \text{IOPS}\)</span> and <span
+class="math inline">\(125\ \text{MB/s}\)</span>, with low per-unit costs
+to scale up to <span class="math inline">\(16,000\ \text{IOPS}\)</span>
+and <span class="math inline">\(1,000\ \text{MB/s}\)</span>.</li>
+<li><strong>io2 Block Express:</strong> Designed for extreme
+performance, using tiered pricing per provisioned IOPS (<span
+class="math inline">\(0.065\)</span> per IOPS for the first <span
+class="math inline">\(32,000\)</span>, scaling down to <span
+class="math inline">\(0.032\)</span> per IOPS above <span
+class="math inline">\(64,000\)</span>). At very high IOPS levels (<span
+class="math inline">\(&gt;100,000\ \text{IOPS}\)</span>), a single
+<code>io2</code> volume can easily cost several thousand dollars per
+month—often exceeding the cost of the EC2 instance itself.</li>
+</ul>
+<h2 id="decision-matrix-which-should-you-choose">Decision Matrix: Which
+Should You Choose?</h2>
+<h3 id="choose-ec2-storage-optimized-instances-when">Choose EC2 Storage
+Optimized Instances When:</h3>
+<ul>
+<li><strong>You run distributed, replicated NoSQL or analytical
+databases:</strong> Workloads like ScyllaDB, Apache Cassandra,
+Aerospike, ClickHouse, OpenSearch, or Apache Druid that handle
+replication and fault tolerance natively across multiple nodes.</li>
+<li><strong>You need ultra-high IOPS at low cost:</strong> Your
+application requires <span class="math inline">\(&gt;100,000\
+\text{IOPS}\)</span> per node and paying per-IOPS on EBS
+<code>io2</code> would be cost-prohibitive.</li>
+<li><strong>Data is temporary or easily reconstructed:</strong>
+High-speed caching tiers (Redis/Valkey cache), big data shuffle/scratch
+storage (Apache Spark), high-performance computing (HPC) scratch disks,
+or video transcoding pipelines.</li>
+<li><strong>Microsecond latency is mandatory:</strong> Real-time
+bidding, high-frequency financial analytics, or telemetry ingestion
+where network storage jitter cannot be tolerated.</li>
+</ul>
+<h3 id="choose-high-performance-ebs-volumes-when">Choose
+High-Performance EBS Volumes When:</h3>
+<ul>
+<li><strong>You run monolithic or traditional relational
+databases:</strong> Workloads like Oracle, Microsoft SQL Server,
+PostgreSQL, or MySQL that rely on underlying block storage durability
+rather than multi-node sharding.</li>
+<li><strong>Compute and storage scale independently:</strong> You need
+massive CPU/RAM with small storage, or massive storage/IOPS with modest
+CPU requirements.</li>
+<li><strong>You require fast recovery and native backups:</strong> Your
+operational model depends on point-in-time EBS snapshots, fast instance
+recovery without rebuilding terabytes of data over the network, or
+stopping instances during off-hours.</li>
+<li><strong>Workloads fit within <code>gp3</code> limits:</strong> If
+your performance requirements can be met by <code>gp3</code> (<span
+class="math inline">\(16,000\ \text{IOPS}\)</span> and <span
+class="math inline">\(1,000\ \text{MB/s}\)</span>) or striped
+<code>gp3</code> volumes via RAID 0, EBS provides a simpler, safer
+operational model than managing ephemeral instance stores.</li>
+</ul>
+<h2 id="hybrid-approach-combining-both-on-a-single-instance">Hybrid
+Approach: Combining Both on a Single Instance</h2>
+<p>You do not always have to choose one exclusively. A common
+architectural pattern on AWS is to run a Storage Optimized instance
+(such as <code>i4i</code>) with an attached EBS volume:</p>
+<ul>
+<li><strong>EBS Volume:</strong> Houses the operating system (root
+volume), application binaries, persistent configuration files, and
+critical write-ahead logs (WAL) or database transaction logs.</li>
+<li><strong>Local NVMe Instance Store:</strong> Houses the high-velocity
+swap space, temporary sort tables (<code>tempdb</code> in SQL Server or
+<code>pgsql_tmp</code> in PostgreSQL), read caches, or replicated data
+shards.</li>
+</ul>
+<p>This hybrid model balances the operational safety and fast boot times
+of EBS with the raw throughput and cost efficiency of local NVMe
+storage.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/ec-2-storage-optimized-instances-vs-high-performance-ebs';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

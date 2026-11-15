@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Should Data Warehouses Use Amazon EC2 D-Series Instances? - ec2</title>
+    <meta name="description" content="Amazon EC2 D-series instances, such as the D2 and D3 families, are dense storage virtual servers built specifically for workloads requiring massive local hard disk drive capacity and high sequential disk throughput. For data warehouse workloads, choosing">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-should-data-warehouses-use-amazon-ec-2-d-series-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When Should Data Warehouses Use Amazon EC2 D-Series Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-should-data-warehouses-use-amazon-ec-2-d-series-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 D-series instances, such as the D2 and D3 families, are dense storage virtual servers built specifically for workloads requiring massive local hard disk drive capacity and high sequential disk throughput. For data warehouse workloads, choosing" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="when-should-data-warehouses-use-amazon-ec2-d-series-instances">When
+Should Data Warehouses Use Amazon EC2 D-Series Instances?</h1>
+<p>Amazon EC2 D-series instances, such as the D2 and D3 families, are
+dense storage virtual servers built specifically for workloads requiring
+massive local hard disk drive capacity and high sequential disk
+throughput. For data warehouse workloads, choosing D-series instances
+makes sense when your architecture relies on large-scale, sequential
+read and write operations across petabyte-scale or multi-terabyte
+datasets, and where the lowest possible cost per terabyte of local
+storage is a higher priority than random input/output operations per
+second. This article explores the specific architectural patterns,
+performance characteristics, and cost considerations that determine when
+a data warehouse should run on EC2 D-series dense HDD instances.</p>
+<h2
+id="understanding-amazon-ec2-d-series-dense-hdd-instances">Understanding
+Amazon EC2 D-Series Dense HDD Instances</h2>
+<p>Amazon EC2 D-series instances (including D2, D3, and D3en) are
+designed to deliver massive local instance store volume capacity using
+hard disk drives (HDDs) attached directly to the host server. Unlike
+Amazon Elastic Block Store (EBS) volumes, which are accessed over the
+network, local HDD instance stores provide dedicated disk spindles
+directly to the instance, eliminating network storage overhead and
+delivering predictable, high sequential disk throughput.</p>
+<p>Key characteristics of D-series instances include:</p>
+<ul>
+<li><strong>High Local Storage Density:</strong> D3 and D3en instances
+offer up to 336 TB of local HDD storage per instance, making them among
+the highest-capacity storage instances in AWS.</li>
+<li><strong>Sequential Throughput Optimization:</strong> Because HDDs
+perform best when reading or writing contiguous blocks of data, D-series
+instances excel at large block sequential I/O operations rather than
+small, random I/O lookups.</li>
+<li><strong>High Network Bandwidth:</strong> Newer generations like D3en
+provide up to 75 Gbps of network bandwidth, allowing distributed data
+warehouse nodes to shuffle large partitions of data across a cluster
+rapidly.</li>
+</ul>
+<h2 id="ideal-data-warehouse-workloads-for-d-series-instances">Ideal
+Data Warehouse Workloads for D-Series Instances</h2>
+<p>Not every data warehouse belongs on spinning disk media. Modern cloud
+data warehouses often separate compute and storage or rely on NVMe SSDs
+(such as I3 or I4i instances) for low-latency interactive queries.
+However, D-series dense HDD instances remain the optimal choice in
+several specific scenarios.</p>
+<h3 id="1-massive-massively-parallel-processing-mpp-data-warehouses">1.
+Massive Massively Parallel Processing (MPP) Data Warehouses</h3>
+<p>Self-managed MPP databases—such as Apache Hawq, Greenplum, Vertica,
+or self-hosted ClickHouse clusters—distribute data across dozens or
+hundreds of shared-nothing nodes. When these systems store data in
+columnar formats (like Apache Parquet or ORC) and compress it heavily,
+queries predominantly perform full-partition or full-column sequential
+scans rather than index-based random lookups.</p>
+<p>In a columnar scan, the storage subsystem reads large contiguous
+blocks (often <span class="math inline">\(1\text{ MB}\)</span> or
+larger) sequentially from disk into memory. Because HDDs deliver strong
+sequential read throughput at a fraction of the cost of SSDs, D-series
+instances allow MPP architectures to scan terabytes of historical data
+economically.</p>
+<h3 id="2-hadoop-and-distributed-file-system-hdfs-analytical-lakes">2.
+Hadoop and Distributed File System (HDFS) Analytical Lakes</h3>
+<p>Many enterprise data warehouses operate on top of Apache Hadoop,
+Apache Hive, or Presto/Trino querying data stored directly on the Hadoop
+Distributed File System (HDFS). HDFS was fundamentally architected
+around the physical characteristics of spinning disks:</p>
+<ul>
+<li>Large block sizes (typically <span class="math inline">\(128\text{
+MB}\)</span> to <span class="math inline">\(256\text{
+MB}\)</span>).</li>
+<li>Write-once, read-many access patterns.</li>
+<li>Data locality, where compute tasks are scheduled on the exact
+physical node holding the data blocks.</li>
+</ul>
+<p>Running HDFS DataNodes on D2, D3, or D3en instances aligns directly
+with this design. In addition, because HDFS handles data replication
+(typically maintaining a replication factor of <span
+class="math inline">\(r = 3\)</span> across nodes and Availability
+Zones), the ephemeral nature of EC2 instance store volumes is mitigated
+by cluster-level fault tolerance.</p>
+<h3 id="3-warm-and-cold-tier-analytical-storage">3. Warm and Cold Tier
+Analytical Storage</h3>
+<p>As data warehouses grow into the hundreds of terabytes or petabytes,
+keeping all historical data on NVMe SSDs becomes cost-prohibitive. Many
+modern data warehouse engines support multi-tiered storage
+architectures:</p>
+<ul>
+<li><strong>Hot Tier (NVMe SSD / I-series):</strong> Holds the most
+recent 7 to 30 days of data for sub-second dashboarding and
+high-concurrency point lookups.</li>
+<li><strong>Warm/Cold Tier (Dense HDD / D-series):</strong> Holds months
+or years of historical data used for quarterly reporting, batch
+aggregations, and compliance audits.</li>
+</ul>
+<p>When queries hit the historical tier, users generally expect response
+times measured in seconds or minutes rather than milliseconds, making
+the sequential read speeds of D-series instances more than
+sufficient.</p>
+<h3 id="4-large-scale-batch-etl-and-data-staging">4. Large-Scale Batch
+ETL and Data Staging</h3>
+<p>Data warehouses frequently ingest massive bulk extracts from
+operational databases, log streams, or external partners before
+transforming and loading them into final analytical tables. D-series
+instances provide an inexpensive, high-throughput staging area for
+sorting, merging, and aggregating multi-terabyte batch files prior to
+final warehouse ingestion.</p>
+<p>##Evaluating Performance and Cost Metrics</p>
+<p>To decide mathematically whether a workload fits D-series instances,
+data engineers should evaluate three primary metrics: block size, I/O
+pattern, and storage-to-compute ratio.</p>
+<h3 id="sequential-throughput-vs-random-iops">Sequential Throughput vs.
+Random IOPS</h3>
+<p>The effective throughput <span class="math inline">\(T\)</span> of a
+storage device is the product of its input/output operations per second
+(<span class="math inline">\(\text{IOPS}\)</span>) and the average I/O
+request size <span class="math inline">\(B\)</span>:</p>
+<p><span class="math display">\[T = \text{IOPS} \times B\]</span></p>
+<p>Hard disk drives have mechanical seek latencies (typically <span
+class="math inline">\(5\text{ ms}\)</span> to <span
+class="math inline">\(10\text{ ms}\)</span>), which cap their random
+IOPS at roughly <span class="math inline">\(100\)</span> to <span
+class="math inline">\(200\text{ IOPS}\)</span> per disk. However, when a
+data warehouse performs sequential scans with a large block size (for
+example, <span class="math inline">\(B = 1\text{ MB}\)</span>), a single
+D3 instance striped across 24 local HDDs can achieve multiple gigabytes
+per second of aggregate sequential read throughput.</p>
+<p>If your workload profile exhibits:</p>
+<ul>
+<li>Average I/O size <span class="math inline">\(B \ge 256\text{
+KB}\)</span></li>
+<li>Sequential read/write ratio <span class="math inline">\(&gt;
+80\%\)</span></li>
+<li>Low concurrency of random point lookups</li>
+</ul>
+<p>Then D-series instances will deliver near-SSD sequential throughput
+at a significantly lower cost per gigabyte.</p>
+<h3 id="cost-per-terabyte-efficiency">Cost per Terabyte Efficiency</h3>
+<p>When sizing a data warehouse cluster, infrastructure architects must
+determine whether the cluster is <strong>compute-bound</strong> or
+<strong>storage-bound</strong>. A cluster is storage-bound when you must
+provision additional nodes simply to hold the volume of data, even
+though CPU and RAM utilization remain low.</p>
+<p>If the required storage capacity <span
+class="math inline">\(S_{\text{total}}\)</span> divided by the active
+compute nodes <span class="math inline">\(N\)</span> exceeds the
+economical capacity of EBS or NVMe instances:</p>
+<p><span class="math display">\[\frac{S_{\text{total}}}{N} &gt;
+S_{\text{node\_ssd}}\]</span></p>
+<p>migrating to D3 or D3en instances allows you to consolidate node
+counts. By packing up to <span class="math inline">\(336\text{
+TB}\)</span> of raw storage per node, you reduce the total number of
+instances required to host the dataset, lowering both EC2 licensing
+costs and commercial database per-node or per-core software licensing
+fees.</p>
+<h2
+id="architectural-requirements-before-choosing-d-series">Architectural
+Requirements Before Choosing D-Series</h2>
+<p>Because D-series storage consists of <strong>ephemeral instance store
+volumes</strong>, data stored on the local HDDs is lost if the
+underlying physical host fails or if the instance is stopped (though
+data persists across standard OS reboots). Therefore, a data warehouse
+workload should only use D-series instances if it meets at least one of
+the following architectural criteria:</p>
+<ol type="1">
+<li><strong>Application-Level Replication:</strong> The database or file
+system natively replicates data blocks across multiple nodes in
+different racks or Availability Zones (such as HDFS, ClickHouse
+ReplicatedMergeTree, or Vertica K-safety).</li>
+<li><strong>Automated Snapshot and Recovery:</strong> The data on the
+nodes is a cached or pre-computed projection of a durable source of
+truth stored in Amazon S3, allowing a failed node to be replaced and
+hydrated automatically.</li>
+<li><strong>RAID Configuration:</strong> Multiple local HDDs on the
+instance are striped using RAID 0 for maximum throughput (when the
+application handles cross-node replication) or RAID 5/6/10 to guard
+against single-disk failures on the host.</li>
+</ol>
+<h2 id="when-to-avoid-d-series-instances-for-data-warehousing">When to
+Avoid D-Series Instances for Data Warehousing</h2>
+<p>While D-series instances are powerful for dense sequential workloads,
+you should choose alternative EC2 families or managed services in the
+following situations:</p>
+<ul>
+<li><strong>High-Concurrency Interactive BI:</strong> If hundreds of
+analysts run concurrent queries requiring fast index lookups and low
+latency, use <strong>I4i or I3en</strong> (NVMe SSD) instances
+instead.</li>
+<li><strong>Independent Scaling of Compute and Storage:</strong> If your
+storage grows continuously while your compute needs fluctuate wildly by
+time of day, decoupling storage into <strong>Amazon S3</strong> or using
+<strong>Amazon Redshift Serverless / RA3 instances</strong> avoids
+paying for idle compute attached to local disks.</li>
+<li><strong>Zero Built-in Replication:</strong> If you are running a
+single-node analytical database without cluster-level replication or
+automated S3 backup hydration, use <strong>Amazon EBS (<code>st1</code>
+Throughput Optimized HDD or <code>gp3</code> SSD)</strong> attached to
+M-series or R-series instances so storage lifecycle remains independent
+of the compute instance.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-should-data-warehouses-use-amazon-ec-2-d-series-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

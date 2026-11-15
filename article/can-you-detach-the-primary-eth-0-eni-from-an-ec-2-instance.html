@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can You Detach the Primary eth0 ENI from an EC2 Instance? - ec2</title>
+    <meta name="description" content="Attempting to detach the primary eth0 Elastic Network Interface from an Amazon EC2 instance will always fail and return an error, whether the instance is running or stopped. In Amazon Web Services, every EC2 instance requires at least one primary network">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-you-detach-the-primary-eth-0-eni-from-an-ec-2-instance">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can You Detach the Primary eth0 ENI from an EC2 Instance? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-you-detach-the-primary-eth-0-eni-from-an-ec-2-instance" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Attempting to detach the primary eth0 Elastic Network Interface from an Amazon EC2 instance will always fail and return an error, whether the instance is running or stopped. In Amazon Web Services, every EC2 instance requires at least one primary network" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="can-you-detach-the-primary-eth0-eni-from-an-ec2-instance">Can
+You Detach the Primary eth0 ENI from an EC2 Instance?</h1>
+<p>Attempting to detach the primary eth0 Elastic Network Interface from
+an Amazon EC2 instance will always fail and return an error, whether the
+instance is running or stopped. In Amazon Web Services, every EC2
+instance requires at least one primary network interface, which is
+assigned to device index 0 and serves as the default eth0 interface.
+Because the primary network interface defines the core identity of the
+instance within a Virtual Private Cloud, including its primary private
+IPv4 address and default routing configuration, AWS strictly prohibits
+detaching or deleting it independently while the instance exists. The
+primary network interface remains permanently bound to the instance
+until the instance itself is terminated.</p>
+<h2
+id="understanding-the-role-of-the-primary-network-interface">Understanding
+the Role of the Primary Network Interface</h2>
+<p>When an Amazon EC2 instance is launched into a Virtual Private Cloud
+(VPC), AWS automatically creates and attaches a primary Elastic Network
+Interface (ENI) at device index <span class="math inline">\(0\)</span>,
+which the operating system typically recognizes as <code>eth0</code>.
+This primary interface holds fundamental attributes required for the
+instance to communicate within the VPC and across external networks:</p>
+<ul>
+<li><strong>Primary Private IPv4 Address:</strong> Assigned from the
+IPv4 CIDR block of the subnet in which the instance resides. This
+address stays bound to the instance for its entire lifecycle.</li>
+<li><strong>MAC Address:</strong> A unique hardware identifier used for
+Layer <span class="math inline">\(2\)</span> network frame routing
+inside the virtual network.</li>
+<li><strong>Security Groups:</strong> Stateful firewall rules associated
+directly with the network interface rather than the instance as a
+whole.</li>
+<li><strong>Source/Destination Check Settings:</strong> Network
+validation flags that control whether the interface must be the explicit
+source or destination of any traffic it handles.</li>
+</ul>
+<p>Because the EC2 control plane relies on the primary ENI at index
+<span class="math inline">\(0\)</span> to anchor the instance to a
+specific VPC and subnet, removing it would leave the instance without a
+valid network context or primary IP identity.</p>
+<h2 id="what-happens-when-you-try-to-detach-eth0">What Happens When You
+Try to Detach eth0</h2>
+<p>If you attempt to detach the primary network interface using the AWS
+Management Console, AWS CLI, or an AWS SDK, the platform blocks the
+operation immediately.</p>
+<h3 id="using-the-aws-management-console">Using the AWS Management
+Console</h3>
+<p>In the Amazon EC2 console, if you select the primary network
+interface (listed with <strong>Device index</strong> set to
+<code>0</code>) and open the <strong>Actions</strong> menu, the
+<strong>Detach</strong> option will either be disabled or produce an
+immediate validation error dialog stating that you cannot detach the
+primary network interface of an instance.</p>
+<h3 id="using-the-aws-cli-or-api">Using the AWS CLI or API</h3>
+<p>If you invoke the <code>detach-network-interface</code> command via
+the AWS Command Line Interface or call the
+<code>DetachNetworkInterface</code> API action on the attachment ID
+associated with device index <span class="math inline">\(0\)</span>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 detach-network-interface <span class="at">--attachment-id</span> eni-attach-0123456789abcdef0</span></code></pre></div>
+<p>AWS returns an <code>InvalidParameterValue</code> error message:</p>
+<pre class="text"><code>An error occurred (InvalidParameterValue) when calling the DetachNetworkInterface operation: Instance i-0123456789abcdef0&#39;s primary network interface cannot be detached.</code></pre>
+<p>This restriction applies regardless of the instance state. Stopping
+the instance does not unlock the primary ENI for detachment, and passing
+the <code>--force</code> parameter to the command does not override this
+constraint.</p>
+<h2
+id="differences-between-primary-and-secondary-network-interfaces">Differences
+Between Primary and Secondary Network Interfaces</h2>
+<p>While the primary network interface (<code>eth0</code>) is
+permanently locked to the instance, EC2 instances support attaching
+additional Elastic Network Interfaces known as secondary network
+interfaces (<code>eth1</code>, <code>eth2</code>, up to the maximum
+limit <span class="math inline">\(N_{\text{max}}\)</span> supported by
+the instance type, leaving <span class="math inline">\(N_{\text{max}} -
+1\)</span> available secondary slots).</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Primary ENI (<code>eth0</code> / Device
+Index <code>0</code>)</th>
+<th style="text-align: left;">Secondary ENI (<code>eth1+</code> / Device
+Index <span class="math inline">\(\ge 1\)</span>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Detachment from Running
+Instance</strong></td>
+<td style="text-align: left;">Not allowed</td>
+<td style="text-align: left;">Allowed</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Detachment from Stopped
+Instance</strong></td>
+<td style="text-align: left;">Not allowed</td>
+<td style="text-align: left;">Allowed</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Default Behavior on
+Termination</strong></td>
+<td style="text-align: left;">Deleted automatically
+(<code>DeleteOnTermination = true</code>)</td>
+<td style="text-align: left;">Preserved by default
+(<code>DeleteOnTermination = false</code>), unless created inline during
+launch</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Subnet Placement</strong></td>
+<td style="text-align: left;">Defines the instance's primary subnet</td>
+<td style="text-align: left;">Must be in the same Availability Zone, can
+be in the same or a different subnet</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Portability Across
+Instances</strong></td>
+<td style="text-align: left;">Cannot be moved to another running
+instance</td>
+<td style="text-align: left;">Can be detached and attached to another
+instance in the same Availability Zone</td>
+</tr>
+</tbody>
+</table>
+<h2 id="workarounds-when-you-need-portable-network-identity">Workarounds
+When You Need Portable Network Identity</h2>
+<p>Because you cannot detach <code>eth0</code> to move an IP address or
+MAC address to a standby or replacement EC2 instance, AWS provides
+alternative mechanisms to achieve portable networking and high
+availability:</p>
+<h3 id="1-use-a-secondary-elastic-network-interface">1. Use a Secondary
+Elastic Network Interface</h3>
+<p>If your application requires a movable private IP address or a
+licensing model tied to a specific MAC address, create a secondary ENI
+(<code>eth1</code>) and bind your application traffic or software
+license to that interface. If the underlying EC2 instance fails or needs
+replacement, you can detach <code>eth1</code> from the original instance
+and attach it to a standby instance in the same Availability Zone.</p>
+<h3 id="2-reassign-secondary-private-ipv4-addresses">2. Reassign
+Secondary Private IPv4 Addresses</h3>
+<p>While the primary private IPv4 address of <code>eth0</code> cannot be
+detached, you can assign one or more secondary private IPv4 addresses to
+<code>eth0</code>. Secondary private IP addresses can be unassigned from
+one primary ENI and reassigned to the primary ENI of another instance
+within the same subnet using the <code>AssignPrivateIpAddresses</code>
+API with the <code>--allow-reassignment</code> flag.</p>
+<h3 id="3-use-an-elastic-ip-address-for-public-traffic">3. Use an
+Elastic IP Address for Public Traffic</h3>
+<p>If you only need to shift public-facing traffic between instances
+without changing DNS records, associate an Elastic IP address (EIP) with
+the instance. You can disassociate the Elastic IP from the current
+<code>eth0</code> interface and reassociate it with the
+<code>eth0</code> interface of another instance at any time.</p>
+<h3 id="4-retain-the-primary-eni-after-instance-termination">4. Retain
+the Primary ENI After Instance Termination</h3>
+<p>If your goal is to replace an instance while keeping the exact same
+primary private IPv4 address and ENI ID (<code>eth0</code>), you can
+modify the primary network interface's <code>DeleteOnTermination</code>
+attribute to <code>false</code> before terminating the instance:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-network-interface-attribute <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--network-interface-id</span> eni-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--attachment</span> AttachmentId=eni-attach-0123456789abcdef0,DeleteOnTermination=false</span></code></pre></div>
+<p>Once you terminate the original EC2 instance, the primary ENI
+transitions to the <code>available</code> state instead of being
+deleted. You can then launch a new EC2 instance and specify that
+existing ENI as its primary network interface
+(<code>deviceIndex=0</code>) during launch.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-you-detach-the-primary-eth-0-eni-from-an-ec-2-instance';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

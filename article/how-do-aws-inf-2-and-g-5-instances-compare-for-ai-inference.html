@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How do AWS Inf2 and G5 instances compare for AI inference? - ec2</title>
+    <meta name="description" content="This article compares the cost, throughput, memory architecture, and software ecosystems of Amazon EC2 Inf2 instances powered by AWS Inferentia2 chips and GPU-based G5 instances powered by NVIDIA A10G Tensor Core GPUs. It explores how architectural differ">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-aws-inf-2-and-g-5-instances-compare-for-ai-inference">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How do AWS Inf2 and G5 instances compare for AI inference? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-aws-inf-2-and-g-5-instances-compare-for-ai-inference" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article compares the cost, throughput, memory architecture, and software ecosystems of Amazon EC2 Inf2 instances powered by AWS Inferentia2 chips and GPU-based G5 instances powered by NVIDIA A10G Tensor Core GPUs. It explores how architectural differ" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-aws-inf2-and-g5-instances-compare-for-ai-inference">How
+do AWS Inf2 and G5 instances compare for AI inference?</h1>
+<p>This article compares the cost, throughput, memory architecture, and
+software ecosystems of Amazon EC2 Inf2 instances powered by AWS
+Inferentia2 chips and GPU-based G5 instances powered by NVIDIA A10G
+Tensor Core GPUs. It explores how architectural differences affect
+performance across large language models, computer vision, and
+generative AI workloads, while providing formulas and metrics to help
+engineering teams select the most cost-effective instance family for
+production inference.</p>
+<h2
+id="architectural-foundations-aws-inferentia2-vs-nvidia-a10g">Architectural
+Foundations: AWS Inferentia2 vs. NVIDIA A10G</h2>
+<p>Selecting the right compute instance for artificial intelligence
+inference on Amazon Web Services often comes down to comparing
+purpose-built silicon against general-purpose graphics processing units.
+Amazon EC2 Inf2 instances utilize AWS Inferentia2 accelerators, which
+are application-specific integrated circuits designed exclusively for
+deep learning inference. In contrast, Amazon EC2 G5 instances feature
+NVIDIA A10G Tensor Core GPUs, built on the NVIDIA Ampere architecture,
+which support both training, graphics rendering, and inference.</p>
+<p>Each Inferentia2 chip contains two NeuronCores-v2, each equipped with
+a dedicated tensor engine, vector engine, scalar engine, and digital
+signal processing engine. A defining characteristic of the Inf2
+architecture is its use of High Bandwidth Memory (HBM2e). Every
+Inferentia2 accelerator includes 32 GB of HBM2e delivering 820 GB/s of
+memory bandwidth per chip. Additionally, Inf2 instances feature
+NeuronLink-v2, a high-speed chip-to-chip interconnect that bypasses the
+host CPU and PCIe bus, allowing multiple accelerators on larger
+instances like the inf2.48xlarge to pool memory and execute distributed
+tensor parallelism with minimal latency.</p>
+<p>G5 instances rely on the NVIDIA A10G GPU, which provides 24 GB of
+GDDR6 memory per accelerator with 600 GB/s of memory bandwidth. While
+GDDR6 is cost-effective and versatile, it offers roughly 27 percent less
+memory bandwidth per accelerator than the HBM2e found on Inferentia2. On
+multi-GPU G5 instances such as the g5.12xlarge or g5.48xlarge, inter-GPU
+communication occurs over PCIe Gen4 rather than dedicated NVLink
+bridges, which introduces higher communication overhead when sharding
+large models across multiple GPUs.</p>
+<h2 id="pricing-and-hourly-cost-comparison">Pricing and Hourly Cost
+Comparison</h2>
+<p>On-Demand pricing in the US East (N. Virginia) region reveals a
+consistent cost advantage for Inf2 instances over comparably sized G5
+instances, alongside higher total accelerator memory at the entry and
+maximum tiers.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Size</th>
+<th style="text-align: left;">Accelerator Count</th>
+<th style="text-align: left;">Total Accelerator Memory</th>
+<th style="text-align: left;">Memory Bandwidth per Chip</th>
+<th style="text-align: left;">On-Demand Hourly Price (US East)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">inf2.xlarge</td>
+<td style="text-align: left;">1x Inferentia2</td>
+<td style="text-align: left;">32 GB HBM2e</td>
+<td style="text-align: left;">820 GB/s</td>
+<td style="text-align: left;">$0.758</td>
+</tr>
+<tr>
+<td style="text-align: left;">g5.xlarge</td>
+<td style="text-align: left;">1x NVIDIA A10G</td>
+<td style="text-align: left;">24 GB GDDR6</td>
+<td style="text-align: left;">600 GB/s</td>
+<td style="text-align: left;">$1.006</td>
+</tr>
+<tr>
+<td style="text-align: left;">inf2.8xlarge</td>
+<td style="text-align: left;">1x Inferentia2</td>
+<td style="text-align: left;">32 GB HBM2e</td>
+<td style="text-align: left;">820 GB/s</td>
+<td style="text-align: left;">$1.968</td>
+</tr>
+<tr>
+<td style="text-align: left;">g5.8xlarge</td>
+<td style="text-align: left;">1x NVIDIA A10G</td>
+<td style="text-align: left;">24 GB GDDR6</td>
+<td style="text-align: left;">600 GB/s</td>
+<td style="text-align: left;">$2.448</td>
+</tr>
+<tr>
+<td style="text-align: left;">inf2.24xlarge</td>
+<td style="text-align: left;">6x Inferentia2</td>
+<td style="text-align: left;">192 GB HBM2e</td>
+<td style="text-align: left;">820 GB/s</td>
+<td style="text-align: left;">$6.491</td>
+</tr>
+<tr>
+<td style="text-align: left;">g5.12xlarge</td>
+<td style="text-align: left;">4x NVIDIA A10G</td>
+<td style="text-align: left;">96 GB GDDR6</td>
+<td style="text-align: left;">600 GB/s</td>
+<td style="text-align: left;">$5.672</td>
+</tr>
+<tr>
+<td style="text-align: left;">g5.24xlarge</td>
+<td style="text-align: left;">4x NVIDIA A10G</td>
+<td style="text-align: left;">96 GB GDDR6</td>
+<td style="text-align: left;">600 GB/s</td>
+<td style="text-align: left;">$8.144</td>
+</tr>
+<tr>
+<td style="text-align: left;">inf2.48xlarge</td>
+<td style="text-align: left;">12x Inferentia2</td>
+<td style="text-align: left;">384 GB HBM2e</td>
+<td style="text-align: left;">820 GB/s</td>
+<td style="text-align: left;">$12.981</td>
+</tr>
+<tr>
+<td style="text-align: left;">g5.48xlarge</td>
+<td style="text-align: left;">8x NVIDIA A10G</td>
+<td style="text-align: left;">192 GB GDDR6</td>
+<td style="text-align: left;">600 GB/s</td>
+<td style="text-align: left;">$16.288</td>
+</tr>
+</tbody>
+</table>
+<p>At the single-accelerator tier, <code>inf2.xlarge</code> costs
+approximately 25 percent less per hour than <code>g5.xlarge</code> while
+offering 33 percent more accelerator memory (32 GB vs. 24 GB). That
+extra 8 GB of memory is critical for large language model deployment: a
+13-billion-parameter model quantized or cast to 16-bit floating point
+(<code>FP16</code> or <code>BF16</code>) requires roughly 26 GB of
+memory just to hold the weights, fitting onto a single
+<code>inf2.xlarge</code> instance while requiring either quantization to
+8-bit/4-bit or upgrading to a multi-GPU instance on the G5 family.</p>
+<p>At the top end of the lineup, <code>inf2.48xlarge</code> provides 384
+GB of total HBM2e memory across 12 accelerators for $12.981 per hour,
+whereas <code>g5.48xlarge</code> provides 192 GB of GDDR6 memory across
+8 GPUs for $16.288 per hour. The Inf2 flagship delivers double the total
+accelerator memory at a 20 percent lower hourly rate.</p>
+<h2 id="throughput-and-latency-dynamics">Throughput and Latency
+Dynamics</h2>
+<p>Inference performance is typically governed by two distinct regimes:
+the compute-bound regime and the memory-bandwidth-bound regime.
+Understanding how Inf2 and G5 behave in both regimes clarifies where
+each instance excels.</p>
+<p>For autoregressive large language models (such as Llama 3, Mistral,
+or Qwen), token generation consists of two phases:</p>
+<ol type="1">
+<li><strong>Prefill (Prompt Processing):</strong> Processing input
+tokens in parallel. This phase is heavily compute-bound and depends on
+matrix multiplication throughput (measured in TFLOPS).</li>
+<li><strong>Decode (Token Generation):</strong> Generating one token at
+a time sequentially per request. This phase is memory-bandwidth-bound
+because every model parameter must be read from accelerator memory into
+the compute units for each generated token.</li>
+</ol>
+<p>We can express the theoretical maximum token generation rate during
+the memory-bound decode phase for a batch size of 1 as:</p>
+<p><span class="math display">\[\text{Throughput}_{\text{decode}}
+\approx \frac{B_{\text{mem}}}{P \times b_{\text{param}}}\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(B_{\text{mem}}\)</span> is the effective
+memory bandwidth in bytes per second.</li>
+<li><span class="math inline">\(P\)</span> is the number of active
+parameters in the model.</li>
+<li><span class="math inline">\(b_{\text{param}}\)</span> is the number
+of bytes per parameter (for example, <span class="math inline">\(2\text{
+bytes}\)</span> for <span class="math inline">\(\text{BF16}\)</span> or
+<span class="math inline">\(\text{FP16}\)</span>).</li>
+</ul>
+<p>Applying this formula to a 7-billion-parameter model (<span
+class="math inline">\(P = 7 \times 10^9\)</span>) running in 16-bit
+precision (<span class="math inline">\(b_{\text{param}} = 2\)</span>,
+totaling <span class="math inline">\(14\text{ GB}\)</span> of
+weights):</p>
+<p><span class="math display">\[\text{Theoretical Max (Inferentia2)}
+\approx \frac{820\text{ GB/s}}{14\text{ GB}} \approx 58.5\text{
+tokens/second}\]</span></p>
+<p><span class="math display">\[\text{Theoretical Max (NVIDIA A10G)}
+\approx \frac{600\text{ GB/s}}{14\text{ GB}} \approx 42.8\text{
+tokens/second}\]</span></p>
+<p>In real-world benchmarks utilizing continuous batching frameworks
+like vLLM or Hugging Face Text Generation Inference (TGI), practical
+utilization reaches 60 to 80 percent of theoretical bandwidth.
+Consequently, a single Inferentia2 chip on <code>inf2.xlarge</code>
+consistently achieves 30 to 40 percent higher single-stream token
+generation speed and higher aggregate throughput than an NVIDIA A10G on
+<code>g5.xlarge</code> for memory-bound workloads.</p>
+<p>When scaling to larger models such as 70-billion-parameter LLMs
+across multiple accelerators using tensor parallelism, communication
+latency after every attention and feed-forward layer becomes a primary
+bottleneck. The total per-token latency <span
+class="math inline">\(T_{\text{token}}\)</span> across <span
+class="math inline">\(N\)</span> devices can be modeled as:</p>
+<p><span class="math display">\[T_{\text{token}} = \frac{P \times
+b_{\text{param}}}{N \times B_{\text{mem}}} +
+L_{\text{comm}}(N)\]</span></p>
+<p>Where <span class="math inline">\(L_{\text{comm}}(N)\)</span>
+represents the all-reduce synchronization overhead across <span
+class="math inline">\(N\)</span> accelerators. Because
+<code>inf2.24xlarge</code> and <code>inf2.48xlarge</code> use dedicated
+NeuronLink-v2 rings rather than shared PCIe Gen4 switches, <span
+class="math inline">\(L_{\text{comm}}(N)\)</span> is significantly lower
+on Inf2 than on <code>g5.12xlarge</code> or <code>g5.48xlarge</code>.
+For 70B models, Inf2 instances frequently achieve up to 2x to 3x higher
+throughput than multi-GPU G5 instances.</p>
+<h2 id="calculating-price-performance-efficiency">Calculating
+Price-Performance Efficiency</h2>
+<p>To evaluate the financial impact of throughput differences,
+engineering teams normalize hourly instance cost against throughput
+using the cost per million tokens (for text models) or cost per million
+inferences (for vision and embedding models):</p>
+<p><span class="math display">\[\text{Cost per } 10^6 \text{ Tokens} =
+\left( \frac{C_{\text{hour}}}{3600 \times \text{TPS}} \right) \times
+10^6\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(C_{\text{hour}}\)</span> is the instance
+hourly price in dollars.</li>
+<li><span class="math inline">\(\text{TPS}\)</span> is the sustained
+total throughput in tokens per second across concurrent requests.</li>
+</ul>
+<p>Consider a production deployment of an 8-billion-parameter model in
+<code>BF16</code> serving concurrent traffic with continuous
+batching:</p>
+<ul>
+<li>On <code>g5.xlarge</code> (<span
+class="math inline">\(C_{\text{hour}} = \$1.006\)</span>), sustained
+throughput under moderate concurrency might reach <span
+class="math inline">\(\text{TPS} = 450\text{ tokens/s}\)</span>.</li>
+<li>On <code>inf2.xlarge</code> (<span
+class="math inline">\(C_{\text{hour}} = \$0.758\)</span>), sustained
+throughput under identical latency service-level agreements (SLAs) might
+reach <span class="math inline">\(\text{TPS} = 600\text{
+tokens/s}\)</span>.</li>
+</ul>
+<p>Calculating the cost per million tokens for each:</p>
+<p><span class="math display">\[\text{Cost}_{\text{G5}} = \left(
+\frac{1.006}{3600 \times 450} \right) \times 10^6 \approx \$0.621\text{
+per } 10^6\text{ tokens}\]</span></p>
+<p><span class="math display">\[\text{Cost}_{\text{Inf2}} = \left(
+\frac{0.758}{3600 \times 600} \right) \times 10^6 \approx \$0.351\text{
+per } 10^6\text{ tokens}\]</span></p>
+<p>By combining a 25 percent lower hourly cost with a 33 percent higher
+throughput, <code>inf2.xlarge</code> lowers the effective cost per token
+by roughly 43 percent. Across vision transformers, BERT-style encoders,
+and diffusion models (such as Stable Diffusion XL), AWS benchmarks and
+independent testing consistently show 35 to 50 percent lower cost per
+inference on Inf2 compared to G5.</p>
+<h2 id="data-type-support-and-numerical-precision">Data Type Support and
+Numerical Precision</h2>
+<p>Hardware support for numerical data types dictates how models are
+quantized and executed:</p>
+<ul>
+<li><strong>AWS Inferentia2</strong> natively accelerates
+<code>FP32</code>, <code>TF32</code>, <code>BF16</code>,
+<code>FP16</code>, <code>INT8</code>, and configurable floating-point8
+(<code>cFP8</code>). Furthermore, the AWS Neuron compiler automatically
+casts <code>FP32</code> models to <code>BF16</code> by default,
+maintaining the dynamic exponent range of 32-bit floats while matching
+the throughput of 16-bit operations.</li>
+<li><strong>NVIDIA A10G</strong> natively accelerates <code>FP32</code>,
+<code>TF32</code>, <code>BF16</code>, <code>FP16</code>,
+<code>INT8</code>, and <code>INT4</code>. Because the A10G is based on
+the Ampere architecture (rather than Hopper or Ada Lovelace), it lacks
+native hardware <code>FP8</code> Tensor Cores, though it benefits from
+mature software ecosystems for <code>INT4</code> weight-only
+quantization formats such as AWQ and GPTQ.</li>
+</ul>
+<h2 id="software-ecosystem-and-compilation-trade-offs">Software
+Ecosystem and Compilation Trade-Offs</h2>
+<p>While Inf2 holds a clear lead in raw hardware metrics per dollar, G5
+instances maintain a substantial advantage in developer ergonomics and
+immediate compatibility.</p>
+<p>G5 instances run standard NVIDIA CUDA, cuDNN, and TensorRT stacks.
+Any model written in PyTorch, JAX, or TensorFlow with custom CUDA
+kernels (such as FlashAttention, custom RoPE implementations, or dynamic
+control flow) runs out of the box on G5 without ahead-of-time
+compilation.</p>
+<p>Inf2 instances require the AWS Neuron SDK
+(<code>torch-neuronx</code>, <code>transformers-neuronx</code>, or
+Optimum Neuron). Running a model on Inferentia2 involves an
+ahead-of-time (AOT) graph compilation step using the Neuron Compiler
+(<code>neuronx-cc</code>):</p>
+<ol type="1">
+<li><strong>Static Input Shapes:</strong> Models compiled for
+Inferentia2 must have fixed batch sizes, sequence lengths, or bucketed
+context lengths defined at compile time. If traffic patterns change and
+require a new maximum sequence length, the model graph must be
+recompiled.</li>
+<li><strong>Compilation Time:</strong> Compiling a 7B to 70B LLM can
+take anywhere from 15 minutes to over an hour depending on host CPU
+resources, making rapid prototyping slower unless pre-compiled
+checkpoints from the Hugging Face Neuron Model Hub are used.</li>
+<li><strong>Operator Coverage:</strong> While standard Transformer
+architectures (Llama, Mistral, BERT, ViT, Stable Diffusion) have
+first-class support in <code>optimum-neuron</code> and vLLM's Neuron
+backend, bleeding-edge architectures or custom C++/CUDA extensions
+require porting to Neuron Custom C++ Operators or Neuron Kernel
+Interface (NKI).</li>
+</ol>
+<h2 id="summary-decision-matrix">Summary Decision Matrix</h2>
+<p>Choosing between Amazon EC2 Inf2 and G5 instances depends on
+balancing operational maturity against unit economics:</p>
+<ul>
+<li><strong>Choose Amazon EC2 Inf2 when:</strong>
+<ul>
+<li>You are running high-volume, steady-state production inference where
+reducing cost per inference by 40 to 50 percent directly impacts
+margins.</li>
+<li>You are deploying standard architectures (Llama, Mistral, Qwen,
+BERT, Whisper, Stable Diffusion) supported by Hugging Face Optimum
+Neuron or vLLM.</li>
+<li>You need to fit larger models (such as 13B <code>BF16</code> models
+on a single chip or 70B+ <code>BF16</code> models on a single node)
+using Inf2's larger 32 GB per-chip HBM2e capacity and high-speed
+NeuronLink-v2 interconnect.</li>
+</ul></li>
+<li><strong>Choose Amazon EC2 G5 when:</strong>
+<ul>
+<li>You are prototyping new or custom model architectures that rely on
+custom CUDA kernels, dynamic input shapes, or experimental quantization
+methods.</li>
+<li>Your engineering workflow prioritizes zero-compilation deployment
+using standard Docker containers and upstream PyTorch or TensorRT-LLM
+builds.</li>
+<li>Your workloads combine 3D graphics rendering, video transcoding, and
+deep learning inference on the same underlying instance fleet.</li>
+</ul></li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-aws-inf-2-and-g-5-instances-compare-for-ai-inference';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

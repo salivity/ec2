@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How do you configure NVMe RAID on Amazon EC2 instances? - ec2</title>
+    <meta name="description" content="Configuring a software RAID array across multiple local NVMe instance store volumes on an Amazon EC2 Storage Optimized instance combines the throughput and input/output operations per second of individual drives into a single logical volume. You can accom">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-you-configure-nv-me-raid-on-amazon-ec-2-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How do you configure NVMe RAID on Amazon EC2 instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-you-configure-nv-me-raid-on-amazon-ec-2-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Configuring a software RAID array across multiple local NVMe instance store volumes on an Amazon EC2 Storage Optimized instance combines the throughput and input/output operations per second of individual drives into a single logical volume. You can accom" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-you-configure-nvme-raid-on-amazon-ec2-instances">How do
+you configure NVMe RAID on Amazon EC2 instances?</h1>
+<p>Configuring a software RAID array across multiple local NVMe instance
+store volumes on an Amazon EC2 Storage Optimized instance combines the
+throughput and input/output operations per second of individual drives
+into a single logical volume. You can accomplish this on Linux instances
+by identifying your unmounted NVMe block devices, assembling them into a
+RAID 0 or RAID 10 array using the mdadm utility, formatting the
+resulting virtual device with a filesystem such as XFS or ext4, and
+mounting it to a target directory. Because EC2 instance store volumes
+are ephemeral, data stored on local NVMe drives persists across standard
+instance reboots but is permanently lost if the instance stops,
+hibernates, or terminates.</p>
+<h2
+id="understanding-ec2-local-nvme-instance-store-volumes">Understanding
+EC2 Local NVMe Instance Store Volumes</h2>
+<p>Amazon EC2 Storage Optimized instance families—such as the I3, I3en,
+I4i, and Im4gn series—provide direct-attached Non-Volatile Memory
+Express (NVMe) solid-state drives (SSDs) physically installed in the
+host server. Unlike Amazon Elastic Block Store (EBS) volumes, which are
+network-attached, local NVMe instance store volumes deliver extremely
+low latency and high random I/O performance.</p>
+<p>When combining multiple local NVMe drives into a Redundant Array of
+Independent Disks (RAID), two configurations are standard on EC2:</p>
+<ul>
+<li><strong>RAID 0 (Striping):</strong> Distributes data evenly across
+all drives in the array without parity or mirroring. If you have <span
+class="math inline">\(N\)</span> drives each with capacity <span
+class="math inline">\(C\)</span> and throughput <span
+class="math inline">\(T\)</span>, the total usable capacity is <span
+class="math inline">\(N \times C\)</span> and the theoretical maximum
+throughput scales toward <span class="math inline">\(N \times
+T\)</span>. If any single drive fails or the instance stops, the entire
+array is lost. Because instance store volumes are already ephemeral,
+RAID 0 is the most common choice for high-performance scratch space,
+caches, or distributed databases that handle replication at the
+application layer.</li>
+<li><strong>RAID 10 (Mirrored Stripes):</strong> Requires an even number
+of drives (<span class="math inline">\(N \ge 4\)</span>) and mirrors
+data across pairs of striped drives. The usable capacity is <span
+class="math inline">\(\frac{N \times C}{2}\)</span>. It provides fault
+tolerance against a single drive failure within each mirrored pair while
+maintaining high read and write performance.</li>
+</ul>
+<h2 id="step-1-identify-the-local-nvme-drives">Step 1: Identify the
+Local NVMe Drives</h2>
+<p>Before creating the array, connect to your EC2 instance via SSH and
+inspect the attached block devices to distinguish your root EBS volume
+from the ephemeral local NVMe drives.</p>
+<p>Install the <code>nvme-cli</code> and <code>mdadm</code> packages if
+they are not already present on your Linux distribution:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Amazon Linux 2023 / RHEL / CentOS</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> mdadm nvme-cli</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Ubuntu / Debian</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt-get update <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> apt-get install <span class="at">-y</span> mdadm nvme-cli</span></code></pre></div>
+<p>List the block devices and their mount points:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">lsblk</span> <span class="at">-o</span> NAME,SIZE,TYPE,MOUNTPOINT,MODEL</span></code></pre></div>
+<p>You can also inspect the NVMe devices directly using
+<code>nvme list</code>:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> nvme list</span></code></pre></div>
+<p>On Nitro-based EC2 instances, both EBS volumes and instance store
+volumes appear as <code>/dev/nvme*n1</code> devices. Look at the
+<code>MODEL</code> column in the output:</p>
+<ul>
+<li><strong>Amazon Elastic Block Store</strong> indicates an EBS volume
+(do not include your root volume in the instance store RAID array).</li>
+<li><strong>Amazon EC2 NVMe Instance Storage</strong> indicates an
+ephemeral local NVMe drive.</li>
+</ul>
+<p>For the following steps, assume the instance has two unmounted local
+NVMe instance store volumes named <code>/dev/nvme1n1</code> and
+<code>/dev/nvme2n1</code>. Verify that neither drive contains an active
+filesystem or mount point before proceeding.</p>
+<h2 id="step-2-create-the-raid-array-with-mdadm">Step 2: Create the RAID
+Array with mdadm</h2>
+<p>Use the <code>mdadm</code> utility to assemble the local NVMe drives
+into a virtual block device (such as <code>/dev/md0</code>).</p>
+<p>To create a <strong>RAID 0</strong> array across two NVMe drives
+(<code>/dev/nvme1n1</code> and <code>/dev/nvme2n1</code>), run:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mdadm <span class="at">--create</span> <span class="at">--verbose</span> /dev/md0 <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--level</span><span class="op">=</span>0 <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--name</span><span class="op">=</span>MY_RAID <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--raid-devices</span><span class="op">=</span>2 <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  /dev/nvme1n1 /dev/nvme2n1</span></code></pre></div>
+<p>If your instance has four local NVMe drives and you prefer
+<strong>RAID 10</strong>, specify <code>--level=10</code> and
+<code>--raid-devices=4</code>:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mdadm <span class="at">--create</span> <span class="at">--verbose</span> /dev/md0 <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--level</span><span class="op">=</span>10 <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--name</span><span class="op">=</span>MY_RAID <span class="dt">\</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--raid-devices</span><span class="op">=</span>4 <span class="dt">\</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  /dev/nvme1n1 /dev/nvme2n1 /dev/nvme3n1 /dev/nvme4n1</span></code></pre></div>
+<p>Verify that the array is active and check its synchronization status
+by inspecting <code>/proc/mdstat</code>:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> /proc/mdstat</span></code></pre></div>
+<p>You can also view detailed configuration parameters—including chunk
+size, UUID, and drive state—using:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mdadm <span class="at">--detail</span> /dev/md0</span></code></pre></div>
+<h2 id="step-3-format-the-raid-array-with-a-filesystem">Step 3: Format
+the RAID Array with a Filesystem</h2>
+<p>Once <code>/dev/md0</code> is initialized, create a filesystem on the
+array. XFS is generally recommended for high-throughput NVMe arrays on
+Linux.</p>
+<p>Format the array with XFS and assign it a filesystem label:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkfs.xfs <span class="at">-L</span> MY_RAID /dev/md0</span></code></pre></div>
+<p>Alternatively, if your workload requires an <code>ext4</code>
+filesystem, run:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkfs.ext4 <span class="at">-L</span> MY_RAID /dev/md0</span></code></pre></div>
+<h2 id="step-4-persist-the-raid-configuration-and-mount-the-volume">Step
+4: Persist the RAID Configuration and Mount the Volume</h2>
+<p>To ensure the operating system reassembles the RAID array
+automatically when the instance reboots, save the array layout to the
+<code>mdadm</code> configuration file and update the initial
+ramdisk.</p>
+<p>Save the <code>mdadm</code> configuration:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Amazon Linux / RHEL / CentOS</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mdadm <span class="at">--detail</span> <span class="at">--scan</span> <span class="kw">|</span> <span class="fu">sudo</span> tee <span class="at">-a</span> /etc/mdadm.conf</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Ubuntu / Debian</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mdadm <span class="at">--detail</span> <span class="at">--scan</span> <span class="kw">|</span> <span class="fu">sudo</span> tee <span class="at">-a</span> /etc/mdadm/mdadm.conf</span></code></pre></div>
+<p>Rebuild the initial ramdisk image so the boot process recognizes
+<code>/dev/md0</code>:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Amazon Linux / RHEL / CentOS</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dracut <span class="at">-H</span> <span class="at">-f</span> /boot/initramfs-<span class="va">$(</span><span class="fu">uname</span> <span class="at">-r</span><span class="va">)</span>.img <span class="va">$(</span><span class="fu">uname</span> <span class="at">-r</span><span class="va">)</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Ubuntu / Debian</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> update-initramfs <span class="at">-u</span></span></code></pre></div>
+<p>Next, create a mount point directory and mount the array:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkdir <span class="at">-p</span> /mnt/raid</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount /dev/md0 /mnt/raid</span></code></pre></div>
+<p>To mount the array automatically across reboots, retrieve the UUID of
+<code>/dev/md0</code> using <code>blkid</code>:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> blkid /dev/md0</span></code></pre></div>
+<p>Open <code>/etc/fstab</code> in a text editor and add an entry using
+the volume's UUID or label. Always include the <code>nofail</code> mount
+option when configuring ephemeral EC2 instance store volumes in
+<code>/etc/fstab</code>. If the instance is ever stopped and started
+(which wipes instance store drives) or converted into an AMI launched on
+a different instance type, <code>nofail</code> allows the instance to
+boot normally even if the RAID array is missing:</p>
+<pre class="text"><code>UUID=&lt;your-device-uuid&gt; /mnt/raid xfs defaults,nofail,noatime 0 2</code></pre>
+<p>Test your <code>/etc/fstab</code> configuration without rebooting by
+unmounting and running <code>mount -a</code>:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> umount /mnt/raid</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount <span class="at">-a</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">df</span> <span class="at">-h</span> /mnt/raid</span></code></pre></div>
+<h2 id="automating-setup-across-stop-and-start-cycles">Automating Setup
+Across Stop and Start Cycles</h2>
+<p>While data on local NVMe drives survives an OS-level reboot
+(<code>sudo reboot</code>), stopping an EC2 instance through the AWS
+Management Console or CLI releases the underlying host hardware. When
+the instance is started again, it migrates to a new host with blank NVMe
+drives, and the RAID superblocks will no longer exist.</p>
+<p>If your architecture stops and starts instances regularly, you can
+configure a systemd service or an EC2 User Data script that checks
+whether <code>/dev/md0</code> exists at boot, and if not, automatically
+runs the <code>mdadm --create</code> and <code>mkfs.xfs</code> commands
+before mounting <code>/mnt/raid</code>.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-you-configure-nv-me-raid-on-amazon-ec-2-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

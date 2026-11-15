@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When to Use Targeted vs Open EC2 Capacity Reservations? - ec2</title>
+    <meta name="description" content="A team should use a targeted Capacity Reservation in Amazon EC2 when specific, critical workloads require guaranteed compute capacity and must be protected from other instances launching into that reserved pool. While open Capacity Reservations automatica">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-to-use-targeted-vs-open-ec-2-capacity-reservations">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When to Use Targeted vs Open EC2 Capacity Reservations? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-to-use-targeted-vs-open-ec-2-capacity-reservations" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="A team should use a targeted Capacity Reservation in Amazon EC2 when specific, critical workloads require guaranteed compute capacity and must be protected from other instances launching into that reserved pool. While open Capacity Reservations automatica" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="when-to-use-targeted-vs-open-ec2-capacity-reservations">When to
+Use Targeted vs Open EC2 Capacity Reservations?</h1>
+<p>A team should use a targeted Capacity Reservation in Amazon EC2 when
+specific, critical workloads require guaranteed compute capacity and
+must be protected from other instances launching into that reserved
+pool. While open Capacity Reservations automatically fulfill any
+matching instance launch in an Availability Zone, targeted reservations
+require explicit assignment at launch time. This distinction allows
+engineering and cloud operations teams to isolate mission-critical
+infrastructure, enforce strict budget boundaries, and prevent accidental
+consumption of reserved capacity by non-essential services.</p>
+<h2 id="understanding-amazon-ec2-capacity-reservations">Understanding
+Amazon EC2 Capacity Reservations</h2>
+<p>Amazon EC2 On-Demand Capacity Reservations enable organizations to
+reserve compute capacity for Amazon EC2 instances in a specific
+Availability Zone for any duration. When creating a reservation, you
+specify the instance type, platform, tenancy, and Availability Zone. AWS
+holds that capacity for your account as long as the reservation remains
+active, ensuring you can launch instances whenever needed, even during
+periods of high regional demand or hardware constraints.</p>
+<p>Capacity Reservations offer two distinct instance eligibility
+options: open and targeted. Both options reserve the exact same
+underlying hardware and incur identical billing rates, where you pay for
+the total reserved capacity <span
+class="math inline">\(C_{\text{reserved}}\)</span> regardless of whether
+instances are actively running. If <span
+class="math inline">\(N_{\text{running}}\)</span> represents the number
+of running instances matching the reservation attributes, the unused
+billed capacity <span class="math inline">\(C_{\text{unused}}\)</span>
+is defined as:</p>
+<p><span class="math display">\[C_{\text{unused}} = C_{\text{reserved}}
+- N_{\text{running}}\]</span></p>
+<p>The difference between open and targeted reservations lies entirely
+in how new or existing EC2 instances consume <span
+class="math inline">\(C_{\text{reserved}}\)</span>.</p>
+<h2 id="how-open-capacity-reservations-work">How Open Capacity
+Reservations Work</h2>
+<p>An open Capacity Reservation is the default configuration when
+reserving capacity in Amazon EC2. Any instance launched in the same AWS
+account—or shared accounts via AWS Resource Access Manager (AWS
+RAM)—that matches the reservation attributes (Availability Zone,
+instance type, platform, and tenancy) automatically runs in the open
+Capacity Reservation.</p>
+<p>Open reservations require zero modifications to existing launch
+templates, Auto Scaling configurations, or deployment scripts. If a
+developer launches a matching instance manually via the AWS Management
+Console or through an automated pipeline without specifying a
+reservation setting, EC2 automatically places the instance into the open
+reservation pool until the capacity is full.</p>
+<h2 id="how-targeted-capacity-reservations-work">How Targeted Capacity
+Reservations Work</h2>
+<p>A targeted Capacity Reservation restricts capacity access exclusively
+to instances that explicitly target that specific reservation ID or a
+Capacity Reservation group at launch. If an instance launches with
+matching attributes (same Availability Zone, instance type, and
+platform) but does not explicitly specify the targeted Capacity
+Reservation ID, it will not consume the reserved capacity. Instead, it
+launches into the standard public On-Demand pool.</p>
+<p>Furthermore, you can configure instances to launch <em>only</em> if
+they can be placed into a targeted reservation, preventing workloads
+from accidentally overflowing into unreserved On-Demand capacity.</p>
+<h2 id="key-scenarios-for-choosing-targeted-capacity-reservations">Key
+Scenarios for Choosing Targeted Capacity Reservations</h2>
+<h3 id="1-protecting-mission-critical-workloads-in-shared-accounts">1.
+Protecting Mission-Critical Workloads in Shared Accounts</h3>
+<p>In many cloud environments, multiple applications, microservices, and
+teams share the same AWS account and Availability Zones. They also
+commonly standardize on popular instance families, such as
+<code>m6i.xlarge</code> or <code>c7g.2xlarge</code>.</p>
+<p>If you create an open Capacity Reservation for
+<code>m6i.xlarge</code> to guarantee capacity for a tier-1 payment
+processing service, a developer running an ad-hoc testing cluster or a
+background batch job using the same <code>m6i.xlarge</code> instance
+type in that Availability Zone can inadvertently consume your reserved
+capacity. When the payment processing service scales out, the reserved
+capacity is already exhausted, potentially resulting in an
+<code>InsufficientInstanceCapacity</code> error. Targeted Capacity
+Reservations eliminate this risk by ensuring only the payment
+service—configured with the reservation ID in its launch template—can
+claim those reserved instances.</p>
+<h3 id="2-disaster-recovery-and-high-availability-failover">2. Disaster
+Recovery and High-Availability Failover</h3>
+<p>Disaster recovery (DR) architectures often rely on pilot-light or
+warm-standby strategies where core capacity is reserved in a secondary
+Availability Zone or region, waiting to scale up immediately during an
+outage.</p>
+<p>Using a targeted Capacity Reservation ensures that your failover
+capacity remains strictly untouched during normal day-to-day operations.
+When a failover event triggers, your automated recovery runbooks or Auto
+Scaling groups target the specific reservation ID, guaranteeing that the
+exact compute footprint required for recovery is immediately
+available.</p>
+<h3 id="3-strict-regulatory-licensing-or-compliance-placement">3. Strict
+Regulatory, Licensing, or Compliance Placement</h3>
+<p>Workloads subject to strict licensing agreements (such as
+bring-your-own-license software bound to specific hardware footprints)
+or regulatory frameworks often require deterministic infrastructure
+placement. By pairing targeted Capacity Reservations with specific
+launch templates and IAM policies, administrators can enforce that
+sensitive workloads only run inside designated, pre-allocated
+reservations, and conversely, that unapproved workloads cannot enter
+those reservations.</p>
+<h3 id="4-multi-account-sharing-and-departmental-chargebacks">4.
+Multi-Account Sharing and Departmental Chargebacks</h3>
+<p>When using AWS Resource Access Manager (AWS RAM) to share Capacity
+Reservations across an AWS Organization, an open reservation allows any
+participating account within the organization to consume the capacity on
+a first-come, first-served basis.</p>
+<p>If a central platform team purchases capacity specifically for two
+different business units, targeted reservations allow the platform team
+to allocate distinct reservation IDs or Capacity Reservation groups to
+each department. This ensures one business unit cannot starve another of
+its allocated and budgeted compute resources.</p>
+<h3 id="5-specialized-hardware-and-gpu-allocation">5. Specialized
+Hardware and GPU Allocation</h3>
+<p>High-demand instance families—such as GPU-accelerated instances
+(<code>p4d</code>, <code>p5</code>, <code>g5</code>) used for machine
+learning training and inference—frequently experience capacity
+constraints. When an organization secures a Capacity Reservation for
+accelerated computing, different ML teams often compete for those nodes.
+By using targeted Capacity Reservations, MLOps platforms can orchestrate
+job queues and explicitly assign specific training jobs to specific
+reservations, preventing lower-priority experiments from monopolizing
+scarce GPU instances.</p>
+<h2 id="grouping-targeted-reservations-for-flexibility">Grouping
+Targeted Reservations for Flexibility</h2>
+<p>A common concern with targeted Capacity Reservations is the
+operational overhead of hardcoding specific Capacity Reservation IDs
+into launch templates or Auto Scaling groups. To solve this, AWS
+provides Capacity Reservation groups via AWS Resource Groups.</p>
+<p>Teams can add multiple targeted Capacity Reservations to a logical
+group and configure their EC2 launch templates to target the group ARN
+rather than an individual reservation ID. This approach preserves the
+strict access controls of targeted reservations while allowing cloud
+administrators to add, modify, or replace underlying reservations
+without updating application deployment templates.</p>
+<h2 id="summary-of-selection-criteria">Summary of Selection
+Criteria</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Evaluation Criteria</th>
+<th style="text-align: left;">Open Capacity Reservation</th>
+<th style="text-align: left;">Targeted Capacity Reservation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Instance Launch
+Configuration</strong></td>
+<td style="text-align: left;">No changes required to existing launch
+templates</td>
+<td style="text-align: left;">Requires specifying a Reservation ID or
+Group ARN</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Consumption Behavior</strong></td>
+<td style="text-align: left;">Automatically used by any matching
+instance</td>
+<td style="text-align: left;">Used only by instances that explicitly
+target it</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Best For</strong></td>
+<td style="text-align: left;">Dedicated single-workload accounts or
+general baseline capacity</td>
+<td style="text-align: left;">Shared accounts, DR standby, critical
+apps, and scarce instance types</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Risk of "Noisy Neighbor"
+Theft</strong></td>
+<td style="text-align: left;">High if multiple workloads share instance
+types in the same AZ</td>
+<td style="text-align: left;">None; unauthorized workloads are blocked
+from the pool</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Operational
+Complexity</strong></td>
+<td style="text-align: left;">Low (set and forget)</td>
+<td style="text-align: left;">Moderate (requires launch template and IAM
+coordination)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="enforcing-governance-with-iam">Enforcing Governance with
+IAM</h2>
+<p>To maximize the effectiveness of targeted Capacity Reservations,
+teams should pair them with AWS Identity and Access Management (IAM)
+condition keys. Specifically, using the
+<code>ec2:CapacityReservationId</code> condition key in IAM policies
+allows security engineers to control which IAM roles or users are
+permitted to launch instances into a specific targeted reservation.
+Combining targeted reservations with IAM policies provides a complete
+governance boundary, guaranteeing that reserved compute capacity is
+always available for the exact workload it was provisioned to
+support.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-to-use-targeted-vs-open-ec-2-capacity-reservations';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Can You Modify an Attached EBS Volume on the Fly? - ec2</title>
+    <meta name="description" content="This article explains how to dynamically expand storage size, adjust IOPS performance, or change the volume type of an attached Amazon EC2 Elastic Block Store volume without experiencing downtime. You will learn the core prerequisites for using the Elasti">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-can-you-modify-an-attached-ebs-volume-on-the-fly">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Can You Modify an Attached EBS Volume on the Fly? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-can-you-modify-an-attached-ebs-volume-on-the-fly" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explains how to dynamically expand storage size, adjust IOPS performance, or change the volume type of an attached Amazon EC2 Elastic Block Store volume without experiencing downtime. You will learn the core prerequisites for using the Elasti" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-can-you-modify-an-attached-ebs-volume-on-the-fly">How Can
+You Modify an Attached EBS Volume on the Fly?</h1>
+<p>This article explains how to dynamically expand storage size, adjust
+IOPS performance, or change the volume type of an attached Amazon EC2
+Elastic Block Store volume without experiencing downtime. You will learn
+the core prerequisites for using the Elastic Volumes feature, how to
+initiate volume modifications via the AWS Management Console and AWS
+CLI, how to monitor the optimization lifecycle, and how to extend the
+underlying Linux or Windows file system to utilize newly allocated
+storage capacity.</p>
+<h2 id="understanding-amazon-ebs-elastic-volumes">Understanding Amazon
+EBS Elastic Volumes</h2>
+<p>Amazon EBS Elastic Volumes allows you to dynamically increase
+capacity, tune performance, and change the type of live, production
+volumes attached to current-generation EC2 instances. Instead of
+stopping an instance, creating a snapshot, restoring it to a new volume,
+and swapping attachments, you can issue a single modification request
+while your application continues reading from and writing to the
+disk.</p>
+<p>With Elastic Volumes, you can perform three primary
+modifications:</p>
+<ul>
+<li><strong>Increase Volume Size</strong>: Expand a volume up to the
+maximum allowed capacity for its type (up to <span
+class="math inline">\(16\text{ TiB}\)</span> for standard SSD and HDD
+volumes, or up to <span class="math inline">\(64\text{ TiB}\)</span> for
+<code>io2</code> Block Express).</li>
+<li><strong>Adjust Performance</strong>: Modify provisioned IOPS and
+throughput independently on <code>gp3</code>, <code>io1</code>, and
+<code>io2</code> volumes to match changing workload requirements.</li>
+<li><strong>Change Volume Type</strong>: Migrate between General Purpose
+SSD (<code>gp2</code>, <code>gp3</code>), Provisioned IOPS SSD
+(<code>io1</code>, <code>io2</code>), and Magnetic HDD
+(<code>st1</code>, <code>sc1</code>) volumes seamlessly.</li>
+</ul>
+<h2 id="prerequisites-and-limitations">Prerequisites and
+Limitations</h2>
+<p>Before initiating an on-the-fly modification, verify that your
+environment satisfies the following requirements:</p>
+<ol type="1">
+<li><strong>Supported Instance Types</strong>: The volume must be
+attached to a current-generation EC2 instance (such as Nitro-based
+instances or newer Xen-based families). Legacy instances may require a
+reboot or detachment before changes take effect.</li>
+<li><strong>Increase-Only Capacity Rule</strong>: You can only increase
+the size of an EBS volume. Decreasing volume size is not supported;
+shrinking requires creating a smaller volume and migrating data manually
+via file-level copy Tools.</li>
+<li><strong>Cooldown Period</strong>: Once you modify a volume, you must
+wait at least <span class="math inline">\(6\text{ hours}\)</span> and
+ensure the volume has reached the <code>completed</code> state before
+applying another modification to the same volume.</li>
+<li><strong>Boot Volume Constraints</strong>: Throughput Optimized HDD
+(<code>st1</code>) and Cold HDD (<code>sc1</code>) cannot be used as
+boot volumes. Therefore, you cannot convert an active root volume into
+<code>st1</code> or <code>sc1</code>.</li>
+</ol>
+<h2 id="step-1-modify-the-ebs-volume">Step 1: Modify the EBS Volume</h2>
+<p>You can trigger the volume modification using either the AWS
+Management Console or the AWS Command Line Interface (AWS CLI).</p>
+<h3 id="using-the-aws-management-console">Using the AWS Management
+Console</h3>
+<ol type="1">
+<li>Open the Amazon EC2 console and select <strong>Volumes</strong>
+under the <strong>Elastic Block Store</strong> navigation pane.</li>
+<li>Select the attached volume you want to update and click
+<strong>Actions</strong>, then <strong>Modify volume</strong>.</li>
+<li>Change the <strong>Volume type</strong>, <strong>Size
+(GiB)</strong>, <strong>IOPS</strong>, or <strong>Throughput
+(MB/s)</strong> to your desired values.</li>
+<li>Click <strong>Modify</strong>, review the confirmation prompt, and
+click <strong>Modify</strong> again to apply the changes.</li>
+</ol>
+<h3 id="using-the-aws-cli">Using the AWS CLI</h3>
+<p>Use the <code>modify-volume</code> command to update size, IOPS,
+throughput, or volume type in a single API call. For example, to convert
+a volume to <code>gp3</code>, expand its size to <span
+class="math inline">\(200\text{ GiB}\)</span>, set performance to <span
+class="math inline">\(4000\text{ IOPS}\)</span>, and configure <span
+class="math inline">\(250\text{ MB/s}\)</span> of throughput, run:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-volume <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--volume-id</span> vol-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--volume-type</span> gp3 <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--size</span> 200 <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--iops</span> 4000 <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--throughput</span> 250</span></code></pre></div>
+<p>The command returns a <code>VolumeModification</code> object showing
+the <code>ModificationState</code> as <code>modifying</code>.</p>
+<h2 id="step-2-monitor-modification-progress">Step 2: Monitor
+Modification Progress</h2>
+<p>An EBS volume modification transitions through three primary
+states:</p>
+<ul>
+<li><code>modifying</code>: The volume parameters are actively being
+updated. Once the state transitions out of <code>modifying</code> into
+<code>optimizing</code>, the new size is visible to the operating
+system.</li>
+<li><code>optimizing</code>: The storage backend is redistributing
+blocks to achieve the target configuration. During this phase, volume
+performance stays between the source and target specifications, and is
+guaranteed not to drop below the source specification. Optimization can
+take anywhere from a few minutes to several hours depending on volume
+size and activity.</li>
+<li><code>completed</code>: The modification is finished, and the volume
+operates fully at its new parameters.</li>
+</ul>
+<p>To check the status of your modification via the AWS CLI, run the
+<code>describe-volumes-modifications</code> command:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-volumes-modifications <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--volume-id</span> vol-0123456789abcdef0</span></code></pre></div>
+<p>Look for the <code>ModificationState</code> and <code>Progress</code>
+percentage in the JSON output. As soon as the state reaches
+<code>optimizing</code> or <code>completed</code>, you can proceed with
+extending the OS partition and file system.</p>
+<h2 id="step-3-extend-the-partition-and-file-system">Step 3: Extend the
+Partition and File System</h2>
+<p>Increasing the physical block storage of an EBS volume does not
+automatically expand the partition or file system inside the guest
+operating system. You must instruct your OS to claim the newly available
+space.</p>
+<h3 id="extending-a-volume-on-linux">Extending a Volume on Linux</h3>
+<p>First, connect to your Linux instance via SSH or AWS Systems Manager
+Session Manager and inspect the block devices using
+<code>lsblk</code>:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">lsblk</span></span></code></pre></div>
+<p>Consider the following example output for an NVMe-based instance
+where the root volume (<code>/dev/nvme0n1</code>) was expanded to <span
+class="math inline">\(200\text{ GiB}\)</span>, while its first partition
+(<code>/dev/nvme0n1p1</code>) remains at <span
+class="math inline">\(100\text{ GiB}\)</span>:</p>
+<pre class="text"><code>NAME          MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+nvme0n1       259:0    0  200G  0 disk
+└─nvme0n1p1   259:1    0  100G  0 part /</code></pre>
+<h4 id="1-expand-the-partition">1. Expand the Partition</h4>
+<p>If your volume uses a partition table, use the <code>growpart</code>
+utility to extend the partition to fill the remaining space. Notice the
+space between the device name and the partition number:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> growpart /dev/nvme0n1 1</span></code></pre></div>
+<p>Run <code>lsblk</code> again to verify that <code>nvme0n1p1</code>
+now reflects the full <span class="math inline">\(200\text{
+GiB}\)</span> size. If your volume is formatted directly as a raw block
+device without a partition table, skip the <code>growpart</code>
+command.</p>
+<h4 id="2-expand-the-file-system">2. Expand the File System</h4>
+<p>Check your file system type using <code>df -hT</code>:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">df</span> <span class="at">-hT</span></span></code></pre></div>
+<p>If you are using an <strong>XFS</strong> file system (the default on
+Amazon Linux 2, Amazon Linux 2023, and Red Hat Enterprise Linux), extend
+the file system by targeting the mount point with
+<code>xfs_growfs</code>:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> xfs_growfs <span class="at">-d</span> /</span></code></pre></div>
+<p>If you are using an <strong>ext4</strong> file system (common on
+Ubuntu and Debian), extend the file system by targeting the device or
+partition name with <code>resize2fs</code>:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> resize2fs /dev/nvme0n1p1</span></code></pre></div>
+<p>Finally, run <code>df -h</code> to confirm that the operating system
+recognizes the expanded capacity.</p>
+<h3 id="extending-a-volume-on-windows">Extending a Volume on
+Windows</h3>
+<p>If your volume is attached to a Windows Server EC2 instance, you can
+expand the NTFS or ReFS volume using Disk Management or PowerShell:</p>
+<ol type="1">
+<li>Connect to your Windows instance using Remote Desktop (RDP).</li>
+<li>Open the Run dialog (<code>Win + R</code>), type
+<code>diskmgmt.msc</code>, and press <strong>Enter</strong> to launch
+<strong>Disk Management</strong>.</li>
+<li>In the menu bar, click <strong>Action</strong> and select
+<strong>Rescan Disks</strong> to ensure Windows detects the newly
+allocated space.</li>
+<li>Right-click the active partition adjacent to the unallocated space
+and select <strong>Extend Volume</strong>.</li>
+<li>Follow the <strong>Extend Volume Wizard</strong>, keeping the
+default maximum available space selected, and click
+<strong>Finish</strong>.</li>
+</ol>
+<p>Alternatively, to extend the <code>C:</code> drive directly using an
+elevated PowerShell prompt, run:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>Update-HostStorageCache</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="va">$MaxSize</span> <span class="op">=</span> <span class="op">(</span>Get-PartitionSupportedSize <span class="op">-</span>DriveLetter C<span class="op">).</span><span class="fu">SizeMax</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>Resize-Partition <span class="op">-</span>DriveLetter C <span class="op">-</span>Size <span class="va">$MaxSize</span></span></code></pre></div></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-can-you-modify-an-attached-ebs-volume-on-the-fly';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

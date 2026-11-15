@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Does the AWS Nitro Hypervisor Offer Bare-Metal Performance? - ec2</title>
+    <meta name="description" content="Yes, the Amazon EC2 Nitro Hypervisor delivers near-bare-metal performance by offloading traditional virtualization tasks onto dedicated hardware known as Nitro Cards. In conventional cloud environments, the host hypervisor consumes a notable portion of th">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/does-the-aws-nitro-hypervisor-offer-bare-metal-performance">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Does the AWS Nitro Hypervisor Offer Bare-Metal Performance? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/does-the-aws-nitro-hypervisor-offer-bare-metal-performance" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, the Amazon EC2 Nitro Hypervisor delivers near-bare-metal performance by offloading traditional virtualization tasks onto dedicated hardware known as Nitro Cards. In conventional cloud environments, the host hypervisor consumes a notable portion of th" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="does-the-aws-nitro-hypervisor-offer-bare-metal-performance">Does
+the AWS Nitro Hypervisor Offer Bare-Metal Performance?</h1>
+<p>Yes, the Amazon EC2 Nitro Hypervisor delivers near-bare-metal
+performance by offloading traditional virtualization tasks onto
+dedicated hardware known as Nitro Cards. In conventional cloud
+environments, the host hypervisor consumes a notable portion of the
+underlying physical server's CPU and memory to manage storage,
+networking, security, and monitoring. By moving these management
+functions off the main system processor, the Nitro architecture allows
+virtualized instances to access almost 100 percent of the host
+hardware's compute and memory resources, resulting in virtually
+indistinguishable performance compared to non-virtualized bare-metal
+servers.</p>
+<h2 id="the-traditional-virtualization-tax">The Traditional
+Virtualization Tax</h2>
+<p>To understand how the AWS Nitro System eliminates virtualization
+overhead, it helps to examine how legacy hypervisors operate. In
+traditional virtualization models (such as early Xen or standard KVM
+setups), a software layer sits directly on the physical host and
+mediates access between guest virtual machines (VMs) and the underlying
+hardware.</p>
+<p>In these legacy architectures, a privileged management domain (often
+called Dom0 in Xen) runs alongside customer instances on the same
+physical CPU cores and system RAM. This management layer handles:</p>
+<ul>
+<li>Virtual network packet switching and software-defined networking
+(SDN) encapsulation.</li>
+<li>Block storage emulation and remote storage protocol
+translation.</li>
+<li>Hardware device emulation (such as virtual BIOS, serial ports, and
+controllers).</li>
+<li>System monitoring, logging, and security enforcement.</li>
+</ul>
+<p>Because these tasks execute on the primary host processor, they
+consume CPU cycles, pollute CPU caches, and reserve system memory. We
+can express the effective compute capacity <span
+class="math inline">\(C_{\text{effective}}\)</span> available to a guest
+virtual machine as:</p>
+<p><span class="math display">\[C_{\text{effective}} = C_{\text{total}}
+- (O_{\text{hypervisor}} + O_{\text{I/O}} +
+O_{\text{management}})\]</span></p>
+<p>Where <span class="math inline">\(C_{\text{total}}\)</span> is the
+raw physical compute capacity, <span
+class="math inline">\(O_{\text{hypervisor}}\)</span> is the CPU
+scheduling and memory translation overhead, <span
+class="math inline">\(O_{\text{I/O}}\)</span> is the cost of emulating
+network and storage devices in software, and <span
+class="math inline">\(O_{\text{management}}\)</span> represents
+host-level monitoring and control planes. In traditional clouds, the sum
+of these overheads can consume anywhere from 5% to 20% of the server's
+resources, while also introducing latency jitter during heavy I/O
+operations.</p>
+<h2 id="how-the-aws-nitro-architecture-works">How the AWS Nitro
+Architecture Works</h2>
+<p>AWS re-engineered the virtualization stack from the ground up by
+separating the hypervisor software from the I/O and management planes.
+The AWS Nitro System consists of three distinct hardware and firmware
+components working together:</p>
+<h3 id="1-dedicated-nitro-cards">1. Dedicated Nitro Cards</h3>
+<p>Instead of using the host's primary Intel, AMD, or AWS Graviton
+processors to process network packets and storage requests, Nitro-based
+EC2 hosts incorporate custom-built ASICs (Application-Specific
+Integrated Circuits) on PCIe cards:</p>
+<ul>
+<li><strong>Nitro Card for VPC:</strong> Handles Virtual Private Cloud
+(VPC) encapsulation, security groups, network routing, and Elastic
+Network Adapter (ENA) interfaces directly in hardware.</li>
+<li><strong>Nitro Card for EBS:</strong> Manages Elastic Block Store
+(EBS) volume encryption, protocol translation, and presenting remote
+storage to the guest instance as local NVMe drives.</li>
+<li><strong>Nitro Card for Instance Storage:</strong> Provides
+hardware-accelerated encryption and wear-leveling for local NVMe
+SSDs.</li>
+<li><strong>Nitro Controller Card:</strong> Coordinates all other Nitro
+cards, the Nitro Security Chip, and the Nitro Hypervisor, communicating
+with the AWS control plane completely independent of the main system
+board.</li>
+</ul>
+<h3 id="2-the-nitro-security-chip">2. The Nitro Security Chip</h3>
+<p>Integrated directly into the server motherboard, the Nitro Security
+Chip continuously monitors and protects hardware firmware. It prevents
+unauthorized modifications to system flash memory and ensures that the
+host CPU only runs cryptographically verified code, removing the need
+for heavy host-based security scanning software.</p>
+<h3 id="3-the-lightweight-nitro-hypervisor">3. The Lightweight Nitro
+Hypervisor</h3>
+<p>Because networking, storage, security, and control plane management
+are handled entirely by the Nitro Cards, the software hypervisor running
+on the main host CPU has almost nothing left to do. Built on core Linux
+Kernel-based Virtual Machine (KVM) technology, the Nitro Hypervisor does
+not include a general-purpose operating system, a networking stack, or
+storage drivers.</p>
+<p>Its sole responsibility is partitioning physical CPU cores and system
+memory, and configuring hardware-assisted virtualization tables for the
+guest instances. Once an EC2 instance boots and its resources are
+allocated, the Nitro Hypervisor remains mostly dormant. It only steps in
+on rare occasions when an instance executes a privileged instruction
+that forces a VM exit.</p>
+<h2 id="performance-characteristics-nitro-vs-bare-metal">Performance
+Characteristics: Nitro vs. Bare Metal</h2>
+<p>By offloading I/O and management, the equation for effective compute
+capacity on a Nitro instance simplifies dramatically because <span
+class="math inline">\(O_{\text{I/O}} \approx 0\)</span> and <span
+class="math inline">\(O_{\text{management}} \approx 0\)</span>. The
+remaining overhead is limited to hardware-assisted memory translation
+and minimal hypervisor interrupts, normally accounting for less than 1%
+of total system resources.</p>
+<h3 id="cpu-and-memory-allocation">CPU and Memory Allocation</h3>
+<p>When you launch a full-sized virtualized Nitro instance (such as an
+<code>m6i.32xlarge</code>), the instance receives nearly the exact same
+CPU core count and RAM capacity as the corresponding bare-metal instance
+(<code>m6i.metal</code>). By utilizing hardware virtualization
+extensions like Intel VT-x or AMD-V alongside Extended Page Tables (EPT)
+or Rapid Virtualization Indexing (RVI), guest memory addresses are
+translated to physical memory addresses directly by the CPU's Memory
+Management Unit (MMU) hardware without hypervisor intervention.</p>
+<h3 id="single-root-io-virtualization-sr-iov">Single-Root I/O
+Virtualization (SR-IOV)</h3>
+<p>When an application inside a Nitro EC2 instance sends a network
+packet or reads from an EBS volume, it does not trap into the
+hypervisor. Instead, the guest OS communicates directly with the Nitro
+Cards over the PCIe bus using Single-Root I/O Virtualization (SR-IOV)
+via the Elastic Network Adapter (ENA) and NVMe interfaces. This direct
+hardware path bypasses software emulation completely, yielding network
+throughput up to hundreds of gigabits per second and microsecond-level
+latencies that match physical bare-metal servers.</p>
+<h3 id="eliminating-jitter-and-noisy-neighbors">Eliminating Jitter and
+Noisy Neighbors</h3>
+<p>In traditional multi-tenant clouds, high I/O activity from one
+virtual machine can spike CPU usage in the shared hypervisor management
+domain, causing latency spikes ("jitter") for other workloads on the
+same server. Because Nitro isolates each instance's compute cores and
+processes I/O on dedicated hardware queues on the Nitro Cards, workloads
+experience consistent, predictable latency and near-zero jitter.</p>
+<h2 id="when-do-you-still-need-ec2-bare-metal-instances">When Do You
+Still Need EC2 Bare Metal Instances?</h2>
+<p>Interestingly, AWS uses the exact same Nitro Cards and Nitro Security
+Chip to power its bare-metal instances (<code>*.metal</code>). On a
+<code>.metal</code> instance, the Nitro Controller boots the customer's
+operating system directly onto the physical hardware without loading the
+Nitro Hypervisor.</p>
+<p>Since virtualized Nitro instances already achieve within 1% of
+bare-metal performance, you might wonder why <code>.metal</code>
+instances exist at all. While performance is virtually identical for
+standard workloads, bare-metal instances are still required in specific
+scenarios:</p>
+<ul>
+<li><strong>Running Custom Hypervisors:</strong> Workloads that require
+direct access to hardware virtualization extensions (such as running
+VMware Cloud on AWS, Nutanix, or custom KVM/Xen environments) without
+the performance penalties of nested virtualization.</li>
+<li><strong>Software Licensing Restrictions:</strong> Certain enterprise
+software vendors tie licensing terms directly to physical CPU sockets
+and cores or mandate non-virtualized environments for support
+compliance.</li>
+<li><strong>Specialized Hardware Counters and Profiling:</strong>
+Low-level performance engineering that requires unrestricted access to
+CPU-specific Performance Monitoring Units (PMUs), uncore counters, or
+thermal/power management states that are masked inside virtual machines
+for multi-tenant security.</li>
+</ul>
+<p>For almost all other compute-intensive, memory-bound, or
+high-throughput I/O workloads, virtualized Amazon EC2 instances running
+on the Nitro Hypervisor deliver the speed and predictability of bare
+metal while retaining the fast provisioning times, flexible sizing, and
+operational simplicity of virtual machines.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/does-the-aws-nitro-hypervisor-offer-bare-metal-performance';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

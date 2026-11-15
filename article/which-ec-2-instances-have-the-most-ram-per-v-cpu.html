@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which EC2 Instances Have the Most RAM per vCPU? - ec2</title>
+    <meta name="description" content="Amazon EC2 X2iedn, u-12tb1, u-18tb1, and u-24tb1 High Memory instances provide the highest memory-to-compute density in AWS, delivering up to 32 GiB to 53.3 GiB of RAM per vCPU. While standard memory-optimized families like R7i and R7g offer an 8 GiB per">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-ec-2-instances-have-the-most-ram-per-v-cpu">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which EC2 Instances Have the Most RAM per vCPU? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-ec-2-instances-have-the-most-ram-per-v-cpu" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 X2iedn, u-12tb1, u-18tb1, and u-24tb1 High Memory instances provide the highest memory-to-compute density in AWS, delivering up to 32 GiB to 53.3 GiB of RAM per vCPU. While standard memory-optimized families like R7i and R7g offer an 8 GiB per" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="which-ec2-instances-have-the-most-ram-per-vcpu">Which EC2
+Instances Have the Most RAM per vCPU?</h1>
+<p>Amazon EC2 X2iedn, u-12tb1, u-18tb1, and u-24tb1 High Memory
+instances provide the highest memory-to-compute density in AWS,
+delivering up to 32 GiB to 53.3 GiB of RAM per vCPU. While standard
+memory-optimized families like R7i and R7g offer an 8 GiB per vCPU
+ratio, and X2idn or X2gd instances double that to 16 GiB per vCPU,
+specialized workloads such as large in-memory databases and commercial
+enterprise applications often require massive memory allocations without
+scaling up vCPU counts and per-core software licensing costs. This guide
+breaks down the memory-to-vCPU ratios across every Amazon EC2 Memory
+Optimized instance family to help you select the optimal architecture
+for your workload.</p>
+<h2 id="memory-to-vcpu-ratio-calculation">Memory-to-vCPU Ratio
+Calculation</h2>
+<p>In Amazon EC2, the memory density of an instance is defined by the
+ratio of total memory in gibibytes (<span
+class="math inline">\(\text{GiB}\)</span>) to the number of virtual CPUs
+(<span class="math inline">\(\text{vCPUs}\)</span>):</p>
+<p><span class="math display">\[\text{Memory Ratio} = \frac{\text{Total
+RAM (GiB)}}{\text{Total vCPUs}}\]</span></p>
+<p>While General Purpose instances (such as M7i or M7g) maintain a
+baseline ratio of <span class="math inline">\(4\text{
+GiB/vCPU}\)</span>, Memory Optimized instances start at <span
+class="math inline">\(8\text{ GiB/vCPU}\)</span> and scale up to <span
+class="math inline">\(53.33\text{ GiB/vCPU}\)</span> on specialized High
+Memory bare-metal and virtualized offerings.</p>
+<h2 id="summary-of-ec2-memory-optimized-ratios">Summary of EC2 Memory
+Optimized Ratios</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Family</th>
+<th style="text-align: left;">RAM per vCPU (<span
+class="math inline">\(\text{GiB}\)</span>)</th>
+<th style="text-align: left;">Max RAM (<span
+class="math inline">\(\text{GiB}\)</span>)</th>
+<th style="text-align: left;">Max <span
+class="math inline">\(\text{vCPUs}\)</span></th>
+<th style="text-align: left;">Processor Architecture</th>
+<th style="text-align: left;">Primary Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>u-24tb1.112xlarge</strong></td>
+<td style="text-align: left;"><span class="math inline">\(53.33\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(24,576\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(448\)</span></td>
+<td style="text-align: left;">Intel Xeon Scalable (Cascade Lake)</td>
+<td style="text-align: left;">Massive SAP HANA in-memory databases</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>u-18tb1.112xlarge</strong></td>
+<td style="text-align: left;"><span class="math inline">\(40.00\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(18,432\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(448\)</span></td>
+<td style="text-align: left;">Intel Xeon Scalable (Cascade Lake)</td>
+<td style="text-align: left;">Large-scale SAP HANA environments</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>X2iedn / X1e /
+u-12tb1</strong></td>
+<td style="text-align: left;"><span class="math inline">\(32.00\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(12,288\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(448\)</span></td>
+<td style="text-align: left;">Intel Xeon Scalable</td>
+<td style="text-align: left;">Per-core licensed databases (Oracle, SQL
+Server)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>u7i-12tb.224xlarge</strong></td>
+<td style="text-align: left;"><span class="math inline">\(27.43\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(12,288\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(896\)</span></td>
+<td style="text-align: left;">4th Gen Intel Xeon (Sapphire Rapids)</td>
+<td style="text-align: left;">Next-gen massive scale-up databases</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>u7in-32tb.224xlarge</strong></td>
+<td style="text-align: left;"><span class="math inline">\(36.57\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(32,768\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(896\)</span></td>
+<td style="text-align: left;">4th Gen Intel Xeon (Sapphire Rapids)</td>
+<td style="text-align: left;">Extreme-scale in-memory enterprise
+databases</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>X2idn / X2gd / X1</strong></td>
+<td style="text-align: left;"><span class="math inline">\(16.00\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(2,048\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(128\)</span></td>
+<td style="text-align: left;">Intel Xeon / AWS Graviton2</td>
+<td style="text-align: left;">In-memory caches, real-time big data</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>R8g / R7i / R7a /
+R7g</strong></td>
+<td style="text-align: left;"><span class="math inline">\(8.00\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(1,536\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(192\)</span></td>
+<td style="text-align: left;">AWS Graviton / Intel / AMD</td>
+<td style="text-align: left;">Standard memory-intensive enterprise
+apps</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>z1d</strong></td>
+<td style="text-align: left;"><span class="math inline">\(8.00\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(384\text{
+GiB}\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(48\)</span></td>
+<td style="text-align: left;">Intel Xeon (up to <span
+class="math inline">\(4.0\text{ GHz}\)</span>)</td>
+<td style="text-align: left;">High single-thread speed + high
+memory</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tier-1-ec2-high-memory-instances-up-to-5333-gib-per-vcpu">Tier
+1: EC2 High Memory Instances (Up to 53.33 GiB per vCPU)</h2>
+<p>For workloads requiring extreme total memory footprints and the
+highest possible <span class="math inline">\(\text{GiB/vCPU}\)</span>
+ratio, Amazon EC2 High Memory (<code>u-*</code> and <code>u7i*</code>)
+instances top the chart. Because the <code>u-12tb1</code>,
+<code>u-18tb1</code>, and <code>u-24tb1</code> instances share the same
+8-socket chassis containing <span class="math inline">\(448\text{
+vCPUs}\)</span>, their memory-to-vCPU ratio increases proportionally
+with total memory capacity:</p>
+<ul>
+<li><strong>u-24tb1.112xlarge / u-24tb1.metal</strong>: Provides <span
+class="math inline">\(24,576\text{ GiB}\)</span> (<span
+class="math inline">\(24\text{ TiB}\)</span>) of RAM across <span
+class="math inline">\(448\text{ vCPUs}\)</span>, yielding the highest
+ratio in EC2 at: <span class="math display">\[\frac{24,576\text{
+GiB}}{448\text{ vCPUs}} \approx 54.85\text{ GiB/vCPU}\quad (\text{or }
+53.33\text{ TB/vCPU nominal})\]</span></li>
+<li><strong>u-18tb1.112xlarge / u-18tb1.metal</strong>: Provides <span
+class="math inline">\(18,432\text{ GiB}\)</span> (<span
+class="math inline">\(18\text{ TiB}\)</span>) of RAM across <span
+class="math inline">\(448\text{ vCPUs}\)</span>, yielding <span
+class="math inline">\(41.14\text{ GiB/vCPU}\)</span>.</li>
+<li><strong>u7in-32tb.224xlarge</strong>: Powered by 4th Generation
+Intel Xeon Scalable processors, this instance delivers <span
+class="math inline">\(32,768\text{ GiB}\)</span> (<span
+class="math inline">\(32\text{ TiB}\)</span>) of DDR5 memory across
+<span class="math inline">\(896\text{ vCPUs}\)</span>, resulting in a
+ratio of <span class="math inline">\(36.57\text{
+GiB/vCPU}\)</span>.</li>
+</ul>
+<h2
+id="tier-2-general-availability-32-gib-per-vcpu-instances-x2iedn-and-x1e">Tier
+2: General-Availability 32 GiB per vCPU Instances (X2iedn and X1e)</h2>
+<p>While High Memory (<code>u-*</code>) instances require large
+multi-terabyte commitments, the <strong>X2iedn</strong> and
+<strong>X1e</strong> families provide a consistent <span
+class="math inline">\(32\text{ GiB/vCPU}\)</span> ratio across flexible
+instance sizes starting from <code>xlarge</code> (<span
+class="math inline">\(4\text{ vCPUs}\)</span> and <span
+class="math inline">\(128\text{ GiB}\)</span> of RAM).</p>
+<p><span class="math display">\[\text{X2iedn Ratio} = \frac{128\text{
+GiB}}{4\text{ vCPUs}} = 32\text{ GiB/vCPU}\]</span></p>
+<h3 id="why-32-gib-per-vcpu-matters-for-licensing">Why 32 GiB per vCPU
+Matters for Licensing</h3>
+<p>Commercial database engines such as Microsoft SQL Server Enterprise
+Edition and Oracle Database are typically licensed per vCPU core. When a
+database workload is bottlenecked by buffer pool RAM rather than CPU
+utilization, running a standard <span class="math inline">\(8\text{
+GiB/vCPU}\)</span> <code>R7i</code> instance forces you to
+over-provision vCPUs by a factor of <span
+class="math inline">\(4\times\)</span> just to get the required RAM.</p>
+<p>By switching from an <span class="math inline">\(8\text{
+GiB/vCPU}\)</span> instance to a <span class="math inline">\(32\text{
+GiB/vCPU}\)</span> <strong>X2iedn</strong> instance with the same memory
+capacity, you reduce the vCPU count by <span
+class="math inline">\(75\%\)</span>:</p>
+<p><span class="math display">\[\text{vCPU Reduction} = 1 -
+\frac{8\text{ GiB/vCPU}}{32\text{ GiB/vCPU}} = 0.75\quad
+(75\%)\]</span></p>
+<p>Key specifications of the <strong>X2iedn</strong> family include:</p>
+<ul>
+<li><strong>Processor</strong>: 3rd Gen Intel Xeon Scalable (Ice Lake)
+running at an all-core turbo frequency of <span
+class="math inline">\(3.5\text{ GHz}\)</span>.</li>
+<li><strong>Sizes</strong>: Scales from <code>x2iedn.xlarge</code>
+(<span class="math inline">\(4\text{ vCPUs}\)</span>, <span
+class="math inline">\(128\text{ GiB}\)</span> RAM) to
+<code>x2iedn.32xlarge</code> and <code>x2iedn.metal</code> (<span
+class="math inline">\(128\text{ vCPUs}\)</span>, <span
+class="math inline">\(4,096\text{ GiB}\)</span> RAM).</li>
+<li><strong>Storage and Networking</strong>: Up to <span
+class="math inline">\(100\text{ Gbps}\)</span> of network bandwidth,
+<span class="math inline">\(80\text{ Gbps}\)</span> of Amazon EBS
+bandwidth, and up to <span class="math inline">\(3.8\text{ TB}\)</span>
+of local NVMe SSD storage for low-latency temporary tables or swap
+files.</li>
+</ul>
+<h2 id="tier-3-16-gib-per-vcpu-instances-x2idn-and-x2gd">Tier 3: 16 GiB
+per vCPU Instances (X2idn and X2gd)</h2>
+<p>When <span class="math inline">\(8\text{ GiB/vCPU}\)</span> is
+insufficient but <span class="math inline">\(32\text{ GiB/vCPU}\)</span>
+leaves your processors CPU-starved, the <span
+class="math inline">\(16\text{ GiB/vCPU}\)</span> tier offers a balanced
+middle ground:</p>
+<ul>
+<li><strong>X2idn</strong>: Shares the same 3rd Gen Intel Xeon hardware
+platform as X2iedn, but doubles the vCPU allocation relative to memory.
+It scales up to <span class="math inline">\(128\text{ vCPUs}\)</span>
+and <span class="math inline">\(2,048\text{ GiB}\)</span> of RAM
+(<code>x2idn.32xlarge</code>).</li>
+<li><strong>X2gd</strong>: Powered by ARM-based AWS Graviton2
+processors, delivering <span class="math inline">\(16\text{
+GiB/vCPU}\)</span> up to <span class="math inline">\(64\text{
+vCPUs}\)</span> and <span class="math inline">\(1,024\text{
+GiB}\)</span> of RAM (<code>x2gd.16xlarge</code>). X2gd is ideal for
+open-source in-memory caches like Redis, Valkey, and Memcached, where
+ARM compatibility is native and price-performance is critical.</li>
+</ul>
+<h2
+id="tier-4-8-gib-per-vcpu-baseline-memory-optimized-instances-r-series-and-z1d">Tier
+4: 8 GiB per vCPU Baseline Memory Optimized Instances (R-Series and
+z1d)</h2>
+<p>The standard <strong>R-series</strong> represents the baseline for
+EC2 Memory Optimized instances, maintaining a strict <span
+class="math inline">\(8\text{ GiB/vCPU}\)</span> ratio across all
+standard sizes:</p>
+<ul>
+<li><strong>R8g / R7g</strong>: Powered by AWS Graviton4 and Graviton3
+processors, offering the best price-performance for Linux-based
+memory-intensive applications.</li>
+<li><strong>R7i / R7iz</strong>: Powered by 4th Gen Intel Xeon Scalable
+processors. The <strong>R7iz</strong> variant specifically combines an
+<span class="math inline">\(8\text{ GiB/vCPU}\)</span> ratio with a
+sustained all-core turbo frequency of <span
+class="math inline">\(3.9\text{ GHz}\)</span> for EDA and relational
+database workloads.</li>
+<li><strong>R7a</strong>: Powered by 4th Gen AMD EPYC (Genoa)
+processors, scaling up to <span class="math inline">\(192\text{
+vCPUs}\)</span> and <span class="math inline">\(1,536\text{
+GiB}\)</span> of RAM (<code>r7a.48xlarge</code>).</li>
+</ul>
+<h2 id="increasing-the-ratio-further-with-optimize-cpus">Increasing the
+Ratio Further with Optimize CPUs</h2>
+<p>If you need an even higher RAM-to-vCPU ratio than the native hardware
+provides—for example, <span class="math inline">\(64\text{ GiB}\)</span>
+or <span class="math inline">\(128\text{ GiB}\)</span> per active
+vCPU—you can use the Amazon EC2 <strong>Optimize CPUs</strong> feature
+at launch time. By disabling Intel Hyper-Threading (setting <span
+class="math inline">\(1\text{ thread per core}\)</span>) and
+deactivating specific physical CPU cores while retaining full access to
+the instance's total RAM, an <code>x2iedn.32xlarge</code> (<span
+class="math inline">\(4,096\text{ GiB}\)</span> RAM) can be configured
+down to a fraction of its <span class="math inline">\(128\text{
+vCPUs}\)</span>, pushing the effective memory-to-vCPU ratio past <span
+class="math inline">\(100\text{ GiB/vCPU}\)</span> for strict per-core
+software licensing scenarios.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-ec-2-instances-have-the-most-ram-per-v-cpu';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

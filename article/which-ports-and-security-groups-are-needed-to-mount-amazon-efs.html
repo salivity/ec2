@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which Ports and Security Groups Are Needed to Mount Amazon EFS? - ec2</title>
+    <meta name="description" content="To allow an Amazon EC2 instance to mount an Amazon Elastic File System via the Network File System protocol, you must open TCP port 2049. Specifically, the security group attached to your EFS mount targets requires an inbound rule permitting TCP traffic o">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-ports-and-security-groups-are-needed-to-mount-amazon-efs">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which Ports and Security Groups Are Needed to Mount Amazon EFS? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-ports-and-security-groups-are-needed-to-mount-amazon-efs" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="To allow an Amazon EC2 instance to mount an Amazon Elastic File System via the Network File System protocol, you must open TCP port 2049. Specifically, the security group attached to your EFS mount targets requires an inbound rule permitting TCP traffic o" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="which-ports-and-security-groups-are-needed-to-mount-amazon-efs">Which
+Ports and Security Groups Are Needed to Mount Amazon EFS?</h1>
+<p>To allow an Amazon EC2 instance to mount an Amazon Elastic File
+System via the Network File System protocol, you must open TCP port
+2049. Specifically, the security group attached to your EFS mount
+targets requires an inbound rule permitting TCP traffic on port 2049
+from the EC2 instance security group or CIDR block, while the EC2
+instance security group must allow outbound traffic on TCP port 2049 to
+the EFS mount target.</p>
+<h2 id="required-network-port-for-amazon-efs">Required Network Port for
+Amazon EFS</h2>
+<p>Amazon EFS uses the Network File System version 4 (NFSv4.0 and
+NFSv4.1) protocol for file system access. Unlike older versions of NFS
+that required multiple ports for portmapper and mount daemons (such as
+port 111), NFSv4 consolidates all communication over a single standard
+port:</p>
+<ul>
+<li><strong>Protocol:</strong> TCP</li>
+<li><strong>Port Range:</strong> 2049</li>
+<li><strong>Service Name:</strong> NFS</li>
+</ul>
+<p>Even when you encrypt data in transit using the Amazon EFS mount
+helper (<code>amazon-efs-utils</code>), the underlying TLS wrapper still
+routes traffic to the EFS mount target over TCP port 2049.</p>
+<h2 id="security-group-rules-configuration">Security Group Rules
+Configuration</h2>
+<p>To establish a clean, least-privilege connection between your compute
+instances and the file system, you should use two separate security
+groups: one associated with your EC2 instances and another associated
+with your EFS mount targets. Referencing security group IDs rather than
+static IP addresses ensures that access scales automatically as
+instances are launched or terminated.</p>
+<h3 id="1-efs-mount-target-security-group">1. EFS Mount Target Security
+Group</h3>
+<p>Each EFS mount target placed in a VPC subnet has an associated
+security group. This security group controls what traffic is allowed to
+reach the file system.</p>
+<p><strong>Inbound Rules:</strong></p>
+<ul>
+<li><strong>Type:</strong> NFS</li>
+<li><strong>Protocol:</strong> TCP</li>
+<li><strong>Port Range:</strong> 2049</li>
+<li><strong>Source:</strong> The Security Group ID of your EC2 instances
+(for example, <code>sg-0123456789abcdef0</code>) or the specific VPC
+CIDR block if mounting across peered VPCs or AWS Transit Gateway.</li>
+</ul>
+<p><strong>Outbound Rules:</strong></p>
+<ul>
+<li>No additional outbound rules are required to respond to EC2 requests
+because AWS security groups are stateful. Any traffic permitted inbound
+on port 2049 will automatically have its return traffic permitted back
+to the requesting EC2 instance.</li>
+</ul>
+<h3 id="2-ec2-instance-security-group">2. EC2 Instance Security
+Group</h3>
+<p>The security group attached to your EC2 instance controls the traffic
+leaving the instance toward the EFS mount target.</p>
+<p><strong>Outbound Rules:</strong></p>
+<ul>
+<li><strong>Type:</strong> NFS</li>
+<li><strong>Protocol:</strong> TCP</li>
+<li><strong>Port Range:</strong> 2049</li>
+<li><strong>Destination:</strong> The Security Group ID of your EFS
+mount target (for example, <code>sg-0fedcba9876543210</code>). Note that
+default AWS security groups already allow all outbound traffic
+(<code>0.0.0.0/0</code> on all ports), which satisfies this requirement
+if left unmodified.</li>
+</ul>
+<p><strong>Inbound Rules:</strong></p>
+<ul>
+<li>Because security groups are stateful, no inbound rule on port 2049
+is required on the EC2 instance security group for standard EFS
+mounting.</li>
+</ul>
+<h2 id="network-acl-and-dns-considerations">Network ACL and DNS
+Considerations</h2>
+<p>While security groups are the primary firewall mechanism at the
+instance and mount target interface level, subnet-level Network Access
+Control Lists (NACLs) and VPC DNS settings can also affect your ability
+to mount an EFS file system.</p>
+<h3 id="subnet-network-acls">Subnet Network ACLs</h3>
+<p>Unlike security groups, Network ACLs are stateless. If your EC2
+instance and EFS mount target reside in different subnets—or if you use
+custom NACLs instead of the default permissive NACL—you must explicitly
+allow both the request on port 2049 and the return traffic on ephemeral
+ports:</p>
+<ul>
+<li><strong>EC2 Subnet NACL:</strong> Allow outbound TCP port 2049 to
+the EFS mount target subnet CIDR, and allow inbound TCP traffic on
+ephemeral ports (<span class="math inline">\(1024 \text{ to }
+65535\)</span>) from the EFS mount target subnet CIDR.</li>
+<li><strong>EFS Mount Target Subnet NACL:</strong> Allow inbound TCP
+port 2049 from the EC2 subnet CIDR, and allow outbound TCP traffic on
+ephemeral ports (<span class="math inline">\(1024 \text{ to }
+65535\)</span>) to the EC2 subnet CIDR.</li>
+</ul>
+<h3 id="vpc-dns-resolution">VPC DNS Resolution</h3>
+<p>When mounting an EFS file system by its DNS name (recommended) or
+using the <code>amazon-efs-utils</code> mount helper, your EC2 instance
+needs to resolve the EFS DNS hostname
+(<code>file-system-id.efs.aws-region.amazonaws.com</code>) to the mount
+target's private IP address. Ensure the following settings are enabled
+on your VPC:</p>
+<ul>
+<li><code>enableDnsHostnames</code> set to <code>true</code></li>
+<li><code>enableDnsSupport</code> set to <code>true</code></li>
+</ul>
+<p>The EC2 instance must also be able to reach the Amazon Route 53
+Resolver (located at the VPC base CIDR plus two, or
+<code>169.254.169.253</code>) over UDP and TCP port 53.</p>
+<h2 id="verifying-connectivity-before-mounting">Verifying Connectivity
+Before Mounting</h2>
+<p>Before running the <code>mount</code> command on your EC2 instance,
+you can test whether the security group rules and network path to port
+2049 are properly configured using <code>nc</code> (netcat) or
+<code>telnet</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">nc</span> <span class="at">-zv</span> fs-0123456789abcdef0.efs.us-east-1.amazonaws.com 2049</span></code></pre></div>
+<p>If the security groups and NACLs are configured properly, the command
+immediately returns a connection succeeded message. If the connection
+times out, verify that the EFS mount target exists in the same
+Availability Zone as the EC2 instance and that the EFS security group
+inbound rule references the exact security group attached to your EC2
+instance.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-ports-and-security-groups-are-needed-to-mount-amazon-efs';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

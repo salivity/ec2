@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Are AWS Graviton Memory Encryption and Cache Features? - ec2</title>
+    <meta name="description" content="AWS Graviton processors on Amazon EC2 provide hardware-level security through always-on DRAM memory encryption and dedicated physical cores that ensure strict cache isolation. Each Graviton vCPU maps directly to a physical processor core without simultane">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-are-aws-graviton-memory-encryption-and-cache-features">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Are AWS Graviton Memory Encryption and Cache Features? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-are-aws-graviton-memory-encryption-and-cache-features" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="AWS Graviton processors on Amazon EC2 provide hardware-level security through always-on DRAM memory encryption and dedicated physical cores that ensure strict cache isolation. Each Graviton vCPU maps directly to a physical processor core without simultane" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-are-aws-graviton-memory-encryption-and-cache-features">What
+Are AWS Graviton Memory Encryption and Cache Features?</h1>
+<p>AWS Graviton processors on Amazon EC2 provide hardware-level security
+through always-on DRAM memory encryption and dedicated physical cores
+that ensure strict cache isolation. Each Graviton vCPU maps directly to
+a physical processor core without simultaneous multithreading,
+eliminating shared L1 and L2 cache side-channel risks between threads.
+Additionally, the integrated memory controllers encrypt all data stored
+in main memory using ephemeral keys generated at boot time, safeguarding
+workloads against physical memory inspection and cross-tenant
+interference.</p>
+<h2 id="always-on-memory-encryption">Always-On Memory Encryption</h2>
+<p>Every generation of AWS Graviton processors (starting from Graviton2
+through Graviton3 and Graviton4) includes dedicated inline encryption
+engines integrated directly into the memory controllers. Unlike
+architectures where memory encryption is an optional feature that
+introduces noticeable latency, Graviton processors enforce DRAM
+encryption by default with negligible performance overhead.</p>
+<h3 id="how-dram-encryption-works-on-graviton">How DRAM Encryption Works
+on Graviton</h3>
+<p>When an Amazon EC2 instance powered by an AWS Graviton processor
+boots or resets, the hardware generates random, ephemeral encryption
+keys using an internal hardware random number generator. These keys
+exist strictly within the processor silicon and are never exposed to the
+operating system, user software, or the underlying AWS Nitro System
+hypervisor.</p>
+<p>Every write operation from the processor cache hierarchy to external
+DDR4 or DDR5 system memory passes through the inline encryption engine,
+which encrypts the cache line using 256-bit XTS-AES encryption.
+Conversely, every read operation from DRAM is decrypted as it enters the
+processor package. When the instance is stopped, terminated, or
+rebooted, the ephemeral keys are cryptographically destroyed, rendering
+any residual data in the physical memory modules unreadable.</p>
+<p>Because each physical processor socket generates and maintains its
+own isolated encryption keys, memory encryption provides strong
+cryptographic isolation across instance boundaries and protects against
+cold-boot or physical bus-probing attacks.</p>
+<h2 id="physical-core-mapping-and-cache-isolation">Physical Core Mapping
+and Cache Isolation</h2>
+<p>One of the defining architectural security advantages of AWS Graviton
+processors over traditional x86 server processors is the absence of
+Simultaneous Multithreading (SMT), commonly known as
+Hyper-Threading.</p>
+<p>In many conventional cloud instances, a single virtual CPU (vCPU)
+corresponds to a single hardware thread sharing a physical core with
+another thread. While this increases thread density, it forces two
+execution contexts to share internal core execution pipelines,
+Translation Lookaside Buffers (TLBs), and Level 1 (L1) and Level 2 (L2)
+caches. This resource sharing has historically enabled
+microarchitectural side-channel vulnerabilities such as Spectre,
+Meltdown, L1 Terminal Fault (L1TF), and Microarchitectural Data Sampling
+(MDS).</p>
+<p>On AWS Graviton instances, the mapping between virtual and physical
+resources is strictly linear:</p>
+<p><span class="math display">\[\text{1 vCPU} = \text{1 Physical
+Core}\]</span></p>
+<p>Because there are no sibling threads sharing a physical core, each
+vCPU receives exclusive access to its core execution units and private
+cache levels.</p>
+<h3 id="l1-and-l2-cache-isolation">L1 and L2 Cache Isolation</h3>
+<p>Each physical core in an AWS Graviton processor features its own
+dedicated Level 1 instruction cache, Level 1 data cache, and unified
+Level 2 cache:</p>
+<ul>
+<li><strong>Graviton2:</strong> 64 KB L1 instruction cache, 64 KB L1
+data cache, and 1 MB private L2 cache per vCPU.</li>
+<li><strong>Graviton3:</strong> 64 KB L1 instruction cache, 64 KB L1
+data cache, and 1 MB private L2 cache per vCPU.</li>
+<li><strong>Graviton4:</strong> 64 KB L1 instruction cache, 64 KB L1
+data cache, and 2 MB private L2 cache per vCPU.</li>
+</ul>
+<p>Because L1 and L2 caches are never shared between different vCPUs,
+workloads running on separate vCPUs cannot observe or evict each other's
+L1 or L2 cache lines. This design provides complete hardware isolation
+at the core level, mitigating cross-thread cache timing attacks without
+requiring performance-degrading operating system mitigations like core
+scheduling or kernel page-table isolation.</p>
+<h3 id="system-level-cache-slc-management">System Level Cache (SLC)
+Management</h3>
+<p>At the socket level, Graviton processors implement a coherent mesh
+interconnect with a shared System Level Cache (SLC), which acts as a
+Level 3 (L3) cache across the cores on the die (32 MB on Graviton2, 32
+MB on Graviton3, and 36 MB per die on Graviton4).</p>
+<p>To maintain isolation across multi-tenant instances sharing a single
+physical processor socket, the AWS Nitro System hypervisor leverages
+Armv8 and Armv9 architecture partitioning extensions and strict memory
+tagging and address space isolation. Because the Nitro Hypervisor
+statically assigns physical cores and physical memory regions to
+individual EC2 instances without overcommitting CPU or RAM, one EC2
+instance cannot access or alias the physical memory addresses of another
+instance in the shared SLC. Furthermore, hardware cache flushing and
+invalidation mechanisms ensure that when a core is reassigned to a new
+instance after termination, all private and shared cache lines
+associated with the previous instance are cleared.</p>
+<h2 id="additional-microarchitectural-security-features">Additional
+Microarchitectural Security Features</h2>
+<p>Beyond DRAM encryption and physical core cache isolation, later
+generations of AWS Graviton integrate advanced Arm security extensions
+that harden memory access and control flow within the CPU cache and
+memory hierarchy:</p>
+<h3
+id="pointer-authentication-pac-and-branch-target-identification-bti">Pointer
+Authentication (PAC) and Branch Target Identification (BTI)</h3>
+<p>Introduced in Graviton3 (Armv8.4-A) and carried forward into
+Graviton4 (Armv9.0-A), Pointer Authentication signs memory pointers
+using a cryptographic hash stored in the unused upper bits of a 64-bit
+pointer address before the pointer is written to the cache or stack. If
+an attacker exploits a buffer overflow to overwrite a return address in
+memory or cache, the CPU signature verification fails before jumping to
+the corrupted address, preventing Return-Oriented Programming (ROP)
+attacks. Branch Target Identification complements PAC by ensuring
+indirect branches only land on valid instruction targets, mitigating
+Jump-Oriented Programming (JOP) exploits.</p>
+<h3 id="encrypted-high-speed-coherent-interconnects">Encrypted
+High-Speed Coherent Interconnects</h3>
+<p>On multi-socket instances such as those powered by Graviton4 (for
+example, <code>r8g.48xlarge</code>), where two processor sockets work
+together as a coherent Non-Uniform Memory Access (NUMA) system, memory
+and cache coherency traffic travels across high-speed socket-to-socket
+interconnects. Graviton4 extends hardware encryption beyond the DRAM
+controllers to encrypt all high-speed coherent interconnect links and
+PCIe interfaces directly in hardware, ensuring data remains encrypted
+both in memory and in transit between processor sockets.</p>
+<h3
+id="hardware-mitigations-against-speculative-execution-attacks">Hardware
+Mitigations Against Speculative Execution Attacks</h3>
+<p>AWS Graviton processors incorporate silicon-level mitigations against
+speculative execution side-channel vulnerabilities, including
+Speculative Store Bypass Safe (SSBS), Enhanced Branch Predictor
+Hardening (CSV2), and Data Value Prediction restrictions. Combined with
+the 1:1 physical core architecture and the minimal attack surface of the
+AWS Nitro Hypervisor, these features prevent speculative execution paths
+from leaking unauthorized data across privilege boundaries via the CPU
+caches.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-are-aws-graviton-memory-encryption-and-cache-features';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

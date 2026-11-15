@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Disable Multithreading and Adjust EC2 CPU Cores? - ec2</title>
+    <meta name="description" content="Amazon Elastic Compute Cloud allows you to customize the virtual central processing unit configuration of an instance during launch or while the instance is stopped. Through the Optimize CPU feature, you can specify the exact number of physical CPU cores">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-disable-multithreading-and-adjust-ec-2-cpu-cores">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Disable Multithreading and Adjust EC2 CPU Cores? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-disable-multithreading-and-adjust-ec-2-cpu-cores" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Elastic Compute Cloud allows you to customize the virtual central processing unit configuration of an instance during launch or while the instance is stopped. Through the Optimize CPU feature, you can specify the exact number of physical CPU cores" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-disable-multithreading-and-adjust-ec2-cpu-cores">How to
+Disable Multithreading and Adjust EC2 CPU Cores?</h1>
+<p>Amazon Elastic Compute Cloud allows you to customize the virtual
+central processing unit configuration of an instance during launch or
+while the instance is stopped. Through the Optimize CPU feature, you can
+specify the exact number of physical CPU cores to remain active and
+choose whether to disable simultaneous multithreading, such as Intel
+Hyper-Threading. Adjusting these CPU options helps reduce per-core
+software licensing costs for commercial databases and enterprise
+applications while also optimizing performance for high-performance
+computing workloads that benefit from dedicated single-threaded core
+execution.</p>
+<h2 id="understanding-amazon-ec2-cpu-options">Understanding Amazon EC2
+CPU Options</h2>
+<p>Most general-purpose, compute-optimized, and memory-optimized Amazon
+EC2 instance types map two virtual CPUs (vCPUs) to a single physical
+processor core through simultaneous multithreading (SMT). You can define
+custom CPU options using two main parameters:</p>
+<ul>
+<li><strong>CoreCount</strong>: The number of physical CPU cores
+allocated to the instance.</li>
+<li><strong>ThreadsPerCore</strong>: The number of threads active on
+each physical core. Setting this value to <span
+class="math inline">\(1\)</span> disables simultaneous multithreading,
+whereas setting it to <span class="math inline">\(2\)</span> retains the
+default multithreaded behavior.</li>
+</ul>
+<p>The total number of active vCPUs available to the guest operating
+system is determined by the following equation:</p>
+<p><span class="math display">\[\text{Total vCPUs} = \text{CoreCount}
+\times \text{ThreadsPerCore}\]</span></p>
+<p>For example, an <code>m5.4xlarge</code> instance provides <span
+class="math inline">\(16\)</span> vCPUs by default, consisting of <span
+class="math inline">\(8\)</span> physical cores with <span
+class="math inline">\(2\)</span> threads per core (<span
+class="math inline">\(8 \times 2 = 16\)</span>). If you set
+<code>CoreCount</code> to <span class="math inline">\(4\)</span> and
+<code>ThreadsPerCore</code> to <span class="math inline">\(1\)</span>,
+the instance launches with <span class="math inline">\(4\)</span> active
+vCPUs mapped to <span class="math inline">\(4\)</span> physical cores
+with multithreading disabled (<span class="math inline">\(4 \times 1 =
+4\)</span>).</p>
+<h2 id="rules-and-limitations">Rules and Limitations</h2>
+<p>Before modifying CPU options on an EC2 instance, verify that your
+workload and instance type meet the following requirements:</p>
+<ul>
+<li><strong>Instance Pricing</strong>: Specifying custom CPU options
+does not change the hourly price of the EC2 instance. You still pay the
+standard rate for the base instance size, though your third-party
+software licensing costs may decrease.</li>
+<li><strong>Supported Instance Types</strong>: Most current-generation
+Nitro-based and Xen-based instance families support custom CPU options,
+with the exception of burstable performance instances (<code>t2</code>,
+<code>t3</code>, <code>t3a</code>, <code>t4g</code>) and instances that
+already run a single thread per core by default, such as AWS Graviton
+(<code>c6g</code>, <code>m6g</code>, <code>r6g</code>) and AMD EPYC
+(<code>m6a</code>, <code>c6a</code>) single-threaded
+configurations.</li>
+<li><strong>Modification Timing</strong>: You can set CPU options during
+initial instance launch or modify them later on an existing instance
+after stopping it.</li>
+</ul>
+<h2
+id="configuring-cpu-options-via-the-aws-management-console">Configuring
+CPU Options via the AWS Management Console</h2>
+<p>You can configure CPU core counts and multithreading directly in the
+Amazon EC2 launch wizard when creating a new instance:</p>
+<ol type="1">
+<li>Open the Amazon EC2 console and select <strong>Launch
+instances</strong>.</li>
+<li>Choose your Amazon Machine Image (AMI) and select a supported
+<strong>Instance type</strong>.</li>
+<li>Scroll down to expand the <strong>Advanced details</strong> section
+at the bottom of the configuration page.</li>
+<li>Locate the <strong>Specify CPU options</strong> setting.</li>
+<li>Set the <strong>Number of cores</strong> to your desired physical
+core count.</li>
+<li>To disable multithreading, change <strong>Threads per core</strong>
+from <span class="math inline">\(2\)</span> to <span
+class="math inline">\(1\)</span>.</li>
+<li>Complete the remaining configuration steps and choose <strong>Launch
+instance</strong>.</li>
+</ol>
+<h2 id="configuring-cpu-options-via-the-aws-cli">Configuring CPU Options
+via the AWS CLI</h2>
+<p>You can automate custom CPU configurations using the
+<code>--cpu-options</code> parameter in the AWS Command Line Interface
+(AWS CLI).</p>
+<h3 id="launching-a-new-instance-with-custom-cpu-options">Launching a
+New Instance with Custom CPU Options</h3>
+<p>Use the <code>run-instances</code> command with the
+<code>CoreCount</code> and <code>ThreadsPerCore</code> attributes. The
+following example launches an <code>r5.4xlarge</code> instance with
+<span class="math inline">\(4\)</span> physical cores and multithreading
+disabled:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> r5.4xlarge <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--cpu-options</span> <span class="st">&quot;CoreCount=4,ThreadsPerCore=1&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--key-name</span> my-key-pair <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--subnet-id</span> subnet-0123456789abcdef0</span></code></pre></div>
+<h3 id="modifying-cpu-options-on-an-existing-instance">Modifying CPU
+Options on an Existing Instance</h3>
+<p>If you already have a running EC2 instance on a modern Nitro-based
+platform, you can change its CPU options by stopping the instance,
+modifying the attributes, and starting it again:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Stop the running EC2 instance</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 stop-instances <span class="at">--instance-ids</span> i-1234567890abcdef0</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Wait for the instance to enter the stopped state</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 wait instance-stopped <span class="at">--instance-ids</span> i-1234567890abcdef0</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Modify the CPU options</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-instance-cpu-options <span class="dt">\</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-id</span> i-1234567890abcdef0 <span class="dt">\</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">--core-count</span> 4 <span class="dt">\</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">--threads-per-core</span> 1</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Restart the instance</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 start-instances <span class="at">--instance-ids</span> i-1234567890abcdef0</span></code></pre></div>
+<h2 id="verifying-the-configuration">Verifying the Configuration</h2>
+<p>Once your EC2 instance is running, you can verify the active CPU
+topology either through the AWS CLI or from within the operating
+system.</p>
+<p>To verify using the AWS CLI, run the <code>describe-instances</code>
+command and query the <code>CpuOptions</code> output:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-instances <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-ids</span> i-1234567890abcdef0 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">&quot;Reservations[].Instances[].CpuOptions&quot;</span></span></code></pre></div>
+<p>This command returns a JSON object confirming the active core and
+thread settings:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;CoreCount&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;ThreadsPerCore&quot;</span><span class="fu">:</span> <span class="dv">1</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
+<p>To verify from inside a Linux guest operating system, connect to the
+instance via SSH and run <code>lscpu</code>:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">lscpu</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">&quot;CPU\(s\):|Thread|Core&quot;</span></span></code></pre></div>
+<p>When simultaneous multithreading is disabled
+(<code>ThreadsPerCore=1</code>), the <code>Thread(s) per core</code>
+field displays <code>1</code>, and the total <code>CPU(s)</code> value
+matches the exact number of physical cores configured.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-disable-multithreading-and-adjust-ec-2-cpu-cores';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

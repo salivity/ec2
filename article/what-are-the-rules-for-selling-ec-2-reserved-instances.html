@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Are the Rules for Selling EC2 Reserved Instances? - ec2</title>
+    <meta name="description" content="Selling Amazon EC2 Reserved Instances on the Reserved Instance Marketplace allows organizations to recoup costs from unused cloud capacity, provided they meet specific AWS criteria. To qualify as a seller, you must hold Standard Reserved Instances that ha">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-are-the-rules-for-selling-ec-2-reserved-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Are the Rules for Selling EC2 Reserved Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-are-the-rules-for-selling-ec-2-reserved-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Selling Amazon EC2 Reserved Instances on the Reserved Instance Marketplace allows organizations to recoup costs from unused cloud capacity, provided they meet specific AWS criteria. To qualify as a seller, you must hold Standard Reserved Instances that ha" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-are-the-rules-for-selling-ec2-reserved-instances">What Are
+the Rules for Selling EC2 Reserved Instances?</h1>
+<p>Selling Amazon EC2 Reserved Instances on the Reserved Instance
+Marketplace allows organizations to recoup costs from unused cloud
+capacity, provided they meet specific AWS criteria. To qualify as a
+seller, you must hold Standard Reserved Instances that have been active
+for at least 30 days, possess at least one month of remaining term, and
+have a fully paid upfront balance if applicable. Additionally, sellers
+must register with a valid United States bank account and navigate
+several marketplace limitations, including a 12 percent service fee,
+pricing constraints, and restrictions on Convertible Reserved Instances,
+GovCloud deployments, and discount-purchased reservations.</p>
+<h2 id="seller-account-eligibility-requirements">Seller Account
+Eligibility Requirements</h2>
+<p>Before listing any capacity on the Reserved Instance Marketplace,
+your AWS account must be registered as a seller. The primary requirement
+for seller registration is having a valid bank account located in the
+United States. AWS disburses all proceeds from Reserved Instance sales
+exclusively via Automated Clearing House (ACH) transfers to US-based
+financial institutions. If your organization does not have a US bank
+account, you cannot register as a seller or receive payouts from the
+marketplace.</p>
+<p>Furthermore, once your cumulative sales exceed $20,000 USD or 200
+transactions within a calendar year, AWS requires you to complete and
+submit tax information via the AWS Management Console. If you are a US
+person or entity, you will typically complete a Form W-9; non-US
+entities with a US bank account may need to provide a Form W-8BEN or
+W-8BEN-E.</p>
+<h2 id="reserved-instance-qualification-criteria">Reserved Instance
+Qualification Criteria</h2>
+<p>Not every EC2 reservation can be listed for sale. For a specific
+Reserved Instance to be eligible for the marketplace, it must satisfy
+all of the following conditions:</p>
+<ul>
+<li><strong>Instance Class:</strong> Only Standard Reserved Instances
+can be sold. Convertible Reserved Instances are strictly prohibited from
+being listed on the marketplace.</li>
+<li><strong>Holding Period:</strong> You must have owned the Reserved
+Instance for a minimum of 30 days. For example, if you purchase a
+reservation or modify an existing reservation (such as splitting it or
+changing its Availability Zone), the 30-day timer resets from the date
+of purchase or modification.</li>
+<li><strong>Remaining Term:</strong> The reservation must have at least
+one full month of remaining duration on its contract term.</li>
+<li><strong>Payment Status:</strong> If the Reserved Instance was
+purchased using the All Upfront or Partial Upfront payment option, the
+initial upfront payment must be completely received and processed by AWS
+before the instance can be listed.</li>
+<li><strong>Region Availability:</strong> The Reserved Instance must
+reside in a standard commercial AWS Region. Reservations purchased in
+AWS GovCloud (US) or AWS China Regions cannot be sold.</li>
+</ul>
+<h2 id="marketplace-limitations-and-restrictions">Marketplace
+Limitations and Restrictions</h2>
+<p>Even when your account and instances meet the baseline eligibility
+requirements, several operational and financial limitations govern how
+sales work on the EC2 Reserved Instance Marketplace:</p>
+<ul>
+<li><strong>No Volume Discounts:</strong> Any Reserved Instance
+originally purchased with a volume discount (such as
+enterprise-negotiated discounts or tiered volume pricing) cannot be sold
+on the marketplace.</li>
+<li><strong>Service Fee:</strong> AWS charges a service fee equal to 12
+percent of the total upfront price you set for the Standard Reserved
+Instance. If your upfront listing price is <span
+class="math inline">\(P\)</span>, your net payout <span
+class="math inline">\(N\)</span> after the marketplace fee is calculated
+as <span class="math inline">\(N = P - 0.12P = 0.88P\)</span>. If you
+sell a No Upfront Reserved Instance, your upfront price is $0, meaning
+there is no service fee charged.</li>
+<li><strong>Pricing Boundaries:</strong> For All Upfront and Partial
+Upfront reservations, you can set your upfront listing price anywhere
+from $0 up to a maximum cap determined by AWS (typically based on the
+intrinsic remaining value of the reservation). However, you cannot
+modify the recurring hourly usage rate; the buyer simply assumes the
+exact recurring hourly rate defined in your original contract.</li>
+<li><strong>Billing Term Rounding:</strong> When a third-party buyer
+purchases your Reserved Instance, the remaining term is rounded down to
+the nearest whole month for the buyer. For instance, if you sell a
+reservation with 8 months and 20 days remaining, the buyer receives an
+8-month term, though you retain usage rights only up until the exact
+moment the sale is finalized.</li>
+<li><strong>Unit Sales Only:</strong> While you must list an entire
+Reserved Instance ID, buyers can choose to purchase a subset of the
+instances within that reservation. If a partial purchase occurs, AWS
+automatically splits your reservation into two: one transferred to the
+buyer, and one remaining in your account on the marketplace.</li>
+<li><strong>Capacity Reservations:</strong> Only standard EC2 instance
+reservations are supported. Dedicated Host Reservations and On-Demand
+Capacity Reservations cannot be sold on the marketplace.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-are-the-rules-for-selling-ec-2-reserved-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

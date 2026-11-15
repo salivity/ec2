@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Does Amazon EC2 Guarantee a Regional Monthly Uptime SLA? - ec2</title>
+    <meta name="description" content="Amazon Elastic Compute Cloud offers a formal Service Level Agreement that guarantees a specific monthly uptime percentage for resources deployed across an AWS Region. Under the Amazon Compute Service Level Agreement, AWS commits to making Amazon EC2 avail">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/does-amazon-ec-2-guarantee-a-regional-monthly-uptime-sla">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Does Amazon EC2 Guarantee a Regional Monthly Uptime SLA? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/does-amazon-ec-2-guarantee-a-regional-monthly-uptime-sla" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Elastic Compute Cloud offers a formal Service Level Agreement that guarantees a specific monthly uptime percentage for resources deployed across an AWS Region. Under the Amazon Compute Service Level Agreement, AWS commits to making Amazon EC2 avail" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="does-amazon-ec2-guarantee-a-regional-monthly-uptime-sla">Does
+Amazon EC2 Guarantee a Regional Monthly Uptime SLA?</h1>
+<p>Amazon Elastic Compute Cloud offers a formal Service Level Agreement
+that guarantees a specific monthly uptime percentage for resources
+deployed across an AWS Region. Under the Amazon Compute Service Level
+Agreement, AWS commits to making Amazon EC2 available with a Monthly
+Uptime Percentage of at least 99.99 percent during any monthly billing
+cycle when instances are deployed across multiple Availability Zones
+within the same region. For single EC2 instances, AWS also provides an
+instance-level availability commitment of 99.5 percent. When these
+availability targets are not met, eligible customers can claim financial
+service credits applied against future Amazon EC2 payments.</p>
+<h2 id="understanding-the-regional-level-sla-commitment">Understanding
+the Regional-Level SLA Commitment</h2>
+<p>The regional-level SLA for Amazon EC2 is designed around
+high-availability architectures that span more than one Availability
+Zone. An Availability Zone consists of one or more discrete data centers
+with redundant power, networking, and connectivity inside an AWS
+Region.</p>
+<p>To qualify for the 99.99 percent regional Monthly Uptime Percentage
+commitment, your workload must run concurrently across two or more
+Availability Zones in the same region. A region is considered
+unavailable—referred to in the agreement as Region Unavailable—when all
+of your running instances deployed across two or more Availability Zones
+concurrently have no external connectivity. If only one Availability
+Zone experiences an outage while another Availability Zone containing
+your running instances remains healthy and reachable, the regional SLA
+threshold is not breached.</p>
+<h2 id="single-instance-sla-commitment">Single Instance SLA
+Commitment</h2>
+<p>In addition to the multi-zone regional commitment, Amazon EC2
+includes an Instance-Level SLA for individual virtual machines. AWS
+commits to a Monthly Uptime Percentage of at least 99.5 percent for any
+single EC2 instance during a monthly billing cycle. A single instance is
+considered unavailable when it has no external connectivity and fails to
+respond to external network requests due to underlying AWS
+infrastructure issues.</p>
+<h2 id="how-monthly-uptime-percentage-is-calculated">How Monthly Uptime
+Percentage Is Calculated</h2>
+<p>AWS calculates the Monthly Uptime Percentage by subtracting from 100
+percent the percentage of minutes during the monthly billing cycle in
+which the service was in a state of unavailability. The mathematical
+formula used for the regional calculation is:</p>
+<p><span class="math display">\[\text{Monthly Uptime Percentage} = 100\%
+- \left( \frac{\text{Total Unavailable Minutes in a Billing
+Cycle}}{\text{Total Minutes in a Billing Cycle}} \times 100\%
+\right)\]</span></p>
+<p>If an instance has only been running for part of the month, AWS
+assumes the instance was 100 percent available for the portion of the
+month it was not running. Furthermore, any downtime lasting less than
+one full minute is generally not recorded as part of the unavailable
+minutes unless specified by the monitoring thresholds of the
+agreement.</p>
+<h2 id="service-credits-for-sla-breaches">Service Credits for SLA
+Breaches</h2>
+<p>When the Monthly Uptime Percentage falls below the guaranteed
+threshold, AWS compensates customers through Service Credits. The credit
+percentage scales based on the severity of the downtime experienced
+during the billing cycle.</p>
+<p>For the Regional-Level SLA across multiple Availability Zones, the
+credit tiers are structured as follows:</p>
+<ul>
+<li>Less than 99.99 percent but equal to or greater than 99.0 percent
+results in a 10 percent Service Credit.</li>
+<li>Less than 99.0 percent but equal to or greater than 95.0 percent
+results in a 30 percent Service Credit.</li>
+<li>Less than 95.0 percent results in a 100 percent Service Credit.</li>
+</ul>
+<p>For the Single EC2 Instance SLA, the credit tiers are:</p>
+<ul>
+<li>Less than 99.5 percent but equal to or greater than 99.0 percent
+results in a 10 percent Service Credit.</li>
+<li>Less than 99.0 percent but equal to or greater than 95.0 percent
+results in a 30 percent Service Credit.</li>
+<li>Less than 95.0 percent results in a 100 percent Service Credit.</li>
+</ul>
+<p>Service credits are applied only against future Amazon EC2 charges
+for the affected region or instance and are not paid out as direct
+refunds.</p>
+<h2 id="sla-exclusions-and-limitations">SLA Exclusions and
+Limitations</h2>
+<p>Not all service disruptions count toward SLA downtime calculations.
+The Amazon Compute SLA outlines several exclusions where unavailability
+does not qualify for service credits:</p>
+<ul>
+<li>Factors outside of AWS reasonable control, including force majeure
+events or broad internet access problems beyond the demarcation point of
+the AWS network.</li>
+<li>Actions or inactions taken by the customer or third parties, such as
+misconfigured security groups, network access control lists, routing
+tables, or operating system kernel panics.</li>
+<li>Failures resulting from customer equipment, third-party software, or
+custom scripts.</li>
+<li>Downtime occurring during scheduled maintenance windows where AWS
+has provided advance notice, or instances terminated due to breaches of
+the AWS Acceptable Use Policy.</li>
+<li>Spot Instances, which are designed to be interruptible when AWS
+needs to reclaim spare compute capacity.</li>
+</ul>
+<h2 id="requirements-for-claiming-a-service-credit">Requirements for
+Claiming a Service Credit</h2>
+<p>Service credits are not issued automatically in most scenarios. To
+receive a credit for a breach of the Amazon EC2 SLA, an account
+administrator must submit a formal claim by opening a case in the AWS
+Support Center before the end of the second billing cycle after the
+incident occurred. The request must include the specific dates, times,
+and affected Region or Instance IDs, alongside request logs that
+document the errors and corroborate the claimed outage duration.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/does-amazon-ec-2-guarantee-a-regional-monthly-uptime-sla';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

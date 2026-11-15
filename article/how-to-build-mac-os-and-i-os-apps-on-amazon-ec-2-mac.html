@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Build macOS and iOS Apps on Amazon EC2 Mac? - ec2</title>
+    <meta name="description" content="Apple developers can build and test macOS and iOS applications in the cloud by provisioning bare metal Amazon EC2 Mac instances powered by Apple silicon or Intel processors. These instances run on physical Mac mini computers connected to the AWS Nitro Sys">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-build-mac-os-and-i-os-apps-on-amazon-ec-2-mac">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Build macOS and iOS Apps on Amazon EC2 Mac? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-build-mac-os-and-i-os-apps-on-amazon-ec-2-mac" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Apple developers can build and test macOS and iOS applications in the cloud by provisioning bare metal Amazon EC2 Mac instances powered by Apple silicon or Intel processors. These instances run on physical Mac mini computers connected to the AWS Nitro Sys" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-build-macos-and-ios-apps-on-amazon-ec2-mac">How to Build
+macOS and iOS Apps on Amazon EC2 Mac?</h1>
+<p>Apple developers can build and test macOS and iOS applications in the
+cloud by provisioning bare metal Amazon EC2 Mac instances powered by
+Apple silicon or Intel processors. These instances run on physical Mac
+mini computers connected to the AWS Nitro System, enabling engineering
+teams to offload Xcode compilation, automated UI testing, and continuous
+integration workflows to scalable cloud infrastructure while integrating
+directly with native AWS services.</p>
+<h2 id="architecture-of-amazon-ec2-mac-instances">Architecture of Amazon
+EC2 Mac Instances</h2>
+<p>Amazon EC2 Mac instances provide on-demand macOS environments in the
+cloud by combining physical Apple Mac mini hardware with the AWS Nitro
+System. Because Apple macOS licensing requires macOS to run on
+Apple-branded hardware, every EC2 Mac instance is backed by a dedicated
+physical Mac mini host rather than a shared hypervisor. The AWS Nitro
+controller attaches directly to the Mac mini via a high-speed
+Thunderbolt connection, exposing the host as a standard EC2 bare metal
+instance (<code>mac1.metal</code>, <code>mac2.metal</code>,
+<code>mac2-m2.metal</code>, or <code>mac2-m2pro.metal</code>).</p>
+<p>Through the Nitro System, the physical Mac mini gains native access
+to Amazon Virtual Private Cloud (VPC) networking, Amazon Elastic Block
+Store (EBS) volumes, and IAM instance roles without requiring custom
+drivers inside the guest operating system. Boot volumes and secondary
+storage drives are served over the network via EBS, allowing developers
+to snapshot, clone, and resize macOS disks just like standard Linux or
+Windows EC2 instances.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Family</th>
+<th style="text-align: left;">Processor</th>
+<th style="text-align: left;">CPU Cores</th>
+<th style="text-align: left;">Memory</th>
+<th style="text-align: left;">Network Bandwidth</th>
+<th style="text-align: left;">EBS Bandwidth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>mac1.metal</code></td>
+<td style="text-align: left;">Intel Core i7 (8th Gen)</td>
+<td style="text-align: left;">6 physical (12 vCPU)</td>
+<td style="text-align: left;">32 GiB</td>
+<td style="text-align: left;">Up to 10 Gbps</td>
+<td style="text-align: left;">Up to 8 Gbps</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>mac2.metal</code></td>
+<td style="text-align: left;">Apple M1</td>
+<td style="text-align: left;">8 cores (4P + 4E)</td>
+<td style="text-align: left;">16 GiB</td>
+<td style="text-align: left;">Up to 10 Gbps</td>
+<td style="text-align: left;">Up to 8 Gbps</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>mac2-m2.metal</code></td>
+<td style="text-align: left;">Apple M2</td>
+<td style="text-align: left;">8 cores (4P + 4E)</td>
+<td style="text-align: left;">24 GiB</td>
+<td style="text-align: left;">Up to 10 Gbps</td>
+<td style="text-align: left;">Up to 8 Gbps</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>mac2-m2pro.metal</code></td>
+<td style="text-align: left;">Apple M2 Pro</td>
+<td style="text-align: left;">12 cores (8P + 4E)</td>
+<td style="text-align: left;">32 GiB</td>
+<td style="text-align: left;">Up to 10 Gbps</td>
+<td style="text-align: left;">Up to 8 Gbps</td>
+</tr>
+</tbody>
+</table>
+<h2
+id="allocating-dedicated-hosts-and-compliance-requirements">Allocating
+Dedicated Hosts and Compliance Requirements</h2>
+<p>Before launching an EC2 Mac instance, you must allocate an EC2
+Dedicated Host. In compliance with the Apple macOS Software License
+Agreement, AWS enforces a minimum host allocation period of 24
+consecutive hours (<code>86400</code> seconds). You cannot release a Mac
+Dedicated Host until a full 24-hour window has elapsed from the moment
+of allocation.</p>
+<p>When sizing a build fleet for continuous integration, you can
+determine the required number of Dedicated Hosts (<span
+class="math inline">\(H\)</span>) based on your daily build volume
+(<span class="math inline">\(N\)</span>), average build duration in
+minutes (<span class="math inline">\(t_{\text{build}}\)</span>), and
+target utilization factor (<span class="math inline">\(\rho\)</span>)
+during peak working hours (<span
+class="math inline">\(T_{\text{peak}}\)</span> in minutes):</p>
+<p><span class="math display">\[H = \left\lceil \frac{N \times
+t_{\text{build}}}{\rho \times T_{\text{peak}}} \right\rceil\]</span></p>
+<p>Because scrubbing and re-initializing physical Apple silicon firmware
+takes approximately 60 to 110 minutes when an instance is terminated on
+a Dedicated Host, you should avoid terminating and relaunching instances
+after every single CI job unless strict single-tenant isolation is
+required. Instead, either reuse persistent build agents or maintain a
+rolling pool of pre-warmed Dedicated Hosts.</p>
+<p>To allocate an Apple M2 Pro Dedicated Host and launch a macOS
+instance using the AWS CLI, run the following commands:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Allocate a Dedicated Host for mac2-m2pro.metal in us-east-1a</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">HOST_ID</span><span class="op">=</span><span class="va">$(</span><span class="ex">aws</span> ec2 allocate-hosts <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--instance-type</span> mac2-m2pro.metal <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--availability-zone</span> us-east-1a <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--auto-placement</span> on <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--quantity</span> 1 <span class="dt">\</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> <span class="st">&#39;HostIds[0]&#39;</span> <span class="dt">\</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> text<span class="va">)</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Launch an EC2 Mac instance onto the allocated Dedicated Host</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">--image-id</span> ami-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">--instance-type</span> mac2-m2pro.metal <span class="dt">\</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">--placement</span> Tenancy=host,HostId=<span class="va">$HOST_ID</span> <span class="dt">\</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">--key-name</span> mac-ci-keypair <span class="dt">\</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">--security-group-ids</span> sg-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">--subnet-id</span> subnet-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">--block-device-mappings</span> <span class="st">&#39;[{&quot;DeviceName&quot;:&quot;/dev/sda1&quot;,&quot;Ebs&quot;:{&quot;VolumeSize&quot;:200,&quot;VolumeType&quot;:&quot;gp3&quot;,&quot;Iops&quot;:6000,&quot;Throughput&quot;:500}}]&#39;</span></span></code></pre></div>
+<h2 id="storage-optimization-and-ebs-pre-warming">Storage Optimization
+and EBS Pre-Warming</h2>
+<p>AWS provides official macOS Amazon Machine Images (AMIs)
+pre-installed with specific versions of macOS (such as macOS Sonoma or
+macOS Sequoia) along with the AWS CLI, AWS Systems Manager SSM Agent,
+and Homebrew. However, Xcode installations, iOS Simulator runtimes, and
+Swift Package Manager caches require substantial disk space and high I/O
+throughput.</p>
+<p>When creating an instance or building a custom AMI, configure the
+root EBS volume as a <code>gp3</code> volume with at least 200 GiB to
+500 GiB of storage, <code>6000</code> IOPS, and <code>500</code> MiB/s
+throughput. By default, macOS does not automatically expand the APFS
+container when you increase the underlying EBS volume size. After
+launching an instance with a larger root volume, expand the APFS
+partition over SSH:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Connect to the EC2 Mac instance</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="at">-i</span> ~/.ssh/mac-ci-keypair.pem ec2-user@<span class="op">&lt;</span>instance-ip<span class="op">&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Repair the partition map and resize the APFS container to fill the EBS volume</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="va">PDISK</span><span class="op">=</span><span class="va">$(</span><span class="ex">diskutil</span> list physical external <span class="kw">|</span> <span class="fu">head</span> <span class="at">-n1</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-d</span><span class="st">&quot; &quot;</span> <span class="at">-f1</span><span class="va">)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="va">APFSCONT</span><span class="op">=</span><span class="va">$(</span><span class="ex">diskutil</span> list physical external <span class="kw">|</span> <span class="fu">grep</span> Apple_APFS <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-s</span> <span class="st">&quot; &quot;</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-d</span><span class="st">&quot; &quot;</span> <span class="at">-f8</span><span class="va">)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">yes</span> <span class="kw">|</span> <span class="fu">sudo</span> diskutil repairDisk <span class="va">$PDISK</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> diskutil apfs resizeContainer <span class="va">$APFSCONT</span> 0</span></code></pre></div>
+<p>Furthermore, EBS volumes created from snapshots load storage blocks
+lazily from Amazon S3 on first read. This initial read penalty can
+double the time of the first Xcode compilation on a freshly booted
+instance. To eliminate first-build latency, either enable Amazon EBS
+Fast Snapshot Restore (FSR) on your custom AMI snapshot or pre-warm the
+Xcode toolchain and simulator directories using <code>dd</code> or
+<code>fio</code> during instance initialization.</p>
+<h2 id="building-custom-golden-amis-with-packer-and-xcode">Building
+Custom Golden AMIs with Packer and Xcode</h2>
+<p>Downloading and extracting a 12 GB Xcode <code>.xip</code> archive
+and installing multiple iOS Simulator runtimes takes 30 to 45 minutes.
+Doing this dynamically at instance boot time wastes build time. Instead,
+use HashiCorp Packer with the <code>amazon-ebs</code> builder and the
+<code>xcodes</code> CLI tool to bake a golden macOS AMI containing your
+exact Xcode toolchain, CocoaPods, Fastlane, and iOS runtimes.</p>
+<p>Below is a production shell provisioning script to run inside a
+Packer build on an EC2 Mac instance:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/zsh</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-euo</span> pipefail</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Ensure Homebrew is in PATH on Apple silicon</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="bu">eval</span> <span class="st">&quot;</span><span class="va">$(</span><span class="ex">/opt/homebrew/bin/brew</span> shellenv<span class="va">)</span><span class="st">&quot;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Install aria2 for multi-connection downloads and xcodes CLI</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install aria2 xcodesorg/made/xcodes fastlane cocoapods</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Install Xcode 16.2 using Apple credentials stored in AWS Secrets Manager</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">XCODES_USERNAME</span><span class="op">=</span><span class="st">&quot;ci-apple-id@example.com&quot;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">XCODES_PASSWORD</span><span class="op">=</span><span class="va">$(</span><span class="ex">aws</span> secretsmanager get-secret-value <span class="at">--secret-id</span> apple-id-password <span class="at">--query</span> SecretString <span class="at">--output</span> text<span class="va">)</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="ex">xcodes</span> install 16.2 <span class="at">--experimental-unxip</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> xcode-select <span class="at">-s</span> /Applications/Xcode-16.2.0.app/Contents/Developer</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Accept Xcode license and install mandatory system components</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> xcodebuild <span class="at">-license</span> accept</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> xcodebuild <span class="at">-runFirstLaunch</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Download and install the iOS 18.2 Simulator runtime</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="ex">xcodes</span> runtimes install <span class="st">&quot;iOS 18.2&quot;</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable Developer Mode for automated testing without GUI prompts</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> DevToolsSecurity <span class="at">-enable</span></span></code></pre></div>
+<h2 id="automating-code-signing-and-keychain-management">Automating Code
+Signing and Keychain Management</h2>
+<p>Building iOS and macOS applications for TestFlight or App Store
+distribution in a headless SSH session requires non-interactive access
+to Apple signing certificates and provisioning profiles. By default, the
+macOS system login keychain locks automatically or prompts for GUI
+authorization via a modal dialog when <code>codesign</code> attempts to
+read a private key—causing headless CI builds to hang indefinitely.</p>
+<p>To prevent headless signing failures, create a dedicated ephemeral
+keychain during each build job, import the PKCS12 (<code>.p12</code>)
+certificate fetched from AWS Secrets Manager or SSM Parameter Store,
+unlock the keychain, and explicitly grant <code>codesign</code> access
+using <code>security set-key-partition-list</code>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/zsh</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-euo</span> pipefail</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="va">KEYCHAIN_NAME</span><span class="op">=</span><span class="st">&quot;ci-build.keychain-db&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="va">KEYCHAIN_PASSWORD</span><span class="op">=</span><span class="va">$(</span><span class="ex">openssl</span> rand <span class="at">-base64</span> 24<span class="va">)</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="va">CERT_PATH</span><span class="op">=</span><span class="st">&quot;/tmp/dist_cert.p12&quot;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Fetch base64-encoded certificate and provisioning profile from AWS Secrets Manager</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> secretsmanager get-secret-value <span class="dt">\</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">--secret-id</span> ios/distribution-p12-base64 <span class="dt">\</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> SecretString <span class="at">--output</span> text <span class="kw">|</span> <span class="fu">base64</span> <span class="at">--decode</span> <span class="op">&gt;</span> <span class="st">&quot;</span><span class="va">$CERT_PATH</span><span class="st">&quot;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="va">CERT_PASSWORD</span><span class="op">=</span><span class="va">$(</span><span class="ex">aws</span> secretsmanager get-secret-value <span class="dt">\</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">--secret-id</span> ios/distribution-p12-password <span class="dt">\</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> SecretString <span class="at">--output</span> text<span class="va">)</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> ~/Library/MobileDevice/Provisioning\ Profiles</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> secretsmanager get-secret-value <span class="dt">\</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">--secret-id</span> ios/provisioning-profile-base64 <span class="dt">\</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> SecretString <span class="at">--output</span> text <span class="kw">|</span> <span class="fu">base64</span> <span class="at">--decode</span> <span class="op">&gt;</span> ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Create, configure, and unlock the ephemeral keychain</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="ex">security</span> create-keychain <span class="at">-p</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_PASSWORD</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_NAME</span><span class="st">&quot;</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="ex">security</span> set-keychain-settings <span class="at">-lut</span> 21600 <span class="st">&quot;</span><span class="va">$KEYCHAIN_NAME</span><span class="st">&quot;</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="ex">security</span> unlock-keychain <span class="at">-p</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_PASSWORD</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_NAME</span><span class="st">&quot;</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Add the ephemeral keychain to the user search list</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="ex">security</span> list-keychains <span class="at">-d</span> user <span class="at">-s</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_NAME</span><span class="st">&quot;</span> <span class="va">$(</span><span class="ex">security</span> list-keychains <span class="at">-d</span> user <span class="kw">|</span> <span class="fu">sed</span> s/\&quot;//g<span class="va">)</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="ex">security</span> default-keychain <span class="at">-s</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_NAME</span><span class="st">&quot;</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Import certificate and allow codesign to read the private key without GUI prompts</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="ex">security</span> import <span class="st">&quot;</span><span class="va">$CERT_PATH</span><span class="st">&quot;</span> <span class="at">-k</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_NAME</span><span class="st">&quot;</span> <span class="at">-P</span> <span class="st">&quot;</span><span class="va">$CERT_PASSWORD</span><span class="st">&quot;</span> <span class="at">-T</span> /usr/bin/codesign <span class="at">-T</span> /usr/bin/security</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="ex">security</span> set-key-partition-list <span class="at">-S</span> apple-tool:,apple:,codesign: <span class="at">-s</span> <span class="at">-k</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_PASSWORD</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$KEYCHAIN_NAME</span><span class="st">&quot;</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Clean up temporary certificate file on disk</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-f</span> <span class="st">&quot;</span><span class="va">$CERT_PATH</span><span class="st">&quot;</span></span></code></pre></div>
+<h2 id="executing-parallel-unit-and-ui-tests-with-xcodebuild">Executing
+Parallel Unit and UI Tests with <code>xcodebuild</code></h2>
+<p>Once the environment and signing keychain are ready, you can compile
+the application and run unit and UI test suites using
+<code>xcodebuild</code>. On Apple silicon instances such as
+<code>mac2-m2pro.metal</code> (12 cores and 32 GiB RAM), running
+multiple iOS Simulator clones in parallel significantly reduces test
+execution time.</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/zsh</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-euo</span> pipefail</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Boot a clean simulator check or let xcodebuild clone dynamically</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ex">xcodebuild</span> test <span class="dt">\</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">-workspace</span> MyApp.xcworkspace <span class="dt">\</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">-scheme</span> MyApp <span class="dt">\</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">-destination</span> <span class="st">&#39;platform=iOS Simulator,name=iPhone 16 Pro,OS=18.2&#39;</span> <span class="dt">\</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">-derivedDataPath</span> ./DerivedData <span class="dt">\</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">-resultBundlePath</span> ./TestResults.xcresult <span class="dt">\</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">-parallel-testing-enabled</span> YES <span class="dt">\</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">-parallel-testing-worker-count</span> 4 <span class="dt">\</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">-maximum-concurrent-test-simulator-destinations</span> 4 <span class="dt">\</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  CODE_SIGNING_ALLOWED=NO</span></code></pre></div>
+<h3 id="handling-gui-permissions-for-macos-ui-tests">Handling GUI
+Permissions for macOS UI Tests</h3>
+<p>While iOS Simulator tests run cleanly in headless SSH sessions,
+native macOS UI tests (<code>XCTest</code> driving a macOS app window)
+require an active WindowServer session and Transparency, Consent, and
+Control (TCC) accessibility permissions. To run macOS UI tests on an EC2
+Mac instance:</p>
+<ol type="1">
+<li>Configure <code>ec2-user</code> for automatic GUI login into the
+macOS WindowServer on boot.</li>
+<li>Pre-populate or grant Accessibility permissions to
+<code>Xcode</code> and <code>xctest</code> in
+<code>/Library/Application Support/com.apple.TCC/TCC.db</code> while
+System Integrity Protection (SIP) permits management, or approve them
+once via Apple Remote Desktop (ARD) / VNC before creating your golden
+AMI.</li>
+<li>Archive the <code>.xcresult</code> bundle to Amazon S3 after test
+completion so developers can inspect failure screenshots, crash logs,
+and code coverage reports locally in Xcode.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-build-mac-os-and-i-os-apps-on-amazon-ec-2-mac';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Run Multi-Arch Docker Images on AWS Graviton? - ec2</title>
+    <meta name="description" content="Containerized workloads can run seamlessly on Amazon EC2 Graviton nodes by building and pushing multi-architecture Docker images that package both x8664 and ARM64 binaries behind a single image manifest list. When an orchestration platform like Amazon EKS">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-run-multi-arch-docker-images-on-aws-graviton">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Run Multi-Arch Docker Images on AWS Graviton? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-run-multi-arch-docker-images-on-aws-graviton" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Containerized workloads can run seamlessly on Amazon EC2 Graviton nodes by building and pushing multi-architecture Docker images that package both x8664 and ARM64 binaries behind a single image manifest list. When an orchestration platform like Amazon EKS" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-run-multi-arch-docker-images-on-aws-graviton">How to Run
+Multi-Arch Docker Images on AWS Graviton?</h1>
+<p>Containerized workloads can run seamlessly on Amazon EC2 Graviton
+nodes by building and pushing multi-architecture Docker images that
+package both x86_64 and ARM64 binaries behind a single image manifest
+list. When an orchestration platform like Amazon EKS or Amazon ECS pulls
+the container image onto a Graviton instance, the container runtime
+automatically inspects the manifest list, detects the underlying ARM64
+architecture of the host, and downloads the corresponding layers without
+requiring changes to deployment configurations or image tags.</p>
+<h2 id="understanding-amazon-ec2-graviton-and-arm64">Understanding
+Amazon EC2 Graviton and ARM64</h2>
+<p>Amazon EC2 Graviton processors are custom-built by AWS using 64-bit
+Arm Neoverse cores (<code>linux/arm64</code> or <code>aarch64</code>).
+Compared to traditional x86_64 (<code>linux/amd64</code>) instances,
+Graviton nodes deliver significant price-performance improvements and
+lower energy consumption for cloud-native workloads.</p>
+<p>When migrating or running hybrid clusters that mix x86_64 and
+Graviton instances, managing separate image tags (such as
+<code>my-app:v1-amd64</code> and <code>my-app:v1-arm64</code>)
+introduces operational overhead. Multi-architecture container images
+eliminate this friction by uniting architecture-specific image digests
+under a single Open Container Initiative (OCI) image index or Docker
+manifest list.</p>
+<p>The cost-performance efficiency gain when shifting a workload from
+x86_64 to Graviton can be expressed as:</p>
+<p><span class="math display">\[\text{Efficiency Gain} = \left(1 -
+\frac{C_{\text{Graviton}} \times T_{\text{Graviton}}}{C_{\text{x86}}
+\times T_{\text{x86}}}\right) \times 100\%\]</span></p>
+<p>where <span class="math inline">\(C\)</span> represents the hourly
+instance cost and <span class="math inline">\(T\)</span> represents the
+average request execution time on each architecture.</p>
+<h2 id="how-multi-architecture-manifest-lists-work">How
+Multi-Architecture Manifest Lists Work</h2>
+<p>A multi-architecture image is not a single binary file containing
+instructions for multiple CPUs. Instead, it is a hierarchy of manifests
+stored in a container registry such as Amazon Elastic Container Registry
+(ECR):</p>
+<ol type="1">
+<li><strong>Image Index (Manifest List):</strong> The top-level metadata
+object associated with a tag (for example,
+<code>123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:latest</code>).
+It contains pointers to multiple platform-specific image manifests
+alongside their OS and CPU architecture metadata.</li>
+<li><strong>Platform Manifests:</strong> Separate manifest files for
+<code>linux/amd64</code> and <code>linux/arm64</code>, each referencing
+its own specific configuration and filesystem layers.</li>
+<li><strong>Runtime Resolution:</strong> When <code>containerd</code> or
+the Docker daemon on a Graviton node requests
+<code>my-app:latest</code>, it downloads the manifest list first,
+matches its local <code>linux/arm64</code> platform against the entries,
+and pulls only the <code>linux/arm64</code> layers.</li>
+</ol>
+<h2 id="building-multi-architecture-images-with-docker-buildx">Building
+Multi-Architecture Images with Docker Buildx</h2>
+<p>Docker Buildx is a CLI plugin that extends the
+<code>docker build</code> command using the BuildKit engine. It allows
+you to build images for multiple platforms simultaneously using QEMU
+emulation, cross-compilation, or native multi-node builders.</p>
+<h3 id="1-select-a-multi-architecture-base-image">1. Select a
+Multi-Architecture Base Image</h3>
+<p>Ensure your <code>Dockerfile</code> starts with an official base
+image that already supports both <code>linux/amd64</code> and
+<code>linux/arm64</code>, such as <code>alpine</code>,
+<code>debian</code>, <code>ubuntu</code>, <code>node</code>,
+<code>python</code>, or <code>golang</code>. You can verify base image
+support using the <code>docker buildx imagetools inspect</code>
+command:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> buildx imagetools inspect alpine:3.20</span></code></pre></div>
+<h3 id="2-write-a-platform-aware-dockerfile">2. Write a Platform-Aware
+Dockerfile</h3>
+<p>BuildKit automatically injects platform arguments like
+<code>TARGETOS</code> and <code>TARGETARCH</code> when running
+multi-platform builds. For compiled languages like Go or Rust, using
+cross-compilation on the host builder is much faster than emulating
+instructions via QEMU:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode dockerfile"><code class="sourceCode dockerfile"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> <span class="op">--platform=$BUILDPLATFORM</span> golang:1.22-alpine <span class="kw">AS</span> builder</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">ARG</span> TARGETOS</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ARG</span> TARGETARCH</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">WORKDIR</span> /src</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">COPY</span> . .</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="va">CGO_ENABLED</span><span class="op">=</span>0 <span class="va">GOOS</span><span class="op">=</span><span class="va">$TARGETOS</span> <span class="va">GOARCH</span><span class="op">=</span><span class="va">$TARGETARCH</span> <span class="ex">go</span> build <span class="at">-o</span> /out/app ./cmd/server</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> alpine:3.20</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">COPY</span> <span class="op">--from=builder</span> /out/app /usr/local/bin/app</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="kw">ENTRYPOINT</span> [<span class="st">&quot;/usr/local/bin/app&quot;</span>]</span></code></pre></div>
+<h3 id="3-configure-the-buildx-builder-and-push-to-amazon-ecr">3.
+Configure the Buildx Builder and Push to Amazon ECR</h3>
+<p>Create a new builder instance backed by the
+<code>docker-container</code> driver, authenticate with Amazon ECR, and
+build and push both architectures in one step:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Authenticate Docker to Amazon ECR</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ecr get-login-password <span class="at">--region</span> us-east-1 <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">docker</span> login <span class="at">--username</span> AWS <span class="at">--password-stdin</span> 123456789012.dkr.ecr.us-east-1.amazonaws.com</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Create and bootstrap a multi-arch builder instance</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> buildx create <span class="at">--name</span> multiarch-builder <span class="at">--driver</span> docker-container <span class="at">--use</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> buildx inspect <span class="at">--bootstrap</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Build and push the multi-architecture manifest and images directly to ECR</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> buildx build <span class="dt">\</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">--platform</span> linux/amd64,linux/arm64 <span class="dt">\</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">--tag</span> 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0.0 <span class="dt">\</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">--push</span> .</span></code></pre></div>
+<h2 id="native-builds-without-emulation-overhead">Native Builds Without
+Emulation Overhead</h2>
+<p>While QEMU emulation is convenient for small builds, compiling heavy
+C/C++ dependencies or large container layers under emulation can be
+slow. In production CI/CD pipelines (such as AWS CodeBuild or GitHub
+Actions), the recommended pattern is to build each architecture natively
+on separate compute runners:</p>
+<ol type="1">
+<li>Run an x86_64 build job on a standard runner and push
+<code>my-app:1.0.0-amd64</code>.</li>
+<li>Run an ARM64 build job on a Graviton runner
+(<code>ARM_CONTAINER</code> in AWS CodeBuild) and push
+<code>my-app:1.0.0-arm64</code>.</li>
+<li>Combine both digests into a single multi-architecture manifest
+list:</li>
+</ol>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> buildx imagetools create <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--tag</span> 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0.0 <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0.0-amd64 <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0.0-arm64</span></code></pre></div>
+<h2 id="deploying-to-amazon-eks-and-amazon-ecs-on-graviton">Deploying to
+Amazon EKS and Amazon ECS on Graviton</h2>
+<p>Once your multi-architecture image is published in Amazon ECR,
+workloads can be scheduled across Graviton and x86_64 nodes using a
+single deployment specification.</p>
+<h3 id="amazon-eks-kubernetes">Amazon EKS (Kubernetes)</h3>
+<p>In Amazon EKS, Kubernetes automatically populates the
+<code>kubernetes.io/arch</code> node label (<code>amd64</code> or
+<code>arm64</code>). With a multi-architecture image, a standard
+Deployment without architecture restrictions can be scheduled on either
+node type by Cluster Autoscaler or Karpenter:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> apps/v1</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Deployment</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">metadata</span><span class="kw">:</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> my-app</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">replicas</span><span class="kw">:</span><span class="at"> </span><span class="dv">4</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">selector</span><span class="kw">:</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">matchLabels</span><span class="kw">:</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">app</span><span class="kw">:</span><span class="at"> my-app</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">template</span><span class="kw">:</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">metadata</span><span class="kw">:</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">labels</span><span class="kw">:</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">app</span><span class="kw">:</span><span class="at"> my-app</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">affinity</span><span class="kw">:</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">nodeAffinity</span><span class="kw">:</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">requiredDuringSchedulingIgnoredDuringExecution</span><span class="kw">:</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">nodeSelectorTerms</span><span class="kw">:</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="fu">matchExpressions</span><span class="kw">:</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="at">                  </span><span class="kw">-</span><span class="at"> </span><span class="fu">key</span><span class="kw">:</span><span class="at"> kubernetes.io/arch</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">operator</span><span class="kw">:</span><span class="at"> In</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">values</span><span class="kw">:</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="at">                      </span><span class="kw">-</span><span class="at"> amd64</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="at">                      </span><span class="kw">-</span><span class="at"> arm64</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">containers</span><span class="kw">:</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> my-app</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">image</span><span class="kw">:</span><span class="at"> 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0.0</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="kw">-</span><span class="at"> </span><span class="fu">containerPort</span><span class="kw">:</span><span class="at"> </span><span class="dv">8080</span></span></code></pre></div>
+<p>If you use Karpenter for node provisioning, including both
+<code>amd64</code> and <code>arm64</code> in your <code>NodePool</code>
+requirements allows Karpenter to dynamically select the lowest-cost Spot
+or On-Demand Graviton instances while seamlessly falling back to x86_64
+capacity if needed.</p>
+<h3 id="amazon-ecs">Amazon ECS</h3>
+<p>In Amazon ECS, EC2 capacity providers using Graviton instances
+(<code>m7g</code>, <code>c7g</code>, <code>r7g</code>) pull the
+<code>linux/arm64</code> variant automatically from the
+multi-architecture ECR tag. If you also run tasks on AWS Fargate, you
+can switch a task definition to Graviton by setting the
+<code>runtimePlatform</code> block without changing the
+<code>image</code> URI:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;family&quot;</span><span class="fu">:</span> <span class="st">&quot;my-app-task&quot;</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;networkMode&quot;</span><span class="fu">:</span> <span class="st">&quot;awsvpc&quot;</span><span class="fu">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;requiresCompatibilities&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;FARGATE&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;cpu&quot;</span><span class="fu">:</span> <span class="st">&quot;1024&quot;</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;memory&quot;</span><span class="fu">:</span> <span class="st">&quot;2048&quot;</span><span class="fu">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;runtimePlatform&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;cpuArchitecture&quot;</span><span class="fu">:</span> <span class="st">&quot;ARM64&quot;</span><span class="fu">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;operatingSystemFamily&quot;</span><span class="fu">:</span> <span class="st">&quot;LINUX&quot;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;containerDefinitions&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;my-app&quot;</span><span class="fu">,</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;image&quot;</span><span class="fu">:</span> <span class="st">&quot;123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;essential&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="best-practices-for-graviton-multi-arch-workloads">Best Practices
+for Graviton Multi-Arch Workloads</h2>
+<ul>
+<li><strong>Pin Multi-Arch Base Images by Digest of the Index:</strong>
+When pinning image digests for security, always reference the top-level
+manifest list digest rather than a single architecture's manifest digest
+so both <code>amd64</code> and <code>arm64</code> nodes can resolve the
+image.</li>
+<li><strong>Audit Native Dependencies:</strong> Interpreted languages
+like Python, Node.js, and Ruby are largely architecture-independent, but
+packages that compile native C extensions (such as <code>uvloop</code>,
+<code>psycopg2</code>, or <code>sharp</code>) must have prebuilt
+<code>aarch64</code> wheels/binaries or build tools installed during the
+<code>arm64</code> container build stage.</li>
+<li><strong>Verify Runtime Architecture:</strong> Add automated
+integration tests on Graviton runners to confirm that
+<code>uname -m</code> returns <code>aarch64</code> inside the running
+container and that performance and memory profiles meet expectations
+under production load.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-run-multi-arch-docker-images-on-aws-graviton';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

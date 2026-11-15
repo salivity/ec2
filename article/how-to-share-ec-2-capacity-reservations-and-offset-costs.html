@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Share EC2 Capacity Reservations and Offset Costs? - ec2</title>
+    <meta name="description" content="Unused capacity in an Amazon EC2 Capacity Reservation can be managed and optimized in two primary ways: sharing the reservation across multiple AWS accounts using AWS Resource Access Manager, and offsetting the cost of unused capacity with Zonal Reserved">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-share-ec-2-capacity-reservations-and-offset-costs">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Share EC2 Capacity Reservations and Offset Costs? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-share-ec-2-capacity-reservations-and-offset-costs" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Unused capacity in an Amazon EC2 Capacity Reservation can be managed and optimized in two primary ways: sharing the reservation across multiple AWS accounts using AWS Resource Access Manager, and offsetting the cost of unused capacity with Zonal Reserved" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-share-ec2-capacity-reservations-and-offset-costs">How to
+Share EC2 Capacity Reservations and Offset Costs?</h1>
+<p>Unused capacity in an Amazon EC2 Capacity Reservation can be managed
+and optimized in two primary ways: sharing the reservation across
+multiple AWS accounts using AWS Resource Access Manager, and offsetting
+the cost of unused capacity with Zonal Reserved Instances or Savings
+Plans. Because you are billed for the full capacity of an active
+On-Demand Capacity Reservation regardless of whether instances are
+running in it, combining cross-account sharing with billing discounts
+ensures both high resource utilization and cost efficiency across your
+organization.</p>
+<h2 id="understanding-unused-capacity-billing">Understanding Unused
+Capacity Billing</h2>
+<p>When you create an On-Demand Capacity Reservation (ODCR), AWS sets
+aside the specified compute capacity in a specific Availability Zone for
+your exclusive use. You pay the equivalent On-Demand rate for the total
+reserved capacity from the moment the reservation becomes active until
+you cancel it or it expires.</p>
+<p>If a Capacity Reservation is created for <span
+class="math inline">\(N_{total}\)</span> instances and you are currently
+running <span class="math inline">\(N_{used}\)</span> matching
+instances, the unused capacity <span
+class="math inline">\(N_{unused}\)</span> is calculated as:</p>
+<p><span class="math display">\[N_{unused} = N_{total} -
+N_{used}\]</span></p>
+<p>Without discounts or cross-account consumption, the hourly cost <span
+class="math inline">\(C_{unused}\)</span> for this idle capacity is
+billed at the standard On-Demand hourly rate <span
+class="math inline">\(R_{OD}\)</span>:</p>
+<p><span class="math display">\[C_{unused} = N_{unused} \times
+R_{OD}\]</span></p>
+<p>To eliminate or reduce <span
+class="math inline">\(C_{unused}\)</span>, you can either increase <span
+class="math inline">\(N_{used}\)</span> by allowing other AWS accounts
+to launch instances into the reservation, or reduce the effective hourly
+rate by applying Zonal Reserved Instances.</p>
+<h2 id="sharing-capacity-reservations-across-aws-accounts">Sharing
+Capacity Reservations Across AWS Accounts</h2>
+<p>AWS Resource Access Manager (AWS RAM) allows an owner account to
+share an On-Demand Capacity Reservation with other individual AWS
+accounts, Organizational Units (OUs), or an entire AWS Organization.
+When shared, consumer accounts can launch instances with matching
+attributes (instance type, platform, tenancy, and Availability Zone)
+that automatically utilize the available capacity in the shared
+reservation.</p>
+<h3 id="step-1-create-a-resource-share-in-aws-ram">Step 1: Create a
+Resource Share in AWS RAM</h3>
+<p>In the account that owns the Capacity Reservation, you can create a
+resource share using the AWS Management Console or AWS CLI:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ram create-resource-share <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--name</span> <span class="st">&quot;Shared-EC2-Capacity&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--resource-arns</span> arn:aws:ec2:us-east-1:123456789012:capacity-reservation/cr-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--principals</span> 210987654321</span></code></pre></div>
+<p>If sharing outside of your AWS Organization, the recipient account
+must accept the resource share invitation via AWS RAM before the
+capacity becomes visible to them.</p>
+<h3 id="step-2-launch-instances-in-consumer-accounts">Step 2: Launch
+Instances in Consumer Accounts</h3>
+<p>Once shared, consumer accounts can launch instances into the Capacity
+Reservation depending on the reservation's eligibility setting:</p>
+<ul>
+<li><strong>Open Capacity Reservations</strong>: Any instance launched
+in the consumer account with matching attributes in the same
+Availability Zone will automatically consume the shared capacity if
+local capacity reservations are not targeted first.</li>
+<li><strong>Targeted Capacity Reservations</strong>: The consumer
+account must explicitly specify the Capacity Reservation ARN or ID
+during instance launch:</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> m5.xlarge <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--placement</span> AvailabilityZone=us-east-1a <span class="dt">\</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--capacity-reservation-specification</span> CapacityReservationTarget={CapacityReservationId=cr-0123456789abcdef0}</span></code></pre></div>
+<h3 id="step-3-assign-billing-of-shared-capacity-reservations">Step 3:
+Assign Billing of Shared Capacity Reservations</h3>
+<p>By default, the account that owns the Capacity Reservation pays for
+any unused capacity, while the consumer account pays for the running
+instances it launches into the shared reservation. However, if you want
+a single consumer account to take over the financial responsibility for
+the unused capacity, the owner can assign billing to a consumer account
+within the same AWS Organization:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 assign-capacity-reservation-billing-owner <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--capacity-reservation-id</span> cr-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--unused-reservation-billing-owner-id</span> 210987654321</span></code></pre></div>
+<p>The target account must accept the billing transfer request before
+the billing ownership shifts.</p>
+<h2
+id="offsetting-unused-capacity-with-zonal-reserved-instances">Offsetting
+Unused Capacity with Zonal Reserved Instances</h2>
+<p>A Zonal Reserved Instance (RI)—a Reserved Instance that specifies a
+particular Availability Zone rather than being regional—actually
+includes both a billing discount and a built-in Capacity Reservation.
+However, if you use explicit On-Demand Capacity Reservations alongside
+Zonal Reserved Instances, AWS automatically applies the billing discount
+of an unused Zonal Reserved Instance to cover the charges of an unused
+On-Demand Capacity Reservation when all attributes match.</p>
+<h3 id="matching-attributes-required-for-offset">Matching Attributes
+Required for Offset</h3>
+<p>For a Zonal Reserved Instance to offset the cost of unused capacity
+in an On-Demand Capacity Reservation, the following attributes must
+match exactly:</p>
+<ol type="1">
+<li><strong>Instance Type</strong>: Both must specify the exact same
+instance size and family (instance size flexibility does not apply to
+Zonal RIs or Capacity Reservations).</li>
+<li><strong>Availability Zone</strong>: Both must reside in the same
+Availability Zone (mapped by Availability Zone ID across accounts).</li>
+<li><strong>Platform</strong>: Both must share the same operating system
+platform (e.g., Linux/UNIX, Windows).</li>
+<li><strong>Tenancy</strong>: Both must have the same tenancy (e.g.,
+<code>default</code> or <code>dedicated</code>).</li>
+</ol>
+<p>When <span class="math inline">\(N_{RI}\)</span> matching Zonal
+Reserved Instances are unutilized by running instances, the billable
+On-Demand unused capacity <span
+class="math inline">\(N_{billed\_OD}\)</span> is reduced to:</p>
+<p><span class="math display">\[N_{billed\_OD} = \max(0, N_{unused} -
+N_{RI})\]</span></p>
+<h3
+id="cross-account-ri-discount-sharing-in-aws-organizations">Cross-Account
+RI Discount Sharing in AWS Organizations</h3>
+<p>If your AWS accounts are part of an AWS Organization with
+consolidated billing and Reserved Instance discount sharing enabled, the
+billing benefit of a Zonal Reserved Instance in one account can offset
+the unused capacity charges of an On-Demand Capacity Reservation in
+another member account.</p>
+<p>When AWS calculates your organization's hourly bill, it applies the
+Zonal RI discount in the following priority order:</p>
+<ol type="1">
+<li><strong>Same-Account Usage</strong>: The Zonal RI first covers
+matching running instances or unused ODCR capacity within the account
+that purchased the Zonal RI.</li>
+<li><strong>Cross-Account Running Instances</strong>: Any remaining
+Zonal RI discount is applied to matching running EC2 instances in other
+accounts within the AWS Organization.</li>
+<li><strong>Cross-Account Unused Capacity Reservations</strong>: If the
+Zonal RI discount is still unutilized, it is applied to matching unused
+On-Demand Capacity Reservations in other accounts within the AWS
+Organization.</li>
+</ol>
+<h2 id="comparing-zonal-ris-regional-ris-and-savings-plans">Comparing
+Zonal RIs, Regional RIs, and Savings Plans</h2>
+<p>Understanding how different AWS commitment models interact with
+unused On-Demand Capacity Reservations is critical for accurate cost
+planning:</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Commitment Type</th>
+<th style="text-align: left;">Reserves Capacity?</th>
+<th style="text-align: left;">Offsets Unused ODCR?</th>
+<th style="text-align: left;">Instance Size Flexibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Zonal Reserved
+Instance</strong></td>
+<td style="text-align: left;">Yes (automatically)</td>
+<td style="text-align: left;">Yes, if attributes match</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Regional Reserved
+Instance</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No (only covers running instances)</td>
+<td style="text-align: left;">Yes (for Linux/UNIX default tenancy)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>EC2 Instance Savings
+Plan</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes, up to commitment amount</td>
+<td style="text-align: left;">Yes (within family and region)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Compute Savings Plan</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes, up to commitment amount</td>
+<td style="text-align: left;">Yes (across families and regions)</td>
+</tr>
+</tbody>
+</table>
+<p>Unlike Regional Reserved Instances—which only apply discounts to
+actively running instances and cannot cover unused capacity in an
+ODCR—both Zonal Reserved Instances and AWS Savings Plans (Compute and
+EC2 Instance Savings Plans) can cover the cost of unused On-Demand
+Capacity Reservations.</p>
+<h2 id="best-practices-for-capacity-and-cost-optimization">Best
+Practices for Capacity and Cost Optimization</h2>
+<ul>
+<li><strong>Monitor Unused Capacity</strong>: Use Amazon CloudWatch
+metrics such as <code>UnusedInstanceCount</code> under the
+<code>AWS/EC2CapacityReservations</code> namespace or AWS Cost Explorer
+to identify idle reservations.</li>
+<li><strong>Use Open Eligibility for Shared Pools</strong>: Configure
+shared Capacity Reservations as <code>open</code> so instances across
+member accounts automatically absorb available capacity without
+requiring changes to deployment templates.</li>
+<li><strong>Align AZ IDs Across Accounts</strong>: Because Availability
+Zone names (such as <code>us-east-1a</code>) can map to different
+physical locations across different AWS accounts, always verify the
+<strong>AZ ID</strong> (such as <code>use1-az1</code>) when purchasing
+Zonal RIs in one account to offset Capacity Reservations in another
+account.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-share-ec-2-capacity-reservations-and-offset-costs';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

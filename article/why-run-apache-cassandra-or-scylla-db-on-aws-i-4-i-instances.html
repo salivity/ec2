@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Run Apache Cassandra or ScyllaDB on AWS I4i Instances? - ec2</title>
+    <meta name="description" content="Distributed NoSQL databases like Apache Cassandra and ScyllaDB are regularly deployed on Amazon EC2 I4i instances because these instances deliver ultra-low latency local NVMe storage, high random I/O throughput, and balanced compute-to-memory ratios that">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/why-run-apache-cassandra-or-scylla-db-on-aws-i-4-i-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Why Run Apache Cassandra or ScyllaDB on AWS I4i Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/why-run-apache-cassandra-or-scylla-db-on-aws-i-4-i-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Distributed NoSQL databases like Apache Cassandra and ScyllaDB are regularly deployed on Amazon EC2 I4i instances because these instances deliver ultra-low latency local NVMe storage, high random I/O throughput, and balanced compute-to-memory ratios that" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="why-run-apache-cassandra-or-scylladb-on-aws-i4i-instances">Why
+Run Apache Cassandra or ScyllaDB on AWS I4i Instances?</h1>
+<p>Distributed NoSQL databases like Apache Cassandra and ScyllaDB are
+regularly deployed on Amazon EC2 I4i instances because these instances
+deliver ultra-low latency local NVMe storage, high random I/O
+throughput, and balanced compute-to-memory ratios that directly
+complement log-structured merge-tree storage engines. By pairing
+third-generation AWS Nitro SSDs with high-frequency Intel Xeon
+processors and enhanced networking, I4i instances eliminate storage
+bottlenecks during heavy write flushing, background compactions, and
+uncached point reads. This combination ensures predictable
+sub-millisecond tail latencies and lowers the total cost of ownership by
+reducing the total number of cluster nodes required to handle massive
+datasets.</p>
+<h2 id="understanding-the-lsm-tree-storage-architecture">Understanding
+the LSM-Tree Storage Architecture</h2>
+<p>To understand why hardware selection is critical for Apache Cassandra
+and ScyllaDB, it is necessary to examine how they store and retrieve
+data. Both databases rely on a Log-Structured Merge-tree (LSM-tree)
+storage engine rather than traditional B-trees used by relational
+databases.</p>
+<p>When a write operation arrives at a node, the database performs two
+actions simultaneously:</p>
+<ol type="1">
+<li>It appends the write sequentially to an on-disk commit log for
+durability.</li>
+<li>It writes the data into an in-memory structure called a
+Memtable.</li>
+</ol>
+<p>Once the Memtable reaches its capacity limit, the database flushes
+its contents sequentially to disk as an immutable Sorted String Table
+(SSTable). Because SSTables are immutable, updates and deletes do not
+overwrite existing records in place; instead, they write new versions of
+the data or special markers called tombstones into newer SSTables.</p>
+<p>Over time, a single partition key may have fragments scattered across
+multiple SSTables on disk. This creates two distinct hardware
+challenges:</p>
+<ul>
+<li><strong>Compaction I/O:</strong> The database must continuously run
+background compaction processes that read multiple SSTables, merge the
+data, discard obsolete versions and expired tombstones, and write out
+new consolidated SSTables.</li>
+<li><strong>Read Amplification:</strong> When a read request misses the
+in-memory caches, the node must check bloom filters and potentially read
+from several SSTables concurrently to assemble the complete record.</li>
+</ul>
+<p>Consequently, an LSM-tree database demands storage hardware capable
+of sustaining massive sequential write bandwidth for commit logs and
+flushes, alongside ultra-fast random read I/O and high parallel
+throughput to prevent background compactions from starving client
+requests.</p>
+<h2 id="key-hardware-features-of-amazon-ec2-i4i-instances">Key Hardware
+Features of Amazon EC2 I4i Instances</h2>
+<p>Amazon EC2 I4i instances are storage-optimized virtual machines
+purpose-built for I/O-intensive workloads. They improve significantly
+upon the previous I3 and I3en generations across several architectural
+dimensions.</p>
+<h3 id="aws-nitro-ssds-and-local-nvme-storage">AWS Nitro SSDs and Local
+NVMe Storage</h3>
+<p>The defining feature of the I4i family is its local NVMe storage
+powered by custom AWS Nitro SSDs. Unlike network-attached storage such
+as Amazon EBS, which traverses the network fabric and incurs
+serialization overhead, Nitro SSDs are physically attached to the host
+server.</p>
+<p>Nitro SSDs are engineered specifically to minimize I/O latency
+variability. Compared to third-party commercial SSDs used in older
+instance generations, AWS Nitro SSDs deliver up to 60% lower storage I/O
+latency and up to 75% reduced latency variability. In distributed
+databases where a client request often waits on the slowest responding
+replica, eliminating disk latency spikes is essential for maintaining
+strict <span class="math inline">\(p_{99}\)</span> and <span
+class="math inline">\(p_{99.9}\)</span> service-level agreements
+(SLAs).</p>
+<h3 id="compute-performance-with-intel-xeon-ice-lake-processors">Compute
+Performance with Intel Xeon Ice Lake Processors</h3>
+<p>I4i instances are powered by 3rd Generation Intel Xeon Scalable
+processors (code-named Ice Lake) running at an all-core turbo frequency
+of 3.5 GHz.</p>
+<ul>
+<li><strong>For Apache Cassandra:</strong> Running on the Java Virtual
+Machine (JVM), Cassandra benefits from higher single-core clock speeds
+and improved instructions per cycle (IPC) to execute garbage collection
+pauses faster, serialize/deserialize network payloads, and compress
+SSTable blocks.</li>
+<li><strong>For ScyllaDB:</strong> Built in C++ on the Seastar
+asynchronous framework, ScyllaDB uses a shared-nothing, thread-per-core
+architecture. Each vCPU is pinned to a specific shard with its own
+memory and I/O queues. High-frequency Ice Lake cores allow each shard to
+process ratusan of thousands of operations per second without lock
+contention.</li>
+</ul>
+<h3 id="memory-to-vcpu-and-storage-ratios">Memory-to-vCPU and Storage
+Ratios</h3>
+<p>Across all I4i sizes—from <code>i4i.large</code> up to
+<code>i4i.32xlarge</code> and <code>i4i.metal</code>—AWS maintains a
+consistent architectural ratio:</p>
+<ul>
+<li><strong>8 GiB of DDR4 memory per vCPU</strong></li>
+<li><strong>Approximately 234 GB of NVMe SSD storage per vCPU</strong>
+(up to 30 TB total on the largest instances)</li>
+</ul>
+<p>This 8:1 memory-to-vCPU ratio is widely considered the sweet spot for
+NoSQL workloads. It provides ample RAM for Cassandra's off-heap row
+caches and OS page cache, or ScyllaDB's unified cache, ensuring that hot
+datasets are served directly from memory while keeping the per-node
+storage footprint small enough that streaming and repair operations
+remain manageable.</p>
+<h3 id="enhanced-networking-and-ebs-bandwidth">Enhanced Networking and
+EBS Bandwidth</h3>
+<p>In a ring or token-aware topology, nodes constantly communicate via
+gossip protocols, replicate mutations across availability zones, and
+stream data during topology changes. I4i instances provide up to 75 Gbps
+of network bandwidth with Elastic Fabric Adapter (EFA) and Enhanced
+Networking (ENA) support, preventing network saturation during heavy
+cross-rack replication or node rebuilds.</p>
+<h2
+id="why-local-nvme-outperforms-amazon-ebs-for-cassandra-and-scylladb">Why
+Local NVMe Outperforms Amazon EBS for Cassandra and ScyllaDB</h2>
+<p>A common architectural question is why teams choose ephemeral local
+NVMe drives on I4i instances rather than durable Amazon Elastic Block
+Store (EBS) volumes like <code>gp3</code> or <code>io2</code>.</p>
+<h3
+id="built-in-database-redundancy-vs-storage-layer-redundancy">Built-In
+Database Redundancy vs. Storage-Layer Redundancy</h3>
+<p>Amazon EBS replicates data within an Availability Zone behind the
+scenes to protect against drive failures. However, Cassandra and
+ScyllaDB are already architected as shared-nothing distributed systems
+that handle replication natively at the application layer. Typically, a
+cluster is configured with a Replication Factor (<span
+class="math inline">\(RF\)</span>) of 3 across three distinct
+Availability Zones.</p>
+<p>Using EBS beneath Cassandra or ScyllaDB introduces redundant
+replication: every write is replicated three times across the cluster by
+the database, and each of those three writes is replicated again by EBS.
+By using the ephemeral local NVMe drives on I4i instances, architects
+eliminate the EBS replication tax, paying only for raw hardware speed
+while relying on the database's native replication and repair mechanisms
+for durability.</p>
+<h3 id="overcoming-iops-limits-and-cost-bottlenecks">Overcoming IOPS
+Limits and Cost Bottlenecks</h3>
+<p>ScyllaDB in particular is designed to saturate modern NVMe drives,
+capable of driving ratusan of thousands of IOPS per node. Provisioning
+equivalent IOPS and throughput on Amazon EBS <code>io2</code> Block
+Express volumes becomes prohibitively expensive due to per-IOPS
+provisioning charges, and still introduces sub-millisecond network
+round-trip overhead. The local NVMe drives on I4i instances include
+millions of IOPS natively within the base hourly instance price.</p>
+<h3 id="mitigating-compaction-stalls">Mitigating Compaction Stalls</h3>
+<p>When an LSM-tree database performs major or size-tiered compactions,
+disk read and write throughput spikes dramatically. On network-attached
+storage with strict burst buckets or throughput caps, compaction easily
+exhausts available bandwidth, causing front-end read and write latencies
+to climb. The dedicated multi-gigabyte-per-second throughput of local
+Nitro SSDs allows I4i instances to absorb simultaneous compaction reads,
+compaction writes, and live client traffic without queuing delays.</p>
+<h2 id="optimizing-consistency-and-tail-latency">Optimizing Consistency
+and Tail Latency</h2>
+<p>In Dynamo-style distributed databases, tunable consistency determines
+how many replicas must acknowledge an operation before it succeeds. Most
+production deployments use <code>LOCAL_QUORUM</code> for both reads and
+writes. The number of nodes required to satisfy a quorum is defined
+by:</p>
+<p><span class="math display">\[Q = \left\lfloor \frac{RF}{2}
+\right\rfloor + 1\]</span></p>
+<p>When <span class="math inline">\(RF = 3\)</span>, a
+<code>LOCAL_QUORUM</code> operation requires responses from at least
+<span class="math inline">\(Q = 2\)</span> replicas. This means the
+perceived latency of any client request is dictated by the
+second-fastest replica (or the slowest of the two fastest replicas).</p>
+<p>If nodes run on storage with erratic background garbage collection or
+noisy-neighbor storage contention, individual disks experience frequent
+latency spikes. When multiple replicas experience simultaneous
+micro-stalls, the cluster's overall <span
+class="math inline">\(p_{99}\)</span> latency degrades rapidly. Because
+AWS Nitro SSDs offload storage management tasks to dedicated Nitro
+hardware controllers and minimize wear-leveling jitter, I4i instances
+keep individual replica response times tightly bounded, directly
+translating into flat <span class="math inline">\(p_{99}\)</span>
+latency curves at the coordinator level.</p>
+<h2 id="security-and-operational-advantages">Security and Operational
+Advantages</h2>
+<p>Beyond raw performance, I4i instances offer operational improvements
+tailored for large-scale database clusters:</p>
+<ul>
+<li><strong>Always-On Hardware Encryption:</strong> All data written to
+local NVMe storage on I4i instances is automatically encrypted using
+XTS-AES-256 block cipher implemented directly in the Nitro hardware
+module. For compliance-heavy Cassandra and ScyllaDB deployments, this
+provides encryption at rest with zero CPU overhead or latency
+penalty.</li>
+<li><strong>Torn-Write Prevention:</strong> I4i instances support
+torn-write prevention, allowing databases to write larger blocks
+atomically without the risk of partial page writes during unexpected
+power or system failures, reducing the overhead of double-write buffers
+or excessive checksumming.</li>
+<li><strong>Bare Metal Options (<code>i4i.metal</code>):</strong> For
+organizations running ScyllaDB that want to bypass hypervisor
+virtualization entirely for direct hardware access to CPU caches and
+NVMe queues, <code>i4i.metal</code> provides 128 vCPUs, 1,024 GiB of
+memory, and 30 TB of local NVMe storage.</li>
+</ul>
+<h2 id="summary-of-workload-fit">Summary of Workload Fit</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Database Requirement</th>
+<th style="text-align: left;">How Amazon EC2 I4i Delivers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Low <span
+class="math inline">\(p_{99}\)</span> Read Latency</strong></td>
+<td style="text-align: left;">AWS Nitro SSDs reduce I/O latency by up to
+60% and latency jitter by up to 75%.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Heavy Compaction
+Throughput</strong></td>
+<td style="text-align: left;">Local NVMe interface provides multi-GB/s
+sequential read/write bandwidth with no per-IOPS fees.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Thread-per-Core / JVM
+Speed</strong></td>
+<td style="text-align: left;">3.5 GHz Intel Xeon Ice Lake processors
+accelerate shard processing and garbage collection.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>In-Memory Caching</strong></td>
+<td style="text-align: left;">8 GiB RAM per vCPU holds index files,
+bloom filters, and hot row caches in memory.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Fast Node
+Replacement</strong></td>
+<td style="text-align: left;">Up to 75 Gbps networking accelerates
+streaming when bootstrapping or replacing ephemeral nodes.</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/why-run-apache-cassandra-or-scylla-db-on-aws-i-4-i-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

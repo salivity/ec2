@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can Amazon EC2 Compute Optimized Instances Run Telco Workloads? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 Compute Optimized instances can effectively execute telecommunications network functions that require deterministic packet processing and low jitter. By combining high-performance virtualized or bare-metal compute instances with AWS networ">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-amazon-ec-2-compute-optimized-instances-run-telco-workloads">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can Amazon EC2 Compute Optimized Instances Run Telco Workloads? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-amazon-ec-2-compute-optimized-instances-run-telco-workloads" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 Compute Optimized instances can effectively execute telecommunications network functions that require deterministic packet processing and low jitter. By combining high-performance virtualized or bare-metal compute instances with AWS networ" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="can-amazon-ec2-compute-optimized-instances-run-telco-workloads">Can
+Amazon EC2 Compute Optimized Instances Run Telco Workloads?</h1>
+<p>Yes, Amazon EC2 Compute Optimized instances can effectively execute
+telecommunications network functions that require deterministic packet
+processing and low jitter. By combining high-performance virtualized or
+bare-metal compute instances with AWS networking enhancements like the
+Elastic Network Adapter, Single Root I/O Virtualization, and the Data
+Plane Development Kit, operators can achieve predictable high-throughput
+and low-latency performance. Deploying these workloads successfully
+requires careful host-level tuning, such as CPU pinning, Non-Uniform
+Memory Access alignment, and hugepages configuration, alongside
+specialized infrastructure options like AWS Outposts or Local Zones for
+strict edge latency compliance.</p>
+<h2
+id="understanding-deterministic-packet-processing-in-telecom">Understanding
+Deterministic Packet Processing in Telecom</h2>
+<p>Telecommunications network functions, whether deployed as Virtual
+Network Functions (VNFs) or Cloud-Native Network Functions (CNFs), have
+substantially different performance profiles compared to standard
+enterprise web applications. Workloads such as the 5G User Plane
+Function (UPF), Virtual Radio Access Network (vRAN) Distributed Units
+(vDU), and Session Border Controllers (SBCs) process millions of packets
+per second in real time.</p>
+<p>For these functions, high average throughput is insufficient on its
+own. They require deterministic packet processing, meaning that every
+packet must be processed within a strict, predictable time boundary. In
+mathematical terms, if <span class="math inline">\(L_i\)</span>
+represents the processing latency of packet <span
+class="math inline">\(i\)</span>, the system must minimize packet delay
+variation (jitter), <span class="math inline">\(J\)</span>, defined over
+a window of <span class="math inline">\(N\)</span> packets as:</p>
+<p><span class="math display">\[J = \max_{1 \le i \le N}(L_i) - \min_{1
+\le i \le N}(L_i)\]</span></p>
+<p>Furthermore, strict 5G Ultra-Reliable Low-Latency Communications
+(URLLC) and fronthaul interfaces require the 99.999th percentile tail
+latency (<span class="math inline">\(P_{99.999}\)</span>) to remain
+below a fixed threshold <span
+class="math inline">\(T_{\max}\)</span>:</p>
+<p><span class="math display">\[P(L \le T_{\max}) \ge
+0.99999\]</span></p>
+<p>When jitter is high or tail latency spikes occur due to hypervisor
+interruptions, context switching, or cache misses, packets arrive out of
+order or miss scheduling windows, resulting in dropped calls, degraded
+voice quality, or failed radio frame synchronization.</p>
+<h2
+id="why-amazon-ec2-compute-optimized-instances-fit-telco-workloads">Why
+Amazon EC2 Compute Optimized Instances Fit Telco Workloads</h2>
+<p>Amazon EC2 Compute Optimized instances (the C-family, such as C6i,
+C6in, C7g, C7gn, and C7i) are engineered for compute-bound workloads
+that benefit from high performance per core. Several architectural
+foundations make them suitable for deterministic telecommunications data
+planes:</p>
+<ul>
+<li><strong>AWS Nitro System:</strong> Modern EC2 instances are built on
+the AWS Nitro System, which offloads virtualization functions—including
+storage, networking, and security—onto dedicated hardware and firmware.
+This leaves nearly 100% of the host CPU and memory resources dedicated
+to the customer instance, eliminating the "noisy neighbor" jitter
+associated with traditional software hypervisors.</li>
+<li><strong>High-Frequency Processors:</strong> Instances like the C6i
+and C7i feature high all-core turbo frequencies and support Intel
+Advanced Vector Extensions (AVX-512), which accelerate cryptographic
+operations, Forward Error Correction (FEC), and packet header
+parsing.</li>
+<li><strong>Network-Optimized Variants:</strong> Instances bearing the
+"n" suffix (such as C6in and C7gn) offer up to 200 Gbps of network
+bandwidth and significantly higher Packets Per Second (PPS) allowances.
+In C7gn instances, the AWS Nitro v5 chip doubles the PPS performance
+compared to previous generations while cutting network latency by up to
+30%.</li>
+<li><strong>Bare Metal Options:</strong> For workloads like 5G vRAN that
+require direct access to hardware performance counters, Precision Time
+Protocol (PTP) hardware clocks, or lookaside hardware accelerators (such
+as Intel vRAN Boost), EC2 <code>.metal</code> instances remove the
+hypervisor layer entirely.</li>
+</ul>
+<h2 id="essential-aws-networking-technologies-for-high-pps">Essential
+AWS Networking Technologies for High PPS</h2>
+<p>Running a packet processing engine through the standard Linux kernel
+network stack introduces interrupt overhead, context switches, and
+memory copies that break determinism at high packet rates. To achieve
+line-rate deterministic processing on EC2, operators rely on three key
+technologies:</p>
+<h3 id="1-elastic-network-adapter-ena-and-sr-iov">1. Elastic Network
+Adapter (ENA) and SR-IOV</h3>
+<p>Enhanced Networking on AWS uses the Elastic Network Adapter (ENA),
+which implements Single Root I/O Virtualization (SR-IOV). SR-IOV allows
+the guest operating system or userspace application to interact directly
+with the network interface virtual function, bypassing the hypervisor
+layer during packet transmission and reception.</p>
+<h3 id="2-data-plane-development-kit-dpdk">2. Data Plane Development Kit
+(DPDK)</h3>
+<p>AWS provides mature poll-mode drivers (PMD) for the ENA adapter
+(<code>net_ena</code>) within the open-source DPDK framework. Instead of
+waiting for hardware interrupts when packets arrive, DPDK dedicates
+specific CPU cores to continuously poll the network interface ring
+buffers in userspace. While this consumes 100% of the assigned CPU
+cores, it eliminates interrupt latency and context-switching overhead,
+guaranteeing predictable packet pickup times.</p>
+<h3 id="3-ena-express">3. ENA Express</h3>
+<p>For workloads sensitive to tail latency across Availability Zones or
+within placement groups, ENA Express utilizes the AWS Scalable Reliable
+Datagram (SRD) protocol directly on the Nitro card. ENA Express
+dynamically routes packets across multiple network paths to avoid
+congestion and handles out-of-order packet recovery in hardware,
+reducing <span class="math inline">\(P_{99.9}\)</span> tail latency by
+up to 85% during high-load scenarios.</p>
+<h2 id="host-and-os-tuning-for-determinism">Host and OS Tuning for
+Determinism</h2>
+<p>Selecting an EC2 C-family instance and attaching an ENA interface is
+only the first step. Achieving true determinism requires configuring the
+guest operating system—or the underlying Amazon EKS worker node—to
+eliminate OS-level jitter:</p>
+<ol type="1">
+<li><strong>CPU Isolation and Pinning:</strong> Using kernel boot
+parameters (<code>isolcpus</code>, <code>nohz_full</code>,
+<code>rcu_nocbs</code>), specific vCPUs must be isolated from the Linux
+kernel scheduler. In Kubernetes (Amazon EKS), the Static CPU Manager
+policy ensures that data plane pods are pinned exclusively to dedicated
+physical cores (<code>CPU pinning</code>), preventing thread migration
+and L1/L2 cache invalidation.</li>
+<li><strong>Simultaneous Multithreading (SMT) Control:</strong> For
+ultra-strict deterministic workloads, sibling hyperthreads sharing the
+same physical core can contend for execution units and caches. Operators
+frequently disable SMT or ensure that only one vCPU per physical core
+handles DPDK polling loops while the sibling thread remains idle.</li>
+<li><strong>Hugepages Configuration:</strong> Standard 4 KB memory pages
+lead to frequent Translation Lookaside Buffer (TLB) misses when indexing
+large packet buffers. Configuring 2 MB or 1 GB hugepages guarantees that
+packet memory pools (<code>mbufs</code> in DPDK) remain locked in
+physical RAM and minimizes TLB lookup latency.</li>
+<li><strong>NUMA Alignment:</strong> On larger multi-socket instances,
+memory controllers and PCIe lanes (where ENA interfaces attach) belong
+to specific Non-Uniform Memory Access (NUMA) nodes. The Kubernetes
+Topology Manager and DPDK configurations must align the vCPUs,
+hugepages, and ENA network interfaces to the same NUMA node to avoid
+cross-socket interconnect latency.</li>
+<li><strong>Real-Time Kernel:</strong> For workloads such as Open RAN
+Distributed Units (O-DU) with sub-millisecond timing budgets, running a
+Linux kernel patched with <code>PREEMPT_RT</code> ensures that even
+kernel-space housekeeping tasks can be preempted immediately by
+high-priority real-time threads.</li>
+</ol>
+<h2 id="architectural-limitations-and-hybrid-solutions">Architectural
+Limitations and Hybrid Solutions</h2>
+<p>While Amazon EC2 Compute Optimized instances in standard AWS Regions
+easily handle core network control planes and high-throughput User Plane
+Functions, certain telecommunications workloads face physical and
+hardware constraints in the public cloud:</p>
+<ul>
+<li><strong>Speed-of-Light Latency:</strong> A 5G vDU requires a
+fronthaul transport latency of less than 100 microseconds to the cell
+site radio unit. Standard AWS Regions are typically too far away
+geographically to meet this budget.</li>
+<li><strong>Layer 2 Multicast and VLANs:</strong> The standard AWS
+Virtual Private Cloud (VPC) abstraction operates at Layer 3, requiring
+overlay encapsulation (such as VXLAN or GENEVE) or AWS Transit Gateway
+configurations to support legacy telco Layer 2 multicast and VLAN
+tagging requirements.</li>
+</ul>
+<p>To solve both physical proximity and Layer 2 integration challenges
+while retaining the EC2 compute model, AWS provides hybrid
+deployments:</p>
+<ul>
+<li><strong>AWS Outposts:</strong> Delivers physical racks or single
+servers featuring EC2 C6i or C7i compute directly to the telecom
+operator's cell site, central office, or data center. Outposts supports
+local gateway routing and direct Layer 2 VLAN attachments (via AWS
+Outposts racks for telco) so CNFs can exchange packets directly with
+on-premises routers and radio units without VPC overlay overhead.</li>
+<li><strong>AWS Local Zones:</strong> Places EC2 compute optimized
+capacity in major metropolitan centers, providing single-digit
+millisecond latency suitable for regional UPF breakouts and mobile edge
+computing (MEC).</li>
+</ul>
+<h2 id="summary-comparison-of-telco-workloads-on-ec2">Summary Comparison
+of Telco Workloads on EC2</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Network Function</th>
+<th style="text-align: left;">Typical Determinism Requirement</th>
+<th style="text-align: left;">Recommended EC2 Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>5G Core Control Plane (AMF,
+SMF)</strong></td>
+<td style="text-align: left;">Low (Transactional,
+microservice-based)</td>
+<td style="text-align: left;">Standard C7g / C7i instances in AWS Region
+with standard ENA kernel networking.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>5G User Plane Function (UPF) /
+SBC</strong></td>
+<td style="text-align: left;">High (Millions of PPS, low jitter)</td>
+<td style="text-align: left;">Network-optimized C6in / C7gn instances in
+AWS Region or Local Zones using DPDK, CPU pinning, and Hugepages.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>5G vRAN Distributed Unit
+(vDU)</strong></td>
+<td style="text-align: left;">Extreme (Sub-millisecond, hardware
+sync)</td>
+<td style="text-align: left;">Bare-metal C-family servers or Outposts
+1U/2U servers at the cell site with <code>PREEMPT_RT</code> kernel and
+hardware acceleration.</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-amazon-ec-2-compute-optimized-instances-run-telco-workloads';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

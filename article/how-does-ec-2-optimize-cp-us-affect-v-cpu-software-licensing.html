@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does EC2 Optimize CPUs Affect vCPU Software Licensing? - ec2</title>
+    <meta name="description" content="This article explains how the Amazon EC2 Optimize CPUs feature interacts with software licensing models based on virtual CPUs or physical CPU cores. By customizing the number of active CPU cores and disabling multithreading at instance launch or restart,">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-ec-2-optimize-cp-us-affect-v-cpu-software-licensing">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does EC2 Optimize CPUs Affect vCPU Software Licensing? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-ec-2-optimize-cp-us-affect-v-cpu-software-licensing" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explains how the Amazon EC2 Optimize CPUs feature interacts with software licensing models based on virtual CPUs or physical CPU cores. By customizing the number of active CPU cores and disabling multithreading at instance launch or restart," />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-ec2-optimize-cpus-affect-vcpu-software-licensing">How
+Does EC2 Optimize CPUs Affect vCPU Software Licensing?</h1>
+<p>This article explains how the Amazon EC2 Optimize CPUs feature
+interacts with software licensing models based on virtual CPUs or
+physical CPU cores. By customizing the number of active CPU cores and
+disabling multithreading at instance launch or restart, organizations
+can align high-memory or high-storage EC2 instances with strict per-core
+software licensing budgets while maintaining the full underlying
+instance price and non-compute resources.</p>
+<h2 id="understanding-amazon-ec2-optimize-cpus">Understanding Amazon EC2
+Optimize CPUs</h2>
+<p>Enterprise workloads such as commercial relational databases and
+specialized analytics platforms often require high amounts of memory,
+storage throughput, or network bandwidth relative to their compute
+needs. However, standard Amazon EC2 instance families scale vCPUs,
+memory, and networking proportionally. Selecting an instance with enough
+RAM frequently forces an organization to provision more vCPUs than the
+workload actually requires.</p>
+<p>When running Bring Your Own License (BYOL) software priced per vCPU
+or per physical core, those extra vCPUs translate directly into higher
+software licensing fees. Amazon EC2 Optimize CPUs solves this mismatch
+by letting you specify two parameters when launching or modifying a
+stopped instance:</p>
+<ol type="1">
+<li><strong>CoreCount</strong>: The number of active CPU cores exposed
+to the operating system.</li>
+<li><strong>ThreadsPerCore</strong>: The number of threads per core,
+allowing you to set a value of <span class="math inline">\(1\)</span> to
+disable Simultaneous Multithreading (SMT) or Intel Hyper-Threading, or
+<span class="math inline">\(2\)</span> to keep default multithreading
+active.</li>
+</ol>
+<p>The total number of visible vCPUs presented to the guest operating
+system and licensing audit tools is determined by the following
+relationship:</p>
+<p><span class="math display">\[\text{Total Active vCPUs} =
+\text{CoreCount} \times \text{ThreadsPerCore}\]</span></p>
+<p>For example, if an instance normally provides <span
+class="math inline">\(16\)</span> physical cores with <span
+class="math inline">\(2\)</span> threads per core (<span
+class="math inline">\(32\)</span> vCPUs total), configuring <span
+class="math inline">\(\text{CoreCount} = 4\)</span> and <span
+class="math inline">\(\text{ThreadsPerCore} = 1\)</span> reduces the
+visible compute capacity to <span class="math inline">\(4\)</span>
+vCPUs.</p>
+<h2 id="impact-on-vcpu-and-core-based-software-licensing">Impact on vCPU
+and Core-Based Software Licensing</h2>
+<p>When you reduce the active cores or threads per core using Optimize
+CPUs, the deactivated cores and threads are hidden at the hypervisor
+level. The guest operating system, system discovery utilities, and
+software license managers only detect the custom vCPU count you
+specified.</p>
+<h3 id="per-vcpu-licensing-models">Per-vCPU Licensing Models</h3>
+<p>Many commercial software vendors license their products in cloud
+environments by counting the logical processors (vCPUs) reported by the
+operating system. When Optimize CPUs lowers the visible vCPU count from
+<span class="math inline">\(V_{\text{default}}\)</span> to <span
+class="math inline">\(V_{\text{custom}}\)</span>, the required license
+entitlement drops proportionally:</p>
+<p><span class="math display">\[\text{License Cost Savings} = \left(
+V_{\text{default}} - (\text{CoreCount} \times \text{ThreadsPerCore})
+\right) \times \text{Cost per vCPU}\]</span></p>
+<p>Because the unused cores and threads are never presented to the guest
+OS, compliance checks that query OS-level processor tables see only the
+active vCPUs. Organizations should always verify their software vendor's
+cloud licensing policy to confirm that hypervisor-level core
+customization is recognized as an eligible partitioning method.</p>
+<h3 id="physical-core-licensing-and-multithreading">Physical Core
+Licensing and Multithreading</h3>
+<p>Some software licenses distinguish between physical cores and logical
+threads, or penalize multithreaded execution when calculating core
+factors. Simultaneously, certain high-performance computing (HPC) or
+memory-intensive database workloads experience better single-threaded
+throughput and lower cache contention when multithreading is turned
+off.</p>
+<p>By setting <span class="math inline">\(\text{ThreadsPerCore} =
+1\)</span>, each vCPU exposed to the instance maps directly to an
+underlying core without sharing execution resources with a sibling
+thread. If a vendor prices licenses by active vCPUs, disabling
+multithreading cuts the visible vCPU count in half while retaining the
+full execution pipeline of each active core.</p>
+<h3 id="dedicated-hosts-vs-virtual-instances">Dedicated Hosts vs.
+Virtual Instances</h3>
+<p>It is important to distinguish between vCPU-based cloud licensing on
+standard multi-tenant EC2 instances and physical socket or physical
+server core licensing:</p>
+<ul>
+<li><strong>Standard EC2 Instances (Shared or Dedicated
+Tenancy)</strong>: Licensing is typically governed by the vendor's cloud
+policy based on visible vCPUs. Optimize CPUs directly reduces this
+count.</li>
+<li><strong>EC2 Dedicated Hosts</strong>: Some legacy enterprise
+agreements tie licenses strictly to the total physical cores on the
+underlying bare-metal server socket, regardless of how many vCPUs are
+assigned to individual virtual machines. On Dedicated Hosts, if your
+license agreement requires licensing every physical core on the host
+chassis, reducing vCPUs at the instance level via Optimize CPUs may not
+reduce your host-level obligation unless explicitly permitted by the
+vendor.</li>
+</ul>
+<h2 id="ec2-instance-pricing-and-resource-retention">EC2 Instance
+Pricing and Resource Retention</h2>
+<p>Adjusting CPU settings with Optimize CPUs changes the compute
+capacity visible to your software, but it does not reduce the AWS
+infrastructure price of the EC2 instance. You continue to pay the
+standard On-Demand, Reserved Instance, or Savings Plan rate for the full
+base instance size.</p>
+<p>Furthermore, all non-CPU resources remain completely unchanged:</p>
+<ul>
+<li><strong>Memory (RAM)</strong>: The instance retains <span
+class="math inline">\(100\%\)</span> of the memory allocated to its
+instance type.</li>
+<li><strong>Network Bandwidth</strong>: Network throughput and
+packet-per-second limits remain identical to the full instance
+specification.</li>
+<li><strong>EBS Bandwidth and Instance Store</strong>: Storage
+throughput, IOPS limits, and local NVMe instance store volumes are
+unaffected.</li>
+</ul>
+<p>Because the EC2 infrastructure charge stays the same, Optimize CPUs
+is financially beneficial whenever the commercial software license cost
+per vCPU exceeds the incremental cost of the idle EC2 compute
+capacity.</p>
+<h2 id="rules-for-license-included-vs-bring-your-own-license-byol">Rules
+for License Included vs. Bring Your Own License (BYOL)</h2>
+<p>How Optimize CPUs affects billing depends on how the software license
+is procured:</p>
+<ul>
+<li><strong>Bring Your Own License (BYOL)</strong>: When you deploy your
+own licensed software on standard Amazon Linux, Ubuntu, Red Hat
+Enterprise Linux, or Windows Server AMIs, you manage license compliance
+directly with the vendor. Using Optimize CPUs allows you to restrict the
+instance to the exact number of vCPUs covered by your existing license
+pool.</li>
+<li><strong>AWS License Included (LI) Instances</strong>: When you
+launch EC2 instances that bundle commercial software licenses into the
+hourly EC2 price (such as SQL Server License Included AMIs), AWS bills
+you based on the active vCPUs or according to specific minimum vCPU
+rules enforced by the vendor. For certain License Included offerings,
+reducing the vCPU count via Optimize CPUs can lower the software portion
+of the hourly AWS bill, provided the configuration meets the vendor's
+minimum core requirements (commonly a minimum of <span
+class="math inline">\(4\)</span> vCPUs per instance).</li>
+</ul>
+<h2 id="operational-constraints-and-configuration-lifecycle">Operational
+Constraints and Configuration Lifecycle</h2>
+<p>To use Optimize CPUs effectively for licensing compliance,
+administrators must account for several technical rules:</p>
+<ul>
+<li><strong>Supported Actions</strong>: You can specify CPU options
+during initial instance launch (<code>RunInstances</code>) or apply them
+to an existing instance while it is in the <code>stopped</code> state
+(<code>ModifyInstanceCpuOptions</code>).</li>
+<li><strong>Reboot vs. Stop/Start</strong>: Changing CPU options
+requires stopping the instance, modifying the CPU parameters, and
+starting it again. A simple OS reboot does not apply new CPU core
+settings.</li>
+<li><strong>AMI and Instance Type Compatibility</strong>: Most modern
+general-purpose, compute-optimized, memory-optimized, and
+storage-optimized EC2 instance families support Optimize CPUs, though
+bare-metal instances (<code>*.metal</code>) and certain burstable or
+older-generation instances do not support custom CPU core counts.</li>
+<li><strong>CloudWatch Metrics</strong>: Amazon CloudWatch reports
+<code>CPUUtilization</code> as a percentage of the active vCPUs
+configured via Optimize CPUs, ensuring that monitoring and auto-scaling
+thresholds remain accurate from <span class="math inline">\(0\%\)</span>
+to <span class="math inline">\(100\%\)</span>.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-ec-2-optimize-cp-us-affect-v-cpu-software-licensing';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

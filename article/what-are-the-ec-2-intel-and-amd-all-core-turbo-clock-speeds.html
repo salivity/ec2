@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Are the EC2 Intel and AMD All-Core Turbo Clock Speeds? - ec2</title>
+    <meta name="description" content="Amazon EC2 offers a wide range of virtual machine instances powered by custom-tuned Intel Xeon Scalable and AMD EPYC processors, each delivering specific sustained all-core turbo clock speeds tailored to diverse workload needs. Understanding these frequen">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-are-the-ec-2-intel-and-amd-all-core-turbo-clock-speeds">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Are the EC2 Intel and AMD All-Core Turbo Clock Speeds? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-are-the-ec-2-intel-and-amd-all-core-turbo-clock-speeds" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 offers a wide range of virtual machine instances powered by custom-tuned Intel Xeon Scalable and AMD EPYC processors, each delivering specific sustained all-core turbo clock speeds tailored to diverse workload needs. Understanding these frequen" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-are-the-ec2-intel-and-amd-all-core-turbo-clock-speeds">What
+Are the EC2 Intel and AMD All-Core Turbo Clock Speeds?</h1>
+<p>Amazon EC2 offers a wide range of virtual machine instances powered
+by custom-tuned Intel Xeon Scalable and AMD EPYC processors, each
+delivering specific sustained all-core turbo clock speeds tailored to
+diverse workload needs. Understanding these frequency tiers across
+generations helps engineers choose the right instance family for
+latency-sensitive, compute-bound, or high-frequency database
+applications. While general-purpose and memory-optimized instances
+usually prioritize core density and power efficiency with moderate clock
+speeds between 2.9 GHz and 3.5 GHz, specialized high-frequency instances
+push sustained all-core turbo clocks up to 4.5 GHz. This guide breaks
+down the exact sustained all-core turbo frequencies across 5th through
+7th generation Intel and AMD EC2 instance families, as well as
+specialized high-frequency configurations.</p>
+<h2 id="how-ec2-defines-sustained-all-core-turbo">How EC2 Defines
+Sustained All-Core Turbo</h2>
+<p>On physical x86 processors, turbo boost frequencies dynamically
+fluctuate based on thermal headroom, power limits, and the number of
+active cores. In a multi-tenant cloud environment like Amazon EC2,
+unpredictable clock drift can cause inconsistent application
+performance. To mitigate this, AWS collaborates with Intel and AMD to
+procure custom-SKU processors or configure firmware power profiles that
+guarantee a predictable sustained all-core turbo frequency under heavy
+load.</p>
+<p>When an EC2 instance documentation specifies an all-core turbo
+frequency, it represents the clock speed the processor maintains when
+all vCPUs on the socket are actively executing standard integer or
+floating-point instructions. The sole exception on Intel processors
+occurs during heavy AVX-512 vector workloads on older generations (such
+as Skylake and Cascade Lake), which trigger thermal downclocking
+offsets, though newer Sapphire Rapids and Emerald Rapids processors
+virtually eliminate this penalty for most workloads.</p>
+<p>The effective compute throughput <span
+class="math inline">\(P\)</span> of a single core executing a workload
+with an average instructions-per-cycle metric of <span
+class="math inline">\(\text{IPC}\)</span> at a sustained clock frequency
+<span class="math inline">\(f\)</span> is expressed as:</p>
+<p><span class="math display">\[P = f \times \text{IPC}\]</span></p>
+<p>Because <span class="math inline">\(\text{IPC}\)</span> improves by
+roughly <span class="math inline">\(10\%\)</span> to <span
+class="math inline">\(20\%\)</span> with each successive
+microarchitecture, comparing clock speed <span
+class="math inline">\(f\)</span> alone across generations does not tell
+the whole story; however, within the same generation or for strict
+single-threaded serialization bottlenecks, clock speed remains a
+critical differentiator.</p>
+<h2 id="intel-xeon-scalable-generations-on-ec2">Intel Xeon Scalable
+Generations on EC2</h2>
+<p>AWS deploys custom Intel Xeon Scalable processors across its
+general-purpose (<code>M</code>), compute-optimized (<code>C</code>),
+and memory-optimized (<code>R</code>) families. Across generations,
+Intel has steadily increased both architectural efficiency and sustained
+all-core clock speeds.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">EC2 Generation</th>
+<th style="text-align: left;">Microarchitecture</th>
+<th style="text-align: left;">Key Families</th>
+<th style="text-align: left;">Base Clock (GHz)</th>
+<th style="text-align: left;">Sustained All-Core Turbo (GHz)</th>
+<th style="text-align: left;">Single-Core Max Turbo (GHz)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">5th Gen (Initial)</td>
+<td style="text-align: left;">Skylake-SP</td>
+<td style="text-align: left;"><code>m5</code>, <code>c5</code> (up to
+<code>9xlarge</code>), <code>r5</code></td>
+<td style="text-align: left;">2.5 - 3.0</td>
+<td style="text-align: left;">3.1 - 3.4</td>
+<td style="text-align: left;">3.5</td>
+</tr>
+<tr>
+<td style="text-align: left;">5th Gen (Refresh)</td>
+<td style="text-align: left;">Cascade Lake</td>
+<td style="text-align: left;"><code>m5n</code>, <code>c5</code>
+(<code>12xlarge</code>+), <code>r5n</code></td>
+<td style="text-align: left;">2.5 - 3.1</td>
+<td style="text-align: left;">3.1 - 3.6</td>
+<td style="text-align: left;">3.5 - 3.9</td>
+</tr>
+<tr>
+<td style="text-align: left;">6th Gen</td>
+<td style="text-align: left;">Ice Lake-SP</td>
+<td style="text-align: left;"><code>m6i</code>, <code>c6i</code>,
+<code>r6i</code></td>
+<td style="text-align: left;">2.9</td>
+<td style="text-align: left;">3.5</td>
+<td style="text-align: left;">3.5</td>
+</tr>
+<tr>
+<td style="text-align: left;">7th Gen</td>
+<td style="text-align: left;">Sapphire Rapids</td>
+<td style="text-align: left;"><code>m7i</code>, <code>c7i</code>,
+<code>r7i</code></td>
+<td style="text-align: left;">2.4</td>
+<td style="text-align: left;">3.2</td>
+<td style="text-align: left;">3.8 - 4.0</td>
+</tr>
+<tr>
+<td style="text-align: left;">7th Gen (Custom)</td>
+<td style="text-align: left;">Emerald Rapids</td>
+<td style="text-align: left;"><code>r8i</code> / Selected
+High-Memory</td>
+<td style="text-align: left;">2.7</td>
+<td style="text-align: left;">3.5 - 3.6</td>
+<td style="text-align: left;">4.0+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="5th-generation-skylake-sp-and-cascade-lake">5th Generation:
+Skylake-SP and Cascade Lake</h3>
+<p>In the 5th generation, AWS split clock speeds noticeably between
+general-purpose/memory-optimized instances and compute-optimized
+instances:</p>
+<ul>
+<li><strong><code>m5</code> and <code>r5</code> Instances:</strong>
+Powered by Intel Xeon Platinum 8175M (Skylake) or 8259CL (Cascade Lake)
+processors. These run at a 2.5 GHz base clock and sustain an all-core
+turbo of <strong>3.1 GHz</strong>.</li>
+<li><strong><code>c5</code> Instances (Original Skylake sizes):</strong>
+Powered by Intel Xeon Platinum 8124M processors with a 3.0 GHz base
+clock, sustaining <strong>3.4 GHz</strong> across all cores.</li>
+<li><strong><code>c5</code> Instances (Cascade Lake expansion sizes like
+<code>c5.12xlarge</code> and <code>c5.24xlarge</code>):</strong>
+Upgraded to custom 2nd Gen Intel Xeon Scalable (8275CL) processors that
+sustain <strong>3.6 GHz</strong> across all cores and reach up to 3.9
+GHz on single-core workloads.</li>
+<li><strong><code>m5n</code> and <code>r5n</code> Instances:</strong>
+Built on Cascade Lake processors (8259CL), sustaining <strong>3.1
+GHz</strong> across all cores.</li>
+</ul>
+<h3 id="6th-generation-ice-lake-sp">6th Generation: Ice Lake-SP</h3>
+<p>With the introduction of 3rd Gen Intel Xeon Scalable (Ice Lake)
+processors—specifically the custom Intel Xeon Platinum 8375C—AWS unified
+the clock speed profile across its core families:</p>
+<ul>
+<li><strong><code>m6i</code>, <code>c6i</code>, and <code>r6i</code>
+Instances:</strong> All three families share the same 3.5 GHz sustained
+all-core turbo clock speed. Unlike previous generations where
+<code>C</code>-series instances ran faster than <code>M</code>- and
+<code>R</code>-series instances, <code>m6i</code> and <code>r6i</code>
+match <code>c6i</code> clock-for-clock at <strong>3.5 GHz</strong>.</li>
+</ul>
+<h3 id="7th-generation-sapphire-rapids">7th Generation: Sapphire
+Rapids</h3>
+<p>For 4th Gen Intel Xeon Scalable (Sapphire Rapids) instances, AWS
+introduced the custom Intel Xeon Platinum 8488C processor:</p>
+<ul>
+<li><strong><code>m7i</code>, <code>c7i</code>, and <code>r7i</code>
+Instances:</strong> These processors feature a sustained all-core turbo
+frequency of <strong>3.2 GHz</strong>. While the raw all-core clock
+speed is 300 MHz lower than Ice Lake's 3.5 GHz, Sapphire Rapids
+compensates with a significant IPC uplift, DDR5 memory bandwidth, and
+opportunistic turbo boost up to <strong>3.8 GHz</strong> (and up to 4.0
+GHz on fewer cores) when not all cores on the socket are saturated.</li>
+</ul>
+<h2 id="amd-epyc-generations-on-ec2">AMD EPYC Generations on EC2</h2>
+<p>AWS suffix labels ending in <code>a</code> denote instances powered
+by AMD EPYC processors. AMD EPYC instances in EC2 typically feature one
+physical core per vCPU in newer generations (disabling Simultaneous
+Multithreading on 7th generation instances) and offer distinct clock
+behavior compared to Intel.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">EC2 Generation</th>
+<th style="text-align: left;">Microarchitecture</th>
+<th style="text-align: left;">Key Families</th>
+<th style="text-align: left;">Processor Series</th>
+<th style="text-align: left;">Sustained All-Core Turbo (GHz)</th>
+<th style="text-align: left;">Max Boost Clock (GHz)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">5th Gen</td>
+<td style="text-align: left;">Zen 1 (Naples)</td>
+<td style="text-align: left;"><code>m5a</code>, <code>r5a</code>,
+<code>c5a</code></td>
+<td style="text-align: left;">EPYC 7571 / 7R32</td>
+<td style="text-align: left;">2.5 (<code>m5a</code>/<code>r5a</code>) /
+3.3 (<code>c5a</code>)</td>
+<td style="text-align: left;">2.9 - 3.3</td>
+</tr>
+<tr>
+<td style="text-align: left;">5th Gen (Zen 2)</td>
+<td style="text-align: left;">Zen 2 (Rome)</td>
+<td style="text-align: left;"><code>c5ad</code></td>
+<td style="text-align: left;">EPYC 7R32</td>
+<td style="text-align: left;">3.3</td>
+<td style="text-align: left;">3.3</td>
+</tr>
+<tr>
+<td style="text-align: left;">6th Gen</td>
+<td style="text-align: left;">Zen 3 (Milan)</td>
+<td style="text-align: left;"><code>m6a</code>, <code>c6a</code>,
+<code>r6a</code></td>
+<td style="text-align: left;">EPYC 7R13</td>
+<td style="text-align: left;">3.6</td>
+<td style="text-align: left;">3.6</td>
+</tr>
+<tr>
+<td style="text-align: left;">7th Gen</td>
+<td style="text-align: left;">Zen 4 (Genoa)</td>
+<td style="text-align: left;"><code>m7a</code>, <code>c7a</code>,
+<code>r7a</code></td>
+<td style="text-align: left;">EPYC 9R14</td>
+<td style="text-align: left;">3.7</td>
+<td style="text-align: left;">3.7</td>
+</tr>
+</tbody>
+</table>
+<h3 id="5th-generation-naples-and-rome">5th Generation: Naples and
+Rome</h3>
+<ul>
+<li><strong><code>m5a</code> and <code>r5a</code> Instances:</strong>
+Powered by 1st Gen AMD EPYC 7571 (Zen 1 / Naples) processors, delivering
+an all-core frequency up to <strong>2.5 GHz</strong>.</li>
+<li><strong><code>c5a</code> and <code>c5ad</code> Instances:</strong>
+Despite sharing the "5" generation number, <code>c5a</code> skipped Zen
+1 and launched directly on 2nd Gen AMD EPYC 7R32 (Zen 2 / Rome)
+processors, delivering a sustained all-core turbo frequency of
+<strong>3.3 GHz</strong>.</li>
+</ul>
+<h3 id="6th-generation-milan">6th Generation: Milan</h3>
+<ul>
+<li><strong><code>m6a</code>, <code>c6a</code>, and <code>r6a</code>
+Instances:</strong> Powered by 3rd Gen AMD EPYC 7R13 (Zen 3 / Milan)
+processors. Similar to how AWS unified Intel clocks in the 6th
+generation, all three AMD 6th-gen families sustain <strong>3.6
+GHz</strong> across all cores, edging out their Intel Ice Lake
+counterparts (<code>3.5 GHz</code>) by 100 MHz.</li>
+</ul>
+<h3 id="7th-generation-genoa">7th Generation: Genoa</h3>
+<ul>
+<li><strong><code>m7a</code>, <code>c7a</code>, and <code>r7a</code>
+Instances:</strong> Powered by 4th Gen AMD EPYC 9R14 (Zen 4 / Genoa)
+processors. These instances push the sustained maximum frequency to
+<strong>3.7 GHz</strong> across all cores. Furthermore, because
+<code>m7a</code>, <code>c7a</code>, and <code>r7a</code> map 1 vCPU to 1
+full physical processor core (no SMT/Hyper-Threading), every vCPU
+receives uncontested access to the core's execution pipelines at 3.7
+GHz.</li>
+</ul>
+<h2 id="high-frequency-specialized-instances">High-Frequency Specialized
+Instances</h2>
+<p>For workloads bounded by single-thread latency or per-core software
+licensing fees—such as Electronic Design Automation (EDA), relational
+databases (Oracle, SQL Server), financial modeling, and gaming
+servers—standard 3.2 GHz to 3.7 GHz clocks may not suffice. AWS provides
+specialized <code>z1d</code>, <code>m5zn</code>, and <code>x2iezn</code>
+instances engineered specifically for extreme sustained clock
+speeds.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Family</th>
+<th style="text-align: left;">Processor &amp; Architecture</th>
+<th style="text-align: left;">vCPU Range</th>
+<th style="text-align: left;">Sustained All-Core Turbo (GHz)</th>
+<th style="text-align: left;">Primary Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>z1d</code></td>
+<td style="text-align: left;">Intel Xeon Platinum 8151 (Skylake)</td>
+<td style="text-align: left;">2 to 48</td>
+<td style="text-align: left;">4.0</td>
+<td style="text-align: left;">High per-core performance with local
+NVMe</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>m5zn</code></td>
+<td style="text-align: left;">Intel Xeon Platinum 8252C (Cascade
+Lake)</td>
+<td style="text-align: left;">2 to 48</td>
+<td style="text-align: left;">4.5</td>
+<td style="text-align: left;">Extreme single-thread &amp; high-frequency
+compute</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>x2iezn</code></td>
+<td style="text-align: left;">Intel Xeon Platinum 8252C (Cascade
+Lake)</td>
+<td style="text-align: left;">8 to 48</td>
+<td style="text-align: left;">4.5</td>
+<td style="text-align: left;">High-frequency, memory-intensive EDA &amp;
+databases</td>
+</tr>
+</tbody>
+</table>
+<h3 id="z1d-instances-40-ghz"><code>z1d</code> Instances (4.0 GHz)</h3>
+<p>Introduced during the 5th generation, <code>z1d</code> instances use
+custom Intel Xeon Platinum 8151 processors that sustain <strong>4.0
+GHz</strong> across all cores simultaneously. They pair this high
+frequency with up to 384 GiB of memory and fast local NVMe SSD
+storage.</p>
+<h3 id="m5zn-and-x2iezn-instances-45-ghz"><code>m5zn</code> and
+<code>x2iezn</code> Instances (4.5 GHz)</h3>
+<p>Both <code>m5zn</code> and <code>x2iezn</code> utilize the custom 2nd
+Gen Intel Xeon Scalable (Cascade Lake) 8252C processor, which holds the
+record for the highest sustained all-core turbo clock speed in EC2 at
+<strong>4.5 GHz</strong>:</p>
+<ul>
+<li><strong><code>m5zn</code>:</strong> Offers a 4 GiB-to-1 vCPU memory
+ratio alongside 100 Gbps networking, designed for high-frequency
+simulation and financial trading workloads.</li>
+<li><strong><code>x2iezn</code>:</strong> Pairs the same <strong>4.5
+GHz</strong> all-core turbo processor with a massive 32 GiB-to-1 vCPU
+memory ratio (up to 1.5 TiB of RAM), purpose-built for in-memory
+databases and large-scale EDA physical verification where per-core
+license costs dominate total infrastructure spend.</li>
+</ul>
+<h2
+id="choosing-between-high-clock-speed-and-newer-generations">Choosing
+Between High Clock Speed and Newer Generations</h2>
+<p>When selecting an EC2 instance based on frequency, raw gigahertz
+should always be weighed against microarchitectural generation:</p>
+<ol type="1">
+<li><strong>Pure Single-Thread Clock vs. IPC:</strong> While an
+<code>m5zn</code> instance runs at <strong>4.5 GHz</strong> (Cascade
+Lake), a 7th-generation <code>c7a</code> (<strong>3.7 GHz</strong> Zen
+4) or <code>c7i</code> (<strong>3.2 GHz</strong> all-core / <strong>3.8
+GHz</strong> opportunistic Sapphire Rapids) often achieves higher actual
+work per second due to two generations of IPC improvements, larger L2/L3
+caches, and DDR5 memory.</li>
+<li><strong>SMT vs. Non-SMT Contention:</strong> On Intel instances
+(<code>c6i</code>, <code>c7i</code>) and older AMD instances
+(<code>c6a</code>), 2 vCPUs share 1 physical core via Simultaneous
+Multithreading. On 7th-generation AMD instances (<code>m7a</code>,
+<code>c7a</code>, <code>r7a</code>), each vCPU is a dedicated physical
+core running at <strong>3.7 GHz</strong>, eliminating sibling-thread
+resource contention under 100% load.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-are-the-ec-2-intel-and-amd-all-core-turbo-clock-speeds';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

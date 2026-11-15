@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Do Databases on EC2 Need io2 Block Express Volumes? - ec2</title>
+    <meta name="description" content="Mission-critical relational databases running on Amazon EC2 require Amazon EBS io2 Block Express volumes to achieve Storage Area Network performance in the cloud, offering up to 256,000 IOPS, 4,000 MB/s of throughput, and 64 TiB of storage capacity per vo">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/why-do-databases-on-ec-2-need-io-2-block-express-volumes">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Why Do Databases on EC2 Need io2 Block Express Volumes? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/why-do-databases-on-ec-2-need-io-2-block-express-volumes" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Mission-critical relational databases running on Amazon EC2 require Amazon EBS io2 Block Express volumes to achieve Storage Area Network performance in the cloud, offering up to 256,000 IOPS, 4,000 MB/s of throughput, and 64 TiB of storage capacity per vo" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="why-do-databases-on-ec2-need-io2-block-express-volumes">Why Do
+Databases on EC2 Need io2 Block Express Volumes?</h1>
+<p>Mission-critical relational databases running on Amazon EC2 require
+Amazon EBS io2 Block Express volumes to achieve Storage Area Network
+performance in the cloud, offering up to 256,000 IOPS, 4,000 MB/s of
+throughput, and 64 TiB of storage capacity per volume. Designed with a
+99.999% durability guarantee and consistent sub-millisecond latency, io2
+Block Express eliminates the need to stripe multiple smaller EBS volumes
+together to meet high input/output demands. These capabilities make it
+the foundational storage architecture for high-transaction workloads
+like Oracle, SAP HANA, Microsoft SQL Server, and IBM Db2.</p>
+<h2
+id="sub-millisecond-latency-and-predictable-tail-performance">Sub-Millisecond
+Latency and Predictable Tail Performance</h2>
+<p>Relational databases depend heavily on write-ahead logging (such as
+Oracle redo logs or SQL Server transaction logs) to maintain ACID
+compliance. Every committed transaction must be written to persistent
+storage before the database acknowledges success to the application.
+Standard cloud block storage can experience latency spikes under heavy
+load, creating transaction bottlenecks that ripple across dependent
+services.</p>
+<p>Amazon EBS io2 Block Express solves this by communicating with
+Nitro-based EC2 instances via the Scalable Reliable Datagram (SRD)
+protocol. Originally developed for high-performance computing network
+interfaces, SRD routes storage traffic across multiple network paths
+simultaneously and recovers rapidly from congestion or link failures.
+This architecture delivers an average latency of approximately <span
+class="math inline">\(0.5\text{ ms}\)</span> and drastically reduces
+outlier tail latencies (<span class="math inline">\(p99.9\)</span>),
+ensuring that database commits complete predictably even during peak
+traffic surges.</p>
+<h2 id="massive-single-volume-iops-and-throughput-scaling">Massive
+Single-Volume IOPS and Throughput Scaling</h2>
+<p>Before io2 Block Express, database administrators running
+I/O-intensive workloads on EC2 had to provision multiple standard EBS
+volumes and stripe them using logical volume managers (like Linux LVM or
+Windows Storage Spaces) in a RAID 0 configuration to surpass
+single-volume limits. While effective for performance, striping
+introduces operational overhead, complicates snapshot coordination, and
+increases the statistical risk of volume failure.</p>
+<p>With io2 Block Express, a single volume scales to extreme performance
+thresholds:</p>
+<ul>
+<li><strong>Maximum IOPS:</strong> Up to <span
+class="math inline">\(256,000\text{ IOPS}\)</span> per volume (a <span
+class="math inline">\(4\times\)</span> increase over standard io2
+volumes).</li>
+<li><strong>Maximum Throughput:</strong> Up to <span
+class="math inline">\(4,000\text{ MB/s}\)</span> per volume (a <span
+class="math inline">\(4\times\)</span> increase over standard io2
+volumes).</li>
+<li><strong>Maximum Capacity:</strong> Up to <span
+class="math inline">\(64\text{ TiB}\)</span> per volume (also a <span
+class="math inline">\(4\times\)</span> increase over the <span
+class="math inline">\(16\text{ TiB}\)</span> limit of standard
+volumes).</li>
+<li><strong>Provisioning Ratio:</strong> Up to <span
+class="math inline">\(1,000\text{ IOPS}\)</span> per provisioned GiB,
+allowing high performance even on smaller dataset footprints.</li>
+</ul>
+<p>Total throughput is governed by the relationship between input/output
+operations and block size:</p>
+<p><span class="math display">\[\text{Throughput} = \text{IOPS} \times
+\text{I/O Block Size}\]</span></p>
+<p>Consolidating an entire database onto one or two volumes simplifies
+backup orchestration, ensures crash-consistent snapshots without
+third-party agents, and streamlines storage resizing through Elastic
+Volumes without downtime.</p>
+<h2 id="99999-durability-for-zero-data-loss-architectures">99.999%
+Durability for Zero-Data-Loss Architectures</h2>
+<p>Hardware failures in underlying storage arrays can corrupt database
+pages and force lengthy recovery operations from backups. While standard
+general-purpose SSD volumes ( such as gp3) provide <span
+class="math inline">\(99.8\%\)</span> to <span
+class="math inline">\(99.9\%\)</span> annual durability, io2 and io2
+Block Express volumes are engineered for <span
+class="math inline">\(99.999\%\)</span> durability. This equates to an
+annual failure rate (AFR) of no more than <span
+class="math inline">\(0.001\%\)</span>:</p>
+<p><span class="math display">\[\text{AFR} = 100\% - 99.999\% =
+0.001\%\]</span></p>
+<p>For mission-critical financial, healthcare, or e-commerce systems
+where downtime costs thousands of dollars per minute and Recovery Point
+Objectives (RPO) are near zero, this level of protection replicates the
+reliability of on-premises enterprise SAN hardware.</p>
+<h2
+id="high-availability-clustering-with-ebs-multi-attach">High-Availability
+Clustering with EBS Multi-Attach</h2>
+<p>Enterprise relational databases often rely on shared-storage
+clustering technologies—such as Oracle Real Application Clusters (RAC)
+or SQL Server Failover Cluster Instances—to maintain high availability.
+Standard EBS volumes can only attach to a single EC2 instance at a time,
+requiring administrators to rely on storage-level replication or complex
+third-party clustering software.</p>
+<p>Amazon EBS io2 Block Express supports <strong>EBS
+Multi-Attach</strong>, which allows a single volume to be concurrently
+attached to up to 16 Nitro-based EC2 instances within the same
+Availability Zone. It also supports <strong>SCSI Persistent
+Reservations</strong>, a storage standard that cluster nodes use to
+control read/write access, fence off unhealthy nodes ("split-brain"
+prevention), and fail over instantaneously when a primary compute
+instance becomes unresponsive.</p>
+<h2 id="supported-ec2-instance-families">Supported EC2 Instance
+Families</h2>
+<p>To utilize io2 Block Express, volumes must be attached to compatible
+Nitro-based EC2 instance types designed for memory-intensive and
+compute-intensive database workloads. Whenever an io2 volume is attached
+to a supported instance, AWS automatically provisions it on the Block
+Express architecture at no additional cost over standard io2 pricing.
+Supported instance families include:</p>
+<ul>
+<li><strong>Memory-Optimized:</strong> R5b, R6i, R6in, R6a, R7i, R7a,
+R7iz, R8g, X2idn, X2iedn, X2iezn, and U-1 (High Memory) instances.</li>
+<li><strong>Compute-Optimized:</strong> C6i, C6in, C6a, C7i, C7a, C7g,
+C7gn, and C8g instances.</li>
+<li><strong>General Purpose:</strong> M6i, M6in, M6a, M7i, M7i-flex,
+M7a, M7g, and M8g instances.</li>
+<li><strong>Storage-Optimized:</strong> I4i and I4g instances.</li>
+</ul>
+<h2
+id="summary-comparison-gp3-vs-standard-io2-vs-io2-block-express">Summary
+Comparison: gp3 vs. Standard io2 vs. io2 Block Express</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">gp3 (General Purpose SSD)</th>
+<th style="text-align: left;">Standard io2</th>
+<th style="text-align: left;">io2 Block Express</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Max Volume Size</strong></td>
+<td style="text-align: left;"><span class="math inline">\(16\text{
+TiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(16\text{
+TiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(64\text{
+TiB}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Max IOPS / Volume</strong></td>
+<td style="text-align: left;"><span
+class="math inline">\(16,000\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(64,000\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(256,000\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Max Throughput /
+Volume</strong></td>
+<td style="text-align: left;"><span class="math inline">\(1,000\text{
+MB/s}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(1,000\text{
+MB/s}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(4,000\text{
+MB/s}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Durability</strong></td>
+<td style="text-align: left;"><span class="math inline">\(99.8\% -
+99.9\%\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(99.999\%\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(99.999\%\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Average Latency</strong></td>
+<td style="text-align: left;">Single-digit ms</td>
+<td style="text-align: left;">Sub-millisecond</td>
+<td style="text-align: left;">Sub-millisecond (SRD-optimized)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Multi-Attach Support</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/why-do-databases-on-ec-2-need-io-2-block-express-volumes';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

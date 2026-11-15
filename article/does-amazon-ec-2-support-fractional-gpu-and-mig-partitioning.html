@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Does Amazon EC2 Support Fractional GPU and MIG Partitioning? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 supports both hardware-based Multi-Instance GPU partitioning and software-based fractional GPU sharing across select accelerated computing instances. Through NVIDIA Multi-Instance GPU technology on A100, H100, and H200 Tensor Core GPUs, us">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/does-amazon-ec-2-support-fractional-gpu-and-mig-partitioning">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Does Amazon EC2 Support Fractional GPU and MIG Partitioning? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/does-amazon-ec-2-support-fractional-gpu-and-mig-partitioning" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 supports both hardware-based Multi-Instance GPU partitioning and software-based fractional GPU sharing across select accelerated computing instances. Through NVIDIA Multi-Instance GPU technology on A100, H100, and H200 Tensor Core GPUs, us" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="does-amazon-ec2-support-fractional-gpu-and-mig-partitioning">Does
+Amazon EC2 Support Fractional GPU and MIG Partitioning?</h1>
+<p>Yes, Amazon EC2 supports both hardware-based Multi-Instance GPU
+partitioning and software-based fractional GPU sharing across select
+accelerated computing instances. Through NVIDIA Multi-Instance GPU
+technology on A100, H100, and H200 Tensor Core GPUs, users can partition
+a single physical GPU into up to seven isolated instances with dedicated
+compute and memory resources. Additionally, AWS provides native
+fractional GPU allocation through Amazon ECS, Amazon EKS, and AWS Batch
+using time-slicing, Multi-Process Service, and G6f fractional GPU
+instance types.</p>
+<h2
+id="hardware-based-partitioning-with-nvidia-mig-on-ec2">Hardware-Based
+Partitioning with NVIDIA MIG on EC2</h2>
+<p>NVIDIA Multi-Instance GPU (MIG) expands the utilization of
+accelerated EC2 instances by dividing a single physical GPU into
+multiple independent GPU instances. Unlike software-level sharing, MIG
+partitions the hardware at the silicon level. Each MIG instance receives
+its own dedicated Streaming Multiprocessors (SMs), high-bandwidth memory
+(HBM), memory controllers, and cache crossbars. This hardware isolation
+guarantees predictable latency, consistent throughput, and fault
+isolation between concurrent workloads.</p>
+<p>On Amazon EC2, MIG is supported on the following instance
+families:</p>
+<ul>
+<li><strong>P4d and P4de instances:</strong> Equipped with NVIDIA A100
+Tensor Core GPUs (40 GB or 80 GB HBM2/HBM2e).</li>
+<li><strong>P5 instances:</strong> Equipped with NVIDIA H100 Tensor Core
+GPUs (80 GB HBM3).</li>
+<li><strong>P5e and P5en instances:</strong> Equipped with NVIDIA H200
+Tensor Core GPUs (141 GB HBM3e).</li>
+</ul>
+<h3 id="mathematical-resource-allocation-in-mig">Mathematical Resource
+Allocation in MIG</h3>
+<p>A physical NVIDIA A100, H100, or H200 GPU is divided into seven
+compute slices and eight memory slices. When partitioning a GPU into
+<span class="math inline">\(N\)</span> isolated instances (where <span
+class="math inline">\(1 \le N \le 7\)</span>), the memory allocated to a
+specific slice <span class="math inline">\(M_i\)</span> and the compute
+capacity <span class="math inline">\(C_i\)</span> can be approximated
+by:</p>
+<p><span class="math display">\[M_i \approx \frac{k}{8} \times
+M_{\text{total}}, \quad C_i = \frac{c}{7} \times
+C_{\text{total}}\]</span></p>
+<p>where <span class="math inline">\(k \in \{1, 2, 4, 8\}\)</span>
+represents the number of memory slices assigned to the profile, and
+<span class="math inline">\(c \in \{1, 2, 3, 4, 7\}\)</span> represents
+the number of compute slices.</p>
+<p>For example, on an EC2 <code>p4d.24xlarge</code> instance with 40 GB
+A100 GPUs, common MIG profiles include:</p>
+<ul>
+<li><code>1g.5gb</code>: 1/7th of the compute SMs and 5 GB of memory (up
+to 7 instances per GPU).</li>
+<li><code>2g.10gb</code>: 2/7ths of the compute SMs and 10 GB of memory
+(up to 3 instances per GPU).</li>
+<li><code>3g.20gb</code>: 3/7ths of the compute SMs and 20 GB of memory
+(up to 2 instances per GPU).</li>
+<li><code>7g.40gb</code>: The entire compute and memory capacity of the
+GPU (1 instance per GPU).</li>
+</ul>
+<h3 id="configuring-mig-on-an-ec2-instance">Configuring MIG on an EC2
+Instance</h3>
+<p>To enable and configure MIG on a supported Amazon EC2 Deep Learning
+AMI or Ubuntu/Amazon Linux instance with the NVIDIA driver installed,
+use the <code>nvidia-smi</code> utility:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable MIG mode on GPU 0 (requires root privileges)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> nvidia-smi <span class="at">-i</span> 0 <span class="at">-mig</span> 1</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset the GPU or reboot the instance if active processes block the state change</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> nvidia-smi <span class="at">--gpu-reset</span> <span class="at">-i</span> 0</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># List available GPU Instance (GI) profiles</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ex">nvidia-smi</span> mig <span class="at">-lgip</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Create three 2g.10gb profiles (Profile ID 14 on A100 40GB) and immediately create Compute Instances (CI)</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> nvidia-smi mig <span class="at">-i</span> 0 <span class="at">-cgi</span> 14,14,14 <span class="at">-C</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify the created MIG devices</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="ex">nvidia-smi</span> <span class="at">-L</span></span></code></pre></div>
+<h2 id="native-fractional-gpu-instances-ec2-g6f">Native Fractional GPU
+Instances (EC2 G6f)</h2>
+<p>For workloads that do not require an entire GPU and do not run on
+A100 or H100 architectures, Amazon EC2 offers <strong>G6f
+instances</strong> powered by NVIDIA L4 Tensor Core GPUs. Unlike
+standard instances that attach one or more full physical GPUs, G6f
+instances expose a hypervisor-managed fraction of a physical NVIDIA L4
+GPU (<code>1/8</code>, <code>1/4</code>, or <code>1/2</code> of the 24
+GB GPU memory and compute capacity).</p>
+<ul>
+<li><code>g6f.large</code>: 1/8th of an L4 GPU (3 GB GPU memory)</li>
+<li><code>g6f.xlarge</code>: 1/4th of an L4 GPU (6 GB GPU memory)</li>
+<li><code>g6f.2xlarge</code>: 1/2 of an L4 GPU (12 GB GPU memory)</li>
+</ul>
+<p>These instances allow graphics-intensive applications, small-scale
+machine learning inference, and remote workstations to consume
+fractional GPU resources directly at the EC2 instance level without
+manual driver partitioning.</p>
+<h2 id="software-based-fractional-gpu-sharing-on-ec2">Software-Based
+Fractional GPU Sharing on EC2</h2>
+<p>On EC2 instances featuring GPUs that do not support hardware MIG—such
+as <strong>G4dn</strong> (NVIDIA T4), <strong>G5</strong> (NVIDIA A10G),
+and standard <strong>G6</strong> (NVIDIA L4)—fractional GPU sharing is
+achieved through software concurrency mechanisms.</p>
+<h3 id="1-gpu-time-slicing">1. GPU Time-Slicing</h3>
+<p>Time-slicing allows multiple containers or processes to share a
+single GPU by rapidly switching execution contexts. When configured via
+the NVIDIA Container Toolkit and the Kubernetes Device Plugin on
+<strong>Amazon EKS</strong>, a single physical GPU can be advertised as
+<span class="math inline">\(R\)</span> virtual GPU replicas. If <span
+class="math inline">\(R = 4\)</span>, the Kubernetes scheduler treats
+one physical GPU on a <code>g5.xlarge</code> node as four allocatable
+<code>nvidia.com/gpu</code> resources.</p>
+<p>Time-slicing does not enforce memory isolation or fault isolation. If
+one container allocates more VRAM than available or triggers an
+out-of-memory (OOM) exception, co-located processes on the same GPU can
+be impacted.</p>
+<h3 id="2-nvidia-multi-process-service-mps">2. NVIDIA Multi-Process
+Service (MPS)</h3>
+<p>NVIDIA MPS provides spatial sharing of compute resources on a single
+GPU. Instead of switching between processes sequentially in time slices,
+MPS funnels CUDA kernels from multiple processes into a single hardware
+context. This allows concurrent execution of kernels on separate
+Streaming Multiprocessors when a single workload cannot saturate the
+entire GPU. MPS also supports setting thread execution limits and pinned
+device memory limits per client process.</p>
+<h2 id="container-orchestration-support-on-aws">Container Orchestration
+Support on AWS</h2>
+<p>When running containerized workloads on EC2 instances, AWS container
+orchestration services provide direct integration for fractional GPUs
+and MIG:</p>
+<ul>
+<li><strong>Amazon EKS:</strong> Supports both MIG (using
+<code>single</code> or <code>mixed</code> strategies) and time-slicing
+via the <strong>NVIDIA GPU Operator</strong> or the <strong>NVIDIA
+k8s-device-plugin</strong>. Administrators define a ConfigMap specifying
+the number of replicas per GPU or the desired MIG profile layout,
+allowing pods to request fractional slices via standard
+<code>resources.limits["nvidia.com/gpu"]</code> or profile-specific keys
+like <code>nvidia.com/mig-1g.5gb</code>.</li>
+<li><strong>Amazon ECS:</strong> Supports fractional GPU sharing when
+configuring custom MIG instances or pinning multiple containers to
+shared GPU UUIDs within task definitions.</li>
+</ul>
+<h2 id="comparison-of-gpu-sharing-methods-on-ec2">Comparison of GPU
+Sharing Methods on EC2</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">NVIDIA MIG (P4d, P5)</th>
+<th style="text-align: left;">EC2 Fractional Instances (G6f)</th>
+<th style="text-align: left;">Time-Slicing (G4dn, G5, G6)</th>
+<th style="text-align: left;">NVIDIA MPS (All CUDA GPUs)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Isolation Level</strong></td>
+<td style="text-align: left;">Hardware (Silicon)</td>
+<td style="text-align: left;">Hypervisor / vGPU</td>
+<td style="text-align: left;">Software context switching</td>
+<td style="text-align: left;">Shared CUDA context</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Memory Isolation</strong></td>
+<td style="text-align: left;">Dedicated HBM slices</td>
+<td style="text-align: left;">Dedicated VRAM quota</td>
+<td style="text-align: left;">Shared (No hard limit)</td>
+<td style="text-align: left;">Configurable per-process limit</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Fault Isolation</strong></td>
+<td style="text-align: left;">Full hardware isolation</td>
+<td style="text-align: left;">Full instance isolation</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">None</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Concurrent Execution</strong></td>
+<td style="text-align: left;">True parallel execution</td>
+<td style="text-align: left;">Scheduled vGPU execution</td>
+<td style="text-align: left;">Interleaved time quanta</td>
+<td style="text-align: left;">Concurrent SM execution</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Supported EC2
+Families</strong></td>
+<td style="text-align: left;">P4d, P4de, P5, P5e, P5en</td>
+<td style="text-align: left;">G6f</td>
+<td style="text-align: left;">All GPU EC2 instances</td>
+<td style="text-align: left;">All GPU EC2 instances</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/does-amazon-ec-2-support-fractional-gpu-and-mig-partitioning';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

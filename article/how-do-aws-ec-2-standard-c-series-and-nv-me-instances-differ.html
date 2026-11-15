@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do AWS EC2 Standard C-Series and NVMe Instances Differ? - ec2</title>
+    <meta name="description" content="Amazon EC2 compute-optimized C-series instances come in two primary storage configurations, consisting of standard EBS-only instances and instances equipped with local NVMe SSD instance store volumes. While both variants deliver identical vCPU and memory">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-aws-ec-2-standard-c-series-and-nv-me-instances-differ">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do AWS EC2 Standard C-Series and NVMe Instances Differ? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-aws-ec-2-standard-c-series-and-nv-me-instances-differ" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 compute-optimized C-series instances come in two primary storage configurations, consisting of standard EBS-only instances and instances equipped with local NVMe SSD instance store volumes. While both variants deliver identical vCPU and memory" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-aws-ec2-standard-c-series-and-nvme-instances-differ">How
+Do AWS EC2 Standard C-Series and NVMe Instances Differ?</h1>
+<p>Amazon EC2 compute-optimized C-series instances come in two primary
+storage configurations, consisting of standard EBS-only instances and
+instances equipped with local NVMe SSD instance store volumes. While
+both variants deliver identical vCPU and memory ratios designed for
+compute-intensive workloads, they differ fundamentally in storage
+architecture, data persistence, input/output latency, and hourly
+pricing. Standard instances rely entirely on network-attached Amazon
+Elastic Block Store for storage, whereas NVMe-equipped instances,
+denoted with a d suffix in their instance type name, include physically
+attached solid-state drives on the host server. Choosing between them
+depends on whether an application requires persistent block storage or
+ultra-fast, temporary scratch space.</p>
+<h2 id="naming-conventions-in-the-c-series-family">Naming Conventions in
+the C-Series Family</h2>
+<p>Amazon Web Services uses a structured naming convention to
+distinguish between standard compute-optimized instances and those with
+local NVMe storage. In any generation and processor architecture, a
+standard instance name consists of the family letter, generation number,
+optional processor identifier, and size. When local NVMe storage is
+included, the letter <code>d</code> is appended before the dot and size
+designation.</p>
+<ul>
+<li><strong>Intel-based instances:</strong> <code>c5.large</code> vs.
+<code>c5d.large</code>, <code>c6i.xlarge</code> vs.
+<code>c6id.xlarge</code>, <code>c7i.2xlarge</code> vs.
+<code>c7id.2xlarge</code></li>
+<li><strong>AMD-based instances:</strong> <code>c5a.large</code> vs.
+<code>c5ad.large</code>, <code>c6a.xlarge</code> vs.
+<code>c6ad.xlarge</code></li>
+<li><strong>AWS Graviton-based instances:</strong>
+<code>c6g.large</code> vs. <code>c6gd.large</code>,
+<code>c7g.xlarge</code> vs. <code>c7gd.xlarge</code></li>
+</ul>
+<h2 id="storage-architecture-and-performance">Storage Architecture and
+Performance</h2>
+<p>The core difference between these two instance variants lies in how
+storage is connected to the underlying hypervisor and virtual
+machine.</p>
+<h3 id="standard-c-series-instances-ebs-only">Standard C-Series
+Instances (EBS-Only)</h3>
+<p>Standard C-series instances (<code>c6i</code>, <code>c7g</code>,
+<code>c6a</code>, etc.) are EBS-only. They do not have any physical
+disks exclusively allocated to them on the local host hardware. Instead,
+all storage volumes—including the root volume and any attached data
+volumes—are provisioned over the network using Amazon Elastic Block
+Store (EBS).</p>
+<p>Although these instances use dedicated EBS bandwidth (often enhanced
+via the AWS Nitro System) to prevent storage traffic from competing with
+general network traffic, every read and write operation still traverses
+the internal AWS network fabric. Consequently, latency typically starts
+around a fraction of a millisecond to a few milliseconds depending on
+the EBS volume type (<code>gp3</code>, <code>io2</code> Block Express),
+and IOPS and throughput are governed by both the instance's maximum EBS
+bandwidth limits and the provisioned limits of the attached EBS
+volumes.</p>
+<h3 id="c-series-instances-with-local-nvme-storage">C-Series Instances
+with Local NVMe Storage</h3>
+<p>C-series instances with the <code>d</code> suffix (<code>c6id</code>,
+<code>c7gd</code>, <code>c5ad</code>, etc.) still support EBS volumes
+for persistent storage and root devices, but they also include one or
+more Non-Volatile Memory Express (NVMe) SSDs physically attached to the
+host server's PCIe bus.</p>
+<p>Because the NVMe drives reside directly on the physical host, I/O
+operations bypass the network stack completely. This provides:</p>
+<ul>
+<li><strong>Sub-millisecond latency:</strong> Significantly lower and
+more consistent read/write latency compared to network-attached block
+storage.</li>
+<li><strong>High random IOPS:</strong> Capable of delivering hundreds of
+thousands of IOPS directly out of the box without provisioning extra
+storage capacity or paying per-IOPS fees.</li>
+<li><strong>Proportional scaling:</strong> The capacity and number of
+local NVMe drives scale linearly with the instance size. If a single
+unit of instance size provides a specific capacity <span
+class="math inline">\(C_{\text{base}}\)</span> and throughput <span
+class="math inline">\(T_{\text{base}}\)</span>, scaling up by a
+multiplier <span class="math inline">\(k\)</span> generally yields a
+total local storage capacity of <span
+class="math inline">\(C_{\text{total}} = k \cdot
+C_{\text{base}}\)</span>.</li>
+</ul>
+<h2 id="data-persistence-and-lifecycle">Data Persistence and
+Lifecycle</h2>
+<p>Understanding the lifecycle of data on local NVMe storage versus EBS
+is critical for preventing accidental data loss.</p>
+<h3 id="ephemeral-nature-of-local-nvme-instance-store">Ephemeral Nature
+of Local NVMe Instance Store</h3>
+<p>The local NVMe storage attached to <code>d</code> variant instances
+is an <strong>EC2 Instance Store</strong>, which provides temporary
+(ephemeral) block-level storage. Data written to local NVMe drives
+persists only during the lifecycle of the running instance under
+specific conditions:</p>
+<ul>
+<li><strong>Instance Reboot:</strong> Data <strong>survives</strong> if
+the guest operating system reboots (<code>sudo reboot</code> or via the
+RebootInstance API).</li>
+<li><strong>Instance Stop or Hibernate:</strong> Data is
+<strong>permanently lost</strong> when the instance is stopped
+(<code>StopInstances</code> API), because starting the instance again
+usually migrates it to a new physical host.</li>
+<li><strong>Instance Termination:</strong> Data is <strong>permanently
+lost</strong> upon termination.</li>
+<li><strong>Hardware Failure:</strong> Data is <strong>lost</strong> if
+the underlying physical drive or host server fails.</li>
+</ul>
+<h3 id="persistent-nature-of-ebs-on-standard-instances">Persistent
+Nature of EBS on Standard Instances</h3>
+<p>Because standard C-series instances store all data on Amazon EBS, the
+storage lifecycle is decoupled from the compute instance lifecycle:</p>
+<ul>
+<li><strong>Stop and Start:</strong> Stopping a standard C-series
+instance preserves all data on the attached EBS volumes.</li>
+<li><strong>Snapshots and Backups:</strong> EBS volumes support native
+point-in-time snapshots to Amazon S3, automated lifecycle policies, and
+detached volume reattachment to other instances.</li>
+<li><strong>Built-in Redundancy:</strong> EBS volumes automatically
+replicate data within their Availability Zone to protect against
+single-drive hardware failures.</li>
+</ul>
+<h2 id="security-and-encryption">Security and Encryption</h2>
+<p>Both standard and NVMe-equipped C-series instances built on the AWS
+Nitro System incorporate hardware-level security, though key management
+differs:</p>
+<ul>
+<li><strong>Local NVMe Encryption:</strong> On Nitro-based
+<code>d</code> instances, all local NVMe instance store volumes are
+automatically encrypted using an XTS-AES-256 block cipher implemented in
+a dedicated hardware module on the Nitro card. The encryption keys are
+generated randomly per drive when the instance boots and are destroyed
+permanently when the instance stops or terminates. You cannot manage,
+export, or rotate these keys via AWS KMS.</li>
+<li><strong>EBS Encryption:</strong> On both standard and <code>d</code>
+instances, EBS volumes can be encrypted using AWS Key Management Service
+(KMS) keys, allowing full control over customer-managed keys (CMKs), key
+rotation, and IAM access policies.</li>
+</ul>
+<h2 id="pricing-and-total-cost-of-ownership">Pricing and Total Cost of
+Ownership</h2>
+<p>On an hourly compute basis, C-series instances with local NVMe
+storage carry a higher on-demand, Reserved Instance, and Spot price than
+their standard counterparts of the same size. For a running duration
+<span class="math inline">\(t\)</span>, the total cost <span
+class="math inline">\(Cost_{\text{standard}}\)</span> of a standard
+instance compared to <span
+class="math inline">\(Cost_{\text{nvme}}\)</span> can be modeled as:</p>
+<p><span class="math display">\[Cost_{\text{standard}}(t) =
+R_{\text{compute}} \cdot t + C_{\text{EBS\_GB}} \cdot S_{\text{GB}}
+\cdot t + C_{\text{IOPS}} \cdot I_{\text{prov}} \cdot t\]</span></p>
+<p><span class="math display">\[Cost_{\text{nvme}}(t) =
+R_{\text{compute\_d}} \cdot t + C_{\text{EBS\_root}} \cdot
+S_{\text{root}} \cdot t\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(R_{\text{compute}}\)</span> and <span
+class="math inline">\(R_{\text{compute\_d}}\)</span> are the hourly
+compute rates (<span class="math inline">\(R_{\text{compute\_d}} &gt;
+R_{\text{compute}}\)</span>).</li>
+<li><span class="math inline">\(C_{\text{EBS\_GB}}\)</span> and <span
+class="math inline">\(C_{\text{IOPS}}\)</span> represent the extra costs
+of provisioning high-capacity, high-IOPS EBS volumes (<code>io2</code>
+or high-performance <code>gp3</code>).</li>
+</ul>
+<p>If a workload requires high temporary IOPS and throughput, a
+<code>d</code> instance is often more cost-effective than a standard
+C-series instance paired with expensive provisioned-IOPS EBS volumes,
+because the local NVMe IOPS and storage capacity are bundled directly
+into the hourly instance price.</p>
+<h2 id="feature-comparison-summary">Feature Comparison Summary</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Standard C-Series (e.g., <code>c6i</code>,
+<code>c7g</code>)</th>
+<th style="text-align: left;">NVMe C-Series (e.g., <code>c6id</code>,
+<code>c7gd</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Primary Storage Type</strong></td>
+<td style="text-align: left;">Amazon EBS only</td>
+<td style="text-align: left;">Amazon EBS + Local NVMe SSD</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Storage Attachment</strong></td>
+<td style="text-align: left;">Network-attached</td>
+<td style="text-align: left;">Network (EBS) + PCIe Host Bus (NVMe)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>NVMe Data
+Persistence</strong></td>
+<td style="text-align: left;">N/A (EBS persists across stops)</td>
+<td style="text-align: left;">Ephemeral (lost on stop or
+termination)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Disk I/O Latency</strong></td>
+<td style="text-align: left;">Low (sub-millisecond to single-digit
+ms)</td>
+<td style="text-align: left;">Ultra-low (microseconds)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hourly Compute Rate</strong></td>
+<td style="text-align: left;">Lower baseline rate</td>
+<td style="text-align: left;">Higher baseline rate (includes local
+SSD)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hardware Encryption</strong></td>
+<td style="text-align: left;">Optional via AWS KMS (on EBS)</td>
+<td style="text-align: left;">Always-on ephemeral hardware
+encryption</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Dynamic Storage
+Scaling</strong></td>
+<td style="text-align: left;">Can resize EBS volumes independently</td>
+<td style="text-align: left;">Fixed NVMe size per instance type</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ideal-use-cases-for-each-variant">Ideal Use Cases for Each
+Variant</h2>
+<h3 id="when-to-choose-standard-c-series-instances">When to Choose
+Standard C-Series Instances</h3>
+<ul>
+<li><strong>Stateless microservices and web servers:</strong> Workloads
+where compute is the bottleneck and local disk I/O is minimal.</li>
+<li><strong>Containerized workloads with remote state:</strong>
+Kubernetes (EKS) or ECS nodes where state is stored in managed databases
+(RDS, DynamoDB) or shared filesystems (EFS).</li>
+<li><strong>Instances that stop and start frequently:</strong>
+Development environments or batch servers that are stopped outside of
+business hours to save compute costs while preserving disk state.</li>
+</ul>
+<h3 id="when-to-choose-c-series-instances-with-local-nvme-storage">When
+to Choose C-Series Instances with Local NVMe Storage</h3>
+<ul>
+<li><strong>High-performance scratch space and video encoding:</strong>
+Media transcoding, scientific modeling, and EDA workloads that generate
+large intermediate files requiring rapid read/write cycles before
+uploading final outputs to Amazon S3.</li>
+<li><strong>Distributed caches and replicated NoSQL databases:</strong>
+Self-managed clusters (such as Redis, Aerospike, or Apache Cassandra)
+that handle data replication at the application layer across multiple
+Availability Zones and benefit from ultra-low disk latency.</li>
+<li><strong>Big data shuffle and spill operations:</strong> Apache
+Spark, Hadoop, or Presto nodes that frequently spill large intermediate
+query datasets to disk during complex joins and aggregations.</li>
+<li><strong>CI/CD build agents:</strong> Ephemeral build runners that
+check out large repositories, compile artifacts with heavy disk I/O,
+push images to a registry, and terminate immediately afterward.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-aws-ec-2-standard-c-series-and-nv-me-instances-differ';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What is the minimum allocation duration for EC2 Mac instances? - ec2</title>
+    <meta name="description" content="Amazon EC2 Mac instances require a minimum Dedicated Host allocation duration of 24 hours due to the terms of the Apple macOS Software License Agreement. Unlike standard Amazon EC2 instances that support per-second or per-hour billing without a minimum co">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-the-minimum-allocation-duration-for-ec-2-mac-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What is the minimum allocation duration for EC2 Mac instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-the-minimum-allocation-duration-for-ec-2-mac-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Mac instances require a minimum Dedicated Host allocation duration of 24 hours due to the terms of the Apple macOS Software License Agreement. Unlike standard Amazon EC2 instances that support per-second or per-hour billing without a minimum co" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-is-the-minimum-allocation-duration-for-ec2-mac-instances">What
+is the minimum allocation duration for EC2 Mac instances?</h1>
+<p>Amazon EC2 Mac instances require a minimum Dedicated Host allocation
+duration of 24 hours due to the terms of the Apple macOS Software
+License Agreement. Unlike standard Amazon EC2 instances that support
+per-second or per-hour billing without a minimum commitment,
+provisioning an EC2 Mac instance requires allocating a physical Mac
+Dedicated Host first. Once allocated, you cannot release that Dedicated
+Host until a full 24-hour period has elapsed, after which billing
+continues on a per-second basis until you explicitly release the
+host.</p>
+<h2 id="understanding-the-24-hour-minimum-host-allocation">Understanding
+the 24-Hour Minimum Host Allocation</h2>
+<p>When you provision an Amazon EC2 Mac instance (such as
+<code>mac1.metal</code>, <code>mac2.metal</code>,
+<code>mac2-m2.metal</code>, <code>mac2-m2pro.metal</code>, or
+<code>mac-m4.metal</code>), AWS allocates a dedicated physical Apple Mac
+mini computer to your AWS account. This Dedicated Host model ensures
+compliance with Apple's licensing rules, which stipulate that macOS
+hardware leased from a service provider must be bound to a single
+customer for at least 24 consecutive hours.</p>
+<p>Key characteristics of this allocation policy include:</p>
+<ul>
+<li><strong>Mandatory Lock-in Period:</strong> From the moment the
+Dedicated Host enters the <code>available</code> or <code>pending</code>
+allocation state, a 24-hour timer begins. During these initial 24 hours,
+AWS blocks any API call or console action attempting to release the
+Dedicated Host.</li>
+<li><strong>Instance vs. Host Lifecycle:</strong> You can launch, stop,
+start, or terminate EC2 Mac instances on the Dedicated Host as many
+times as needed during the 24-hour window. However, stopping or
+terminating the EC2 instance does not stop billing or release the
+underlying Dedicated Host.</li>
+<li><strong>Post-24-Hour Billing:</strong> Once the initial <span
+class="math inline">\(T_{\text{min}} = 24\text{ hours}\)</span> (<span
+class="math inline">\(86,400\text{ seconds}\)</span>) requirement is
+satisfied, the Dedicated Host remains allocated to your account and
+accrues charges per second until you manually or programmatically
+release it.</li>
+</ul>
+<h2 id="billing-formula-and-cost-implications">Billing Formula and Cost
+Implications</h2>
+<p>Because billing is tied directly to the Dedicated Host allocation
+rather than the running state of the virtualized or bare-metal instance,
+your total cost <span class="math inline">\(C\)</span> for a single Mac
+Dedicated Host with an hourly rate <span
+class="math inline">\(R\)</span> allocated for a duration of <span
+class="math inline">\(t\)</span> hours is determined by:</p>
+<p><span class="math display">\[C = R \times \max(24, t)\]</span></p>
+<p>If you allocate a host, run a build job for 2 hours, terminate the
+instance, and attempt to release the host, you will still be billed for
+the full 24 hours (<span class="math inline">\(24 \times R\)</span>). If
+you keep the host allocated for 30.5 hours before releasing it, you are
+billed for the initial 24 hours plus the additional 6.5 hours at
+per-second granularity.</p>
+<h2 id="what-happens-during-host-scrubbing-and-maintenance">What Happens
+During Host Scrubbing and Maintenance</h2>
+<p>Whenever you terminate or stop an EC2 Mac instance on your Dedicated
+Host, the underlying physical Apple hardware undergoes an automated
+scrubbing and firmware verification process before another instance can
+be launched on it.</p>
+<ul>
+<li><strong>Scrubbing Duration:</strong> The scrubbing process typically
+takes between 40 and 110 minutes depending on the Mac instance family
+(Intel vs. Apple silicon M1/M2/M4).</li>
+<li><strong>Impact on Allocation Time:</strong> Time spent scrubbing the
+physical host counts toward your 24-hour minimum allocation period, and
+you continue to pay for the Dedicated Host while it is in the
+<code>pending</code> scrubbing state unless you have already passed the
+24-hour mark and release the host instead of waiting for it to become
+available again.</li>
+<li><strong>Releasing While Scrubbing:</strong> If your host has already
+been allocated for more than 24 hours and you terminate the running
+instance, you do not need to wait for the scrubbing workflow to complete
+before releasing the Dedicated Host. You can release the host
+immediately after the instance enters the <code>terminated</code>
+state.</li>
+</ul>
+<h2 id="how-to-check-remaining-allocation-time-and-release-a-host">How
+to Check Remaining Allocation Time and Release a Host</h2>
+<p>Before you can release an EC2 Mac Dedicated Host, two conditions must
+be met:</p>
+<ol type="1">
+<li>No active or stopped EC2 instances are currently associated with the
+Dedicated Host.</li>
+<li>At least 24 hours have passed since the <code>AllocationTime</code>
+timestamp recorded by EC2.</li>
+</ol>
+<p>You can inspect the exact allocation timestamp of your Mac Dedicated
+Hosts using the AWS CLI:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-hosts <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--filter</span> <span class="st">&quot;Name=instance-type,Values=mac2.metal&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> <span class="st">&quot;Hosts[*].{HostId:HostId,State:State,AllocationTime:AllocationTime}&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> table</span></code></pre></div>
+<p>If 24 hours have elapsed since <code>AllocationTime</code> and all
+instances on the host are terminated, you can release the host to stop
+billing:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 release-hosts <span class="at">--host-ids</span> h-0123456789abcdef0</span></code></pre></div>
+<p>If you attempt to run <code>release-hosts</code> before the 24-hour
+window has completed, AWS returns a <code>Client.InvalidHostState</code>
+error indicating that the host cannot be released prior to the minimum
+allocation duration.</p>
+<h2 id="best-practices-for-managing-ec2-mac-host-allocations">Best
+Practices for Managing EC2 Mac Host Allocations</h2>
+<p>To optimize costs while working within the 24-hour minimum
+requirement, engineering teams typically adopt the following
+strategies:</p>
+<ul>
+<li><strong>Consolidate CI/CD Workloads:</strong> Instead of allocating
+a new host per CI pipeline run, maintain a persistent pool of Dedicated
+Hosts and reuse the running macOS instances across multiple build jobs
+using ephemeral build agents or Tart/Anka virtualization on top of the
+bare-metal Mac instance.</li>
+<li><strong>Automate Host Release Alerts:</strong> Configure Amazon
+EventBridge rules or AWS Lambda functions to monitor idle Mac Dedicated
+Hosts that have passed their 24-hour allocation window so they are
+automatically released when no instances are running.</li>
+<li><strong>Use Savings Plans for Steady Workloads:</strong> If you run
+macOS build infrastructure continuously, EC2 Instance Savings Plans or
+Compute Savings Plans can reduce the hourly rate while maintaining
+continuous host allocation without worrying about daily allocation
+cycles.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-the-minimum-allocation-duration-for-ec-2-mac-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

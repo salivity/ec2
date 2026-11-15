@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does an EC2 Instance Savings Plan Apply Discounts? - ec2</title>
+    <meta name="description" content="An EC2 Instance Savings Plan reduces Amazon EC2 costs by exchanging a fixed hourly monetary commitment for discounted compute rates over a one-year or three-year term. The plan scopes its discount to a chosen instance family and AWS Region while automatic">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-an-ec-2-instance-savings-plan-apply-discounts">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does an EC2 Instance Savings Plan Apply Discounts? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-an-ec-2-instance-savings-plan-apply-discounts" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An EC2 Instance Savings Plan reduces Amazon EC2 costs by exchanging a fixed hourly monetary commitment for discounted compute rates over a one-year or three-year term. The plan scopes its discount to a chosen instance family and AWS Region while automatic" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-an-ec2-instance-savings-plan-apply-discounts">How Does
+an EC2 Instance Savings Plan Apply Discounts?</h1>
+<p>An EC2 Instance Savings Plan reduces Amazon EC2 costs by exchanging a
+fixed hourly monetary commitment for discounted compute rates over a
+one-year or three-year term. The plan scopes its discount to a chosen
+instance family and AWS Region while automatically covering eligible
+usage across different instance sizes, operating systems, and tenancies
+within those boundaries. Each hour, AWS evaluates eligible compute usage
+and applies the commitment to the configurations that yield the highest
+percentage savings first, billing any usage beyond the hourly commitment
+at standard On-Demand rates.</p>
+<h2
+id="scope-and-flexibility-within-an-instance-family-and-region">Scope
+and Flexibility Within an Instance Family and Region</h2>
+<p>When purchasing an EC2 Instance Savings Plan, you commit to a
+specific dollar amount of compute usage per hour (for example, <span
+class="math inline">\(\$10.00\)</span> per hour) and lock in two
+attributes:</p>
+<ol type="1">
+<li><strong>Instance Family</strong>: A specific series of instances,
+such as <code>m5</code>, <code>c6i</code>, or <code>r6g</code>.</li>
+<li><strong>AWS Region</strong>: A specific geographic region, such as
+<code>us-east-1</code> or <code>eu-west-1</code>.</li>
+</ol>
+<p>Unlike Standard Reserved Instances, an EC2 Instance Savings Plan does
+not lock you into a single instance size, operating system, or tenancy.
+As long as the running instances belong to the selected instance family
+and run in the designated region, the discount automatically shifts
+across:</p>
+<ul>
+<li><strong>Instance Sizes</strong>: Moving between
+<code>m5.large</code>, <code>m5.xlarge</code>, <code>m5.4xlarge</code>,
+or bare metal equivalents without manual modification.</li>
+<li><strong>Operating Systems</strong>: Switching between Linux,
+Windows, Red Hat Enterprise Linux (RHEL), or SUSE Linux Enterprise
+Server (SLES).</li>
+<li><strong>Tenancy</strong>: Transitioning between Shared (default),
+Dedicated Instance, and Dedicated Host tenancies.</li>
+<li><strong>Availability Zones</strong>: Deploying workloads across any
+Availability Zone within the selected region.</li>
+</ul>
+<h2 id="hourly-evaluation-and-discount-prioritization">Hourly Evaluation
+and Discount Prioritization</h2>
+<p>Savings Plans are evaluated on an hourly basis without rollover. If
+your hourly commitment is <span class="math inline">\(C\)</span> dollars
+and your discounted eligible usage in a given hour is less than <span
+class="math inline">\(C\)</span>, the unused portion of the commitment
+expires at the end of that hour.</p>
+<p>During each billing hour, the AWS billing engine aggregates all
+eligible On-Demand EC2 usage matching the plan's instance family and
+region. If multiple instances are running simultaneously with varying
+operating systems or tenancies, AWS calculates the effective Savings
+Plan discount percentage for each combination:</p>
+<p><span class="math display">\[\text{Discount Percentage} = \left(
+\frac{R_{\text{OD}} - R_{\text{SP}}}{R_{\text{OD}}} \right) \times
+100\%\]</span></p>
+<p>where <span class="math inline">\(R_{\text{OD}}\)</span> is the
+hourly On-Demand rate and <span
+class="math inline">\(R_{\text{SP}}\)</span> is the hourly Savings Plan
+rate for that specific instance configuration.</p>
+<p>The billing engine sorts the eligible usage and applies your hourly
+commitment <span class="math inline">\(C\)</span> starting with the
+usage that offers the <strong>highest discount percentage</strong> down
+to the lowest. Once the hourly commitment <span
+class="math inline">\(C\)</span> is fully exhausted, any remaining usage
+in that hour is billed at standard On-Demand rates.</p>
+<h2 id="calculating-usage-coverage-and-overage">Calculating Usage
+Coverage and Overage</h2>
+<p>Because commitment is measured in dollars per hour of Savings Plan
+rates rather than normalized instance units, the amount of commitment
+consumed by an instance depends directly on its specific Savings Plan
+rate.</p>
+<p>For an instance configuration <span class="math inline">\(i\)</span>
+running for <span class="math inline">\(t_i\)</span> hours inside a
+single one-hour billing window (where <span class="math inline">\(0 &lt;
+t_i \le 1\)</span>), the commitment consumed <span
+class="math inline">\(U_i\)</span> is:</p>
+<p><span class="math display">\[U_i = t_i \times R_{\text{SP},
+i}\]</span></p>
+<p>If the total eligible usage at Savings Plan rates across <span
+class="math inline">\(n\)</span> instances is less than or equal to the
+commitment <span class="math inline">\(C\)</span>:</p>
+<p><span class="math display">\[\sum_{i=1}^{n} U_i \le C\]</span></p>
+<p>then <span class="math inline">\(100\%\)</span> of the eligible usage
+is covered by the Savings Plan, and your total cost for that usage is
+simply the fixed commitment <span class="math inline">\(C\)</span>.</p>
+<p>If your usage exceeds the commitment <span
+class="math inline">\(C\)</span> for a given instance configuration
+after prior configurations have consumed <span
+class="math inline">\(C_{\text{used}}\)</span> of the commitment, the
+remaining available commitment is <span
+class="math inline">\(C_{\text{rem}} = C - C_{\text{used}}\)</span>. The
+fraction of that instance's usage covered by the Savings Plan is:</p>
+<p><span class="math display">\[f_{\text{covered}} =
+\frac{C_{\text{rem}}}{R_{\text{SP}, i}}\]</span></p>
+<p>The uncovered fraction is billed at the On-Demand rate <span
+class="math inline">\(R_{\text{OD}, i}\)</span>, resulting in an
+additional On-Demand charge <span class="math inline">\(O_i\)</span> for
+that hour:</p>
+<p><span class="math display">\[O_i = \left( t_i - f_{\text{covered}}
+\right) \times R_{\text{OD}, i}\]</span></p>
+<h3 id="practical-calculation-example">Practical Calculation
+Example</h3>
+<p>Suppose you have an EC2 Instance Savings Plan for the
+<code>c6i</code> family in <code>us-east-1</code> with an hourly
+commitment of <span class="math inline">\(C = \$1.00\)</span>. During a
+specific hour, you run two instances:</p>
+<ul>
+<li><strong>Instance A</strong> (<code>c6i.4xlarge</code> Linux, Shared
+tenancy): Suppose <span class="math inline">\(R_{\text{OD}, A} =
+\$0.68\)</span> and <span class="math inline">\(R_{\text{SP}, A} =
+\$0.43\)</span> (a <span class="math inline">\(36.76\%\)</span>
+discount).</li>
+<li><strong>Instance B</strong> (<code>c6i.4xlarge</code> Windows,
+Shared tenancy): Suppose <span class="math inline">\(R_{\text{OD}, B} =
+\$1.416\)</span> and <span class="math inline">\(R_{\text{SP}, B} =
+\$1.166\)</span> (a <span class="math inline">\(17.66\%\)</span>
+discount).</li>
+</ul>
+<p>The billing engine applies the <span
+class="math inline">\(\$1.00\)</span> commitment in the following
+sequence:</p>
+<ol type="1">
+<li><strong>Highest Discount First</strong>: Instance A has the higher
+discount percentage (<span class="math inline">\(36.76\%\)</span> vs.
+<span class="math inline">\(17.66\%\)</span>), so it is covered first.
+Covering <span class="math inline">\(100\%\)</span> of Instance A
+consumes <span class="math inline">\(\$0.43\)</span> of the
+commitment.</li>
+<li><strong>Remaining Commitment</strong>: The remaining commitment for
+the hour is <span class="math inline">\(\$1.00 - \$0.43 =
+\$0.57\)</span>.</li>
+<li><strong>Partial Coverage of Next Instance</strong>: The remaining
+<span class="math inline">\(\$0.57\)</span> is applied to Instance B.
+The fraction of Instance B covered by the plan is: <span
+class="math display">\[f_{\text{covered}} = \frac{\$0.57}{\$1.166}
+\approx 0.48885\]</span></li>
+<li><strong>On-Demand Overage</strong>: The uncovered portion of
+Instance B (<span class="math inline">\(1 - 0.48885 = 0.51115\)</span>
+hours) is billed at the Windows On-Demand rate: <span
+class="math display">\[O_B = 0.51115 \times \$1.416 \approx
+\$0.7238\]</span></li>
+</ol>
+<p>For that hour, your total outlay is the <span
+class="math inline">\(\$1.00\)</span> Savings Plan commitment plus <span
+class="math inline">\(\$0.7238\)</span> in On-Demand charges, totaling
+<span class="math inline">\(\$1.7238\)</span> instead of the combined
+On-Demand cost of <span class="math inline">\(\$2.096\)</span>.</p>
+<h2 id="interaction-with-other-aws-pricing-models">Interaction With
+Other AWS Pricing Models</h2>
+<p>When an account holds multiple discount instruments, AWS applies them
+in a strict hierarchy each hour before falling back to On-Demand
+pricing:</p>
+<ol type="1">
+<li><strong>Zonal Reserved Instances</strong>: Applied first to exact
+matching usage in specific Availability Zones.</li>
+<li><strong>Standard and Convertible Regional Reserved
+Instances</strong>: Applied next to matching instance families within
+the region.</li>
+<li><strong>EC2 Instance Savings Plans</strong>: Applied to remaining
+uncovered usage within the committed instance family and region, ahead
+of Compute Savings Plans because EC2 Instance Savings Plans have a
+narrower scope and offer higher discount rates.</li>
+<li><strong>Compute Savings Plans</strong>: Applied to any remaining
+eligible compute usage across families, regions, AWS Fargate, or AWS
+Lambda.</li>
+<li><strong>On-Demand Rates</strong>: Applied to all remaining uncovered
+usage.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-an-ec-2-instance-savings-plan-apply-discounts';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

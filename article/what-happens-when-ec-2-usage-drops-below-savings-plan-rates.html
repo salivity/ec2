@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When EC2 Usage Drops Below Savings Plan Rates? - ec2</title>
+    <meta name="description" content="When your actual hourly Amazon EC2 usage falls below your committed AWS Savings Plan hourly rate, you are still billed for the full committed amount for that specific hour. AWS Savings Plans operate on a strict use-it-or-lose-it hourly basis, meaning any">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-ec-2-usage-drops-below-savings-plan-rates">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When EC2 Usage Drops Below Savings Plan Rates? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-ec-2-usage-drops-below-savings-plan-rates" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When your actual hourly Amazon EC2 usage falls below your committed AWS Savings Plan hourly rate, you are still billed for the full committed amount for that specific hour. AWS Savings Plans operate on a strict use-it-or-lose-it hourly basis, meaning any" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-ec2-usage-drops-below-savings-plan-rates">What
+Happens When EC2 Usage Drops Below Savings Plan Rates?</h1>
+<p>When your actual hourly Amazon EC2 usage falls below your committed
+AWS Savings Plan hourly rate, you are still billed for the full
+committed amount for that specific hour. AWS Savings Plans operate on a
+strict use-it-or-lose-it hourly basis, meaning any unused portion of
+your commitment expires at the end of the hour and cannot be rolled over
+or credited to future billing periods. This article explains how AWS
+calculates hourly commitment utilization, the financial impact of
+underutilization, how commitment sharing across consolidated billing
+accounts can absorb excess capacity, and practical strategies to monitor
+and prevent wasted cloud spend.</p>
+<h2 id="understanding-the-hourly-commitment-model">Understanding the
+Hourly Commitment Model</h2>
+<p>An AWS Savings Plan is a flexible pricing model that offers lower
+prices on compute usage in exchange for a commitment to a consistent
+amount of usage, measured in dollars per hour, for a one-year or
+three-year term. Unlike On-Demand pricing, where you pay strictly for
+the compute capacity you consume down to the second, a Savings Plan
+establishes a baseline financial obligation for every single hour of the
+term.</p>
+<p>To understand how AWS evaluates your usage against your commitment,
+it helps to examine the underlying billing formula. Let <span
+class="math inline">\(C\)</span> represent your fixed hourly Savings
+Plan commitment in dollars, and let <span
+class="math inline">\(U\)</span> represent your eligible compute usage
+during a given hour, calculated at the discounted Savings Plan rate.
+Your total hourly cost <span class="math inline">\(T\)</span> for that
+compute usage is determined by:</p>
+<p><span class="math display">\[T = C + \max(0, U -
+C)_{\text{On-Demand}}\]</span></p>
+<p>There are two primary scenarios that occur each hour based on this
+relationship:</p>
+<ol type="1">
+<li><strong>Usage Exceeds Commitment (<span class="math inline">\(U &gt;
+C\)</span>):</strong> Your Savings Plan covers your usage up to the
+value of <span class="math inline">\(C\)</span> at the discounted
+Savings Plan rate. Any excess usage beyond <span
+class="math inline">\(C\)</span> is billed at standard On-Demand rates
+(or covered by other active discounts like Reserved Instances).</li>
+<li><strong>Usage Drops Below Commitment (<span class="math inline">\(U
+&lt; C\)</span>):</strong> Your Savings Plan covers 100% of your
+eligible usage <span class="math inline">\(U\)</span>, so you incur zero
+On-Demand charges for eligible resources. However, you still pay the
+full committed amount <span class="math inline">\(C\)</span>.</li>
+</ol>
+<p>The difference between what you committed to spend and what you
+actually consumed is the unused commitment, which can be expressed
+as:</p>
+<p><span class="math display">\[W = \max(0, C - U)\]</span></p>
+<p>Where <span class="math inline">\(W\)</span> represents the wasted
+commitment in dollars for that hour. For example, if you have a
+commitment of <span class="math inline">\(C = \$10.00\)</span> per hour,
+and during an off-peak maintenance window your discounted EC2 usage
+drops to <span class="math inline">\(U = \$6.50\)</span> for that hour,
+you are still billed <span class="math inline">\(\$10.00\)</span>. The
+remaining <span class="math inline">\(W = \$3.50\)</span> of unused
+commitment is forfeited.</p>
+<h2 id="why-unused-commitments-do-not-roll-over">Why Unused Commitments
+Do Not Roll Over</h2>
+<p>A common misconception among cloud architects and finance teams is
+that a Savings Plan commitment is evaluated on a monthly or annual
+average. In reality, the evaluation window is strictly sixty minutes,
+running from the top of the hour to the end of the hour.</p>
+<p>If your usage drops below your commitment at 2:00 AM, leaving <span
+class="math inline">\(\$3.50\)</span> of unused capacity, and then
+spikes above your commitment at 2:00 PM, resulting in <span
+class="math inline">\(\$5.00\)</span> of On-Demand overages, the unused
+morning commitment cannot be applied to offset the afternoon spike. Each
+hour is reconciled independently in the AWS billing engine. Once the
+clock strikes the next hour, any unallocated commitment from the
+previous hour is permanently lost.</p>
+<h2 id="how-aws-minimizes-waste-automatically">How AWS Minimizes Waste
+Automatically</h2>
+<p>Before any commitment is marked as unused during a low-usage hour,
+the AWS billing engine automatically attempts to maximize the value of
+your commitment across your environment using two mechanisms:
+highest-discount prioritization and organizational sharing.</p>
+<h3 id="highest-discount-application">Highest Discount Application</h3>
+<p>Within the single account that owns the Savings Plan, AWS evaluates
+all eligible running usage for that hour and applies the Savings Plan
+commitment to the resources that offer the highest discount percentage
+compared to On-Demand rates first. If your primary production EC2
+instances scale down, the freed-up commitment will automatically trickle
+down to cover other eligible compute workloads that have smaller
+discount percentages, which might otherwise have been running at
+On-Demand rates.</p>
+<h3 id="consolidated-billing-and-aws-organizations">Consolidated Billing
+and AWS Organizations</h3>
+<p>If your AWS account is part of an AWS Organization with consolidated
+billing enabled and Savings Plan sharing turned on, your commitment is
+not trapped inside a single account.</p>
+<ol type="1">
+<li><strong>Owning Account Priority:</strong> AWS first applies the
+hourly commitment to eligible usage within the account that purchased
+the Savings Plan.</li>
+<li><strong>Organization-Wide Overflow:</strong> If the owning account's
+usage drops below the committed hourly rate, the leftover commitment
+automatically floats to other member accounts within the AWS
+Organization that have eligible compute usage running during that exact
+same hour.</li>
+</ol>
+<p>Because of this sharing mechanism, a drop in usage within one
+specific project or account does not necessarily result in wasted spend
+for the business as a whole, provided another department or environment
+has uncovered On-Demand usage during that same hour to absorb the excess
+commitment.</p>
+<h2 id="the-role-of-savings-plan-types-in-underutilization">The Role of
+Savings Plan Types in Underutilization</h2>
+<p>The likelihood of your usage dropping below your committed rate
+depends heavily on the type of Savings Plan you purchase:</p>
+<ul>
+<li><strong>EC2 Instance Savings Plans:</strong> These offer the deepest
+discounts (up to 72%) but are restricted to a specific instance family
+(such as <code>m6i</code> or <code>c7g</code>) within a single AWS
+Region. If you scale down an <code>m6i</code> cluster in
+<code>us-east-1</code> and spin up workloads in <code>us-west-2</code>
+or migrate to <code>r6i</code> instances, the EC2 Instance Savings Plan
+cannot follow that usage. Your eligible usage drops, and the commitment
+goes unused.</li>
+<li><strong>Compute Savings Plans:</strong> These offer slightly lower
+discounts (up to 66%) but apply broadly across any EC2 instance family,
+size, operating system, tenancy, and AWS Region, as well as AWS Fargate
+and AWS Lambda usage. If your EC2 usage drops at night, a Compute
+Savings Plan can automatically shift to cover overnight batch processing
+jobs running on AWS Fargate or serverless functions executing in AWS
+Lambda, significantly reducing the risk of falling below your committed
+hourly rate.</li>
+</ul>
+<h2 id="how-to-monitor-and-prevent-unused-commitments">How to Monitor
+and Prevent Unused Commitments</h2>
+<p>While occasional hourly dips may still result in net savings over
+standard On-Demand pricing—since discounts often range from 30% to
+72%—frequent underutilization erodes your effective savings rate. You
+can track and mitigate this using built-in AWS tools and architectural
+practices.</p>
+<h3 id="track-utilization-in-aws-cost-explorer">Track Utilization in AWS
+Cost Explorer</h3>
+<p>AWS Cost Explorer provides a dedicated <strong>Savings Plans
+Utilization Report</strong>. In this report, utilization percentage for
+a given hour is calculated as:</p>
+<p><span class="math display">\[\text{Utilization (\%)} = \left(
+\frac{U}{C} \right) \times 100\]</span></p>
+<p>When your actual usage drops below your commitment, your utilization
+falls below 100%. The Utilization Report explicitly highlights your
+<strong>Total Commitment</strong>, <strong>Used Commitment</strong>, and
+<strong>Unused Commitment</strong> in dollars, allowing you to pinpoint
+the exact hours or days of the week where capacity is being wasted.</p>
+<h3 id="configure-aws-budgets-for-utilization-alerts">Configure AWS
+Budgets for Utilization Alerts</h3>
+<p>Instead of discovering unused commitments at the end of the month,
+you can configure <strong>AWS Budgets</strong> to create a Savings Plans
+Utilization Budget. By setting a utilization threshold—for example,
+alerting your FinOps or engineering team whenever average daily
+utilization drops below 90%—you can investigate whether an application
+was decommissioned, migrated to an unsupported instance family, or
+scaled down permanently.</p>
+<h3 id="right-size-commitments-to-your-baseline">Right-Size Commitments
+to Your Baseline</h3>
+<p>To prevent hourly usage from dropping below your committed rate,
+avoid sizing your Savings Plan to match your average or peak usage.
+Instead, analyze your historical hourly usage graphs and commit only to
+your <strong>minimum baseline usage</strong> (often referred to as the
+"waterline"). By sizing your commitment <span
+class="math inline">\(C\)</span> so that it sits at or slightly below
+your lowest off-peak hourly usage, you ensure 100% utilization around
+the clock, while handling diurnal traffic spikes with flexible On-Demand
+or Spot Instances.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-ec-2-usage-drops-below-savings-plan-rates';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

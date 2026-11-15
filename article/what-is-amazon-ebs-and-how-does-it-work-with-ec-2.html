@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Is Amazon EBS and How Does It Work With EC2? - ec2</title>
+    <meta name="description" content="Amazon Elastic Block Store is a cloud storage service that provides scalable, high-performance block-level storage volumes for Amazon Elastic Compute Cloud instances. Unlike ephemeral instance store volumes that lose data when a virtual machine stops, Ama">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-amazon-ebs-and-how-does-it-work-with-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Is Amazon EBS and How Does It Work With EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-amazon-ebs-and-how-does-it-work-with-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Elastic Block Store is a cloud storage service that provides scalable, high-performance block-level storage volumes for Amazon Elastic Compute Cloud instances. Unlike ephemeral instance store volumes that lose data when a virtual machine stops, Ama" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-is-amazon-ebs-and-how-does-it-work-with-ec2">What Is Amazon
+EBS and How Does It Work With EC2?</h1>
+<p>Amazon Elastic Block Store is a cloud storage service that provides
+scalable, high-performance block-level storage volumes for Amazon
+Elastic Compute Cloud instances. Unlike ephemeral instance store volumes
+that lose data when a virtual machine stops, Amazon Elastic Block Store
+preserves data independently of the compute instance lifecycle. It
+achieves persistence and reliability by automatically replicating data
+within an Availability Zone, making it ideal for databases, enterprise
+applications, and boot volumes.</p>
+<h2 id="understanding-block-level-storage">Understanding Block-Level
+Storage</h2>
+<p>Block storage operates by dividing data into fixed-size chunks called
+blocks. Each block is assigned a unique address, and the storage system
+manages where these blocks are physically placed on the underlying
+hardware. When an Amazon Elastic Compute Cloud (EC2) instance interacts
+with an Amazon Elastic Block Store (EBS) volume, it treats the volume
+like a physical hard drive connected directly to the server.</p>
+<p>Because EBS operates at the block level, you can format the volume
+with a file system of your choice, such as ext4, XFS, or NTFS. This
+low-level access allows applications like relational and NoSQL databases
+to modify individual blocks of data without rewriting entire files,
+resulting in low latency and high throughput.</p>
+<h2 id="how-amazon-ebs-provides-persistent-storage">How Amazon EBS
+Provides Persistent Storage</h2>
+<p>By default, some EC2 instance types come with local storage known as
+an instance store. While fast, instance store volumes are ephemeral; if
+the underlying host fails or the instance is stopped, all data on that
+storage is lost. Amazon EBS solves this by decoupling the storage
+lifecycle from the compute lifecycle.</p>
+<h3 id="independent-volume-lifecycle">Independent Volume Lifecycle</h3>
+<p>An EBS volume exists independently of the EC2 instance to which it is
+attached. When you stop an EC2 instance, the attached EBS root volume
+and any data volumes remain intact. When you restart the instance, it
+boots back up with all previously saved files, configurations, and
+application states preserved. You can also detach an EBS volume from one
+EC2 instance and attach it to another instance within the same
+Availability Zone to migrate workloads or recover from instance
+issues.</p>
+<h3 id="availability-zone-replication">Availability Zone
+Replication</h3>
+<p>To protect against hardware failures, Amazon EBS automatically
+replicates every volume within its Availability Zone. If a physical
+drive in the AWS data center fails, the redundant copy ensures that your
+data remains available without interruption to your running EC2
+instance. For most general-purpose volumes, AWS designs EBS to offer an
+annual failure rate (AFR) between <span
+class="math inline">\(0.1\%\)</span> and <span
+class="math inline">\(0.2\%\)</span>, while high-end mission-critical
+volumes are designed for <span class="math inline">\(99.999\%\)</span>
+durability.</p>
+<h3 id="point-in-time-snapshots">Point-in-Time Snapshots</h3>
+<p>While EBS volumes live within a single Availability Zone, Amazon EBS
+supports point-in-time backups called snapshots, which are stored in
+Amazon Simple Storage Service (Amazon S3) across multiple Availability
+Zones. Snapshots are incremental, meaning only the blocks on the device
+that have changed after your most recent snapshot are saved. If a
+snapshot of size <span class="math inline">\(S_{\text{total}}\)</span>
+consists of initial blocks <span class="math inline">\(B_0\)</span> and
+subsequent changed blocks <span class="math inline">\(\Delta
+B_i\)</span> over <span class="math inline">\(n\)</span> intervals, the
+total storage consumed is represented by:</p>
+<p><span class="math display">\[S_{\text{total}} = B_0 + \sum_{i=1}^{n}
+\Delta B_i\]</span></p>
+<p>From any snapshot, you can create a new EBS volume in the same
+Availability Zone, a different Availability Zone, or even copy the
+snapshot to another AWS Region for disaster recovery.</p>
+<h2 id="network-attached-architecture">Network-Attached
+Architecture</h2>
+<p>Unlike physical drives slotted directly into a host server, EBS
+volumes are network-attached storage devices that communicate with EC2
+instances over the AWS high-speed internal network. Modern EC2 instances
+use the AWS Nitro System, which offloads storage virtualization and
+encryption tasks to dedicated hardware. This architecture minimizes
+latency and ensures that storage traffic does not contend with your
+standard application network traffic on EBS-optimized instances.</p>
+<h2 id="types-of-amazon-ebs-volumes">Types of Amazon EBS Volumes</h2>
+<p>Amazon EBS categorizes its storage options into two main
+technologies: solid-state drives (SSD) for transactional, IOPS-intensive
+workloads, and hard disk drives (HDD) for throughput-intensive
+workloads.</p>
+<h3 id="solid-state-drive-ssd-volumes">Solid-State Drive (SSD)
+Volumes</h3>
+<ul>
+<li><strong>General Purpose SSD (gp3 and gp2):</strong> Designed for a
+balance of price and performance. They are commonly used for system boot
+volumes, virtual desktops, and small-to-medium databases. With
+<code>gp3</code>, you can scale IOPS and throughput independently of
+storage capacity.</li>
+<li><strong>Provisioned IOPS SSD (io2 Block Express and io1):</strong>
+Engineered for mission-critical, low-latency, and high-throughput
+workloads such as large relational databases (Oracle, Microsoft SQL
+Server, PostgreSQL). They provide sustained IOPS performance and the
+highest durability among EBS offerings.</li>
+</ul>
+<h3 id="hard-disk-drive-hdd-volumes">Hard Disk Drive (HDD) Volumes</h3>
+<ul>
+<li><strong>Throughput Optimized HDD (st1):</strong> A low-cost magnetic
+storage option designed for frequently accessed, throughput-intensive
+workloads with large datasets, such as big data analytics, data
+warehouses, and log processing.</li>
+<li><strong>Cold HDD (sc1):</strong> The lowest-cost EBS volume type,
+built for less frequently accessed data where sequential throughput is
+more important than fast random access. Note that HDD volumes
+(<code>st1</code> and <code>sc1</code>) cannot be used as boot volumes
+for EC2 instances.</li>
+</ul>
+<h2 id="key-features-for-enterprise-workloads">Key Features for
+Enterprise Workloads</h2>
+<h3 id="elastic-volumes">Elastic Volumes</h3>
+<p>With the Elastic Volumes feature, you can dynamically increase volume
+size, adjust IOPS and throughput performance, or change the volume type
+while the volume is attached and in use. This eliminates the need to
+schedule downtime for storage capacity upgrades.</p>
+<h3 id="ebs-multi-attach">EBS Multi-Attach</h3>
+<p>For specific Provisioned IOPS SSD (<code>io1</code> and
+<code>io2</code>) volumes, Amazon EBS supports Multi-Attach, which
+allows a single volume to be concurrently attached to up to 16
+Nitro-based EC2 instances within the same Availability Zone. This is
+designed for clustered applications that manage concurrent write
+operations to shared storage.</p>
+<h3 id="built-in-encryption">Built-In Encryption</h3>
+<p>Amazon EBS integrates with AWS Key Management Service (AWS KMS) to
+provide seamless encryption of data at rest, data in transit between the
+EC2 instance and the volume, and all snapshots created from the volume.
+Encryption is handled on the EC2 host hardware, ensuring minimal impact
+on storage performance.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-amazon-ebs-and-how-does-it-work-with-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

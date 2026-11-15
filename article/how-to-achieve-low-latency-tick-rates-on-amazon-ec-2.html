@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Achieve Low-Latency Tick Rates on Amazon EC2? - ec2</title>
+    <meta name="description" content="Gaming studios can achieve low-latency multiplayer tick rates by deploying dedicated game servers on Compute Optimized Amazon EC2 instances, such as the C7g, C7i, and C7a families, combined with AWS networking and operating system optimizations. Because g">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-achieve-low-latency-tick-rates-on-amazon-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Achieve Low-Latency Tick Rates on Amazon EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-achieve-low-latency-tick-rates-on-amazon-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Gaming studios can achieve low-latency multiplayer tick rates by deploying dedicated game servers on Compute Optimized Amazon EC2 instances, such as the C7g, C7i, and C7a families, combined with AWS networking and operating system optimizations. Because g" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-achieve-low-latency-tick-rates-on-amazon-ec2">How to
+Achieve Low-Latency Tick Rates on Amazon EC2?</h1>
+<p>Gaming studios can achieve low-latency multiplayer tick rates by
+deploying dedicated game servers on Compute Optimized Amazon EC2
+instances, such as the C7g, C7i, and C7a families, combined with AWS
+networking and operating system optimizations. Because game server
+simulation loops are predominantly bound by single-threaded CPU speed
+and network packet processing overhead, selecting instances with high
+sustained all-core turbo clock speeds, disabling processor sleep states,
+and leveraging the Elastic Network Adapter (ENA) with Cluster Placement
+Groups ensures deterministic frame times and minimal jitter for
+competitive online games.</p>
+<h2
+id="understanding-game-server-tick-rates-and-frame-budgets">Understanding
+Game Server Tick Rates and Frame Budgets</h2>
+<p>In multiplayer game architecture, the server tick rate—measured in
+Hertz (Hz)—defines how many discrete simulation steps the server
+processes per second. During a single tick, the server ingests queued
+client inputs, updates game state logic, calculates physics and
+collision detection, and serializes state snapshots to broadcast back to
+connected players.</p>
+<p>The relationship between the target tick rate <span
+class="math inline">\(R\)</span> and the maximum allowable frame budget
+<span class="math inline">\(T_{\text{tick}}\)</span> in milliseconds is
+defined as:</p>
+<p><span class="math display">\[T_{\text{tick}} = \frac{1000}{R} \text{
+ms}\]</span></p>
+<p>For a casual multiplayer game operating at <span
+class="math inline">\(30\text{ Hz}\)</span>, the server has <span
+class="math inline">\(33.33\text{ ms}\)</span> to complete its
+simulation loop. However, competitive first-person shooters and
+real-time action games frequently require tick rates of <span
+class="math inline">\(64\text{ Hz}\)</span> (<span
+class="math inline">\(15.625\text{ ms}\)</span>) or <span
+class="math inline">\(128\text{ Hz}\)</span> (<span
+class="math inline">\(7.8125\text{ ms}\)</span>). If the time required
+to process the game loop (<span
+class="math inline">\(T_{\text{sim}}\)</span>) plus the kernel network
+I/O overhead (<span class="math inline">\(T_{\text{net}}\)</span>)
+exceeds <span class="math inline">\(T_{\text{tick}}\)</span>, the server
+experiences a tick overrun:</p>
+<p><span class="math display">\[T_{\text{sim}} + T_{\text{net}} \le
+T_{\text{tick}}\]</span></p>
+<p>When a tick overrun occurs, state updates are delayed, resulting in
+rubber-banding, hit-registration errors, and perceptible client-side
+jitter. Because primary game simulation loops are notoriously difficult
+to parallelize across many threads due to state dependencies,
+single-core instruction throughput and cache locality are the primary
+hardware determinants of tick stability.</p>
+<h2
+id="selecting-the-right-compute-optimized-ec2-instance-family">Selecting
+the Right Compute Optimized EC2 Instance Family</h2>
+<p>Amazon EC2 Compute Optimized (C-family) instances are engineered with
+a high ratio of vCPUs to memory, offering the sustained clock speeds and
+cache hierarchies required for real-time simulation loops. Studios
+typically evaluate three main processor architectures within the current
+generation:</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Family</th>
+<th style="text-align: left;">Processor Architecture</th>
+<th style="text-align: left;">Clock / Core Characteristics</th>
+<th style="text-align: left;">Best Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>C7i / C6i</strong></td>
+<td style="text-align: left;">Intel Xeon Scalable (x86_64)</td>
+<td style="text-align: left;">High single-thread turbo frequencies (up
+to <span class="math inline">\(3.5\text{ GHz+}\)</span>) and AVX-512
+support.</td>
+<td style="text-align: left;">Unreal Engine or Unity dedicated servers
+with heavy single-threaded physics.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C7a / C6a</strong></td>
+<td style="text-align: left;">AMD EPYC (x86_64)</td>
+<td style="text-align: left;">High core density with isolated L3 cache
+segments and strong price-performance.</td>
+<td style="text-align: left;">High-density session packing where
+multiple game server processes run per host.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C7g / C8g</strong></td>
+<td style="text-align: left;">AWS Graviton3 / Graviton4 (ARM64)</td>
+<td style="text-align: left;">Every vCPU is a physical core (no
+SMT/Hyper-Threading) with large private caches.</td>
+<td style="text-align: left;">Deterministic tick rates without
+sibling-thread contention; lowest cost per tick.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="physical-cores-vs-simultaneous-multithreading-smt">Physical
+Cores vs. Simultaneous Multithreading (SMT)</h3>
+<p>On x86-based EC2 instances (<code>C7i</code>, <code>C7a</code>), each
+vCPU (aside from <code>metal</code> or single-vCPU sizes) corresponds to
+a hardware hyper-thread sharing an underlying physical core execution
+pipeline. If two demanding game server main loops are scheduled onto
+sibling threads of the same physical core, they contend for execution
+units and L1/L2 caches, causing latency spikes at the <span
+class="math inline">\(99\text{th}\)</span> percentile (<span
+class="math inline">\(P99\)</span>).</p>
+<p>In contrast, AWS Graviton instances (<code>C7g</code>,
+<code>C8g</code>) map each vCPU directly to a dedicated physical core.
+Because there is no sibling thread competing for arithmetic logic units
+(ALUs) or cache lines, Graviton instances exhibit significantly lower
+variance in tick execution time, provided the game engine supports ARM64
+Linux builds (supported natively in Unreal Engine 5 and modern Unity
+versions).</p>
+<h2 id="optimizing-the-linux-kernel-and-cpu-scheduling">Optimizing the
+Linux Kernel and CPU Scheduling</h2>
+<p>Once the underlying Compute Optimized instance is selected, the host
+operating system must be tuned to prevent background interrupts and
+power management transitions from stalling the game loop.</p>
+<h3 id="1-pinning-game-server-processes-to-isolated-cores">1. Pinning
+Game Server Processes to Isolated Cores</h3>
+<p>When packing multiple dedicated server processes onto a single
+multi-vCPU instance (such as a <code>c7i.4xlarge</code> with 16 vCPUs),
+studios should prevent the Linux Completely Fair Scheduler (CFS) from
+migrating the main simulation thread across cores, which invalidates CPU
+caches.</p>
+<p>On x86 instances, identify physical core thread siblings by
+inspecting
+<code>/sys/devices/system/cpu/cpu*/topology/thread_siblings_list</code>
+and pin each game server's main simulation loop to a distinct physical
+core using <code>taskset</code> or <code>cpuset</code> cgroups, leaving
+the sibling thread idle or reserved for asynchronous logging and
+telemetry.</p>
+<h3 id="2-disabling-c-states-and-frequency-scaling">2. Disabling
+C-States and Frequency Scaling</h3>
+<p>Modern processors attempt to save power during brief idle periods
+between ticks by entering sleep states (C-states). Waking a core from a
+deep C-state introduces tens of microseconds of latency, which
+accumulates across network interrupts and timer wakeups.</p>
+<p>When running on bare-metal instances (<code>c7i.metal</code>,
+<code>c7g.metal</code>) or tuning kernel parameters on virtualized
+instances, configure the kernel boot parameters in
+<code>/etc/default/grub</code> to keep cores running at maximum
+frequency and prevent tickless timer delays:</p>
+<pre class="text"><code>GRUB_CMDLINE_LINUX_DEFAULT=&quot;skew_tick=1 nohz=off processor.max_cstate=1 intel_idle.max_cstate=0 idle=poll&quot;</code></pre>
+<p>Additionally, set the CPU frequency scaling governor to
+<code>performance</code> so the processor maintains its maximum turbo
+clock rate continuously rather than ramping clocks up and down between
+simulation ticks.</p>
+<h2
+id="minimizing-network-jitter-and-packet-processing-overhead">Minimizing
+Network Jitter and Packet Processing Overhead</h2>
+<p>A <span class="math inline">\(128\text{ Hz}\)</span> server
+supporting 64 players must process up to <span
+class="math inline">\(8,192\)</span> incoming and outgoing UDP packets
+per second per game session. If a single EC2 instance hosts 8 concurrent
+game sessions, the network interface processes over <span
+class="math inline">\(65,000\)</span> packets per second.</p>
+<h3 id="leveraging-the-elastic-network-adapter-ena">Leveraging the
+Elastic Network Adapter (ENA)</h3>
+<p>All current-generation Compute Optimized instances utilize the AWS
+Nitro System and the Elastic Network Adapter (ENA), which bypasses
+traditional software virtualization layers using SR-IOV (Single Root I/O
+Virtualization) to deliver bare-metal network performance directly to
+the guest OS. To minimize packet latency on ENA:</p>
+<ol type="1">
+<li><strong>Disable Interrupt Moderation:</strong> By default, network
+drivers coalesce multiple incoming packets into a single hardware
+interrupt to maximize throughput. For real-time game servers, throughput
+is secondary to latency. Use
+<code>ethtool -C eth0 adaptive-rx off rx-usecs 0 tx-usecs 0</code>
+(where supported by the ENA driver version) to deliver packets to the
+kernel immediately upon arrival.</li>
+<li><strong>Configure Receive Side Scaling (RSS) and IRQ
+Affinity:</strong> Ensure that network hardware interrupts (IRQs) for
+ENA queues are distributed across dedicated housekeeping vCPUs—separate
+from the vCPUs pinned to the game simulation loop—so incoming bursts of
+UDP traffic do not preempt physics calculations.</li>
+<li><strong>Socket Buffer Tuning:</strong> Increase
+<code>net.core.rmem_max</code> and <code>net.core.wmem_max</code> via
+<code>sysctl</code> so bursts of state snapshot UDP packets are never
+dropped at the socket layer during complex in-game events.</li>
+</ol>
+<h3 id="kernel-bypass-and-xdp">Kernel Bypass and XDP</h3>
+<p>For studios pushing extreme tick rates (<span
+class="math inline">\(128\text{ Hz+}\)</span> with 100+ players),
+standard POSIX <code>recvfrom()</code> and <code>sendto()</code> system
+calls introduce context-switch overhead. Utilizing
+<code>recvmmsg()</code> and <code>sendmmsg()</code> allows the game
+server to batch read and write multiple UDP datagrams in a single
+syscall. Furthermore, attaching an eBPF/XDP (eXpress Data Path) program
+directly to the ENA driver allows studios to filter malformed packets,
+mitigate volumetric UDP amplification attacks, and route valid game
+packets before the Linux kernel even allocates an <code>sk_buff</code>
+structure.</p>
+<h2 id="placement-strategies-and-global-edge-routing">Placement
+Strategies and Global Edge Routing</h2>
+<p>Hardware and kernel optimizations must be paired with strategic AWS
+topology design to minimize the round-trip time (RTT) between players
+and the EC2 instance:</p>
+<p><span class="math display">\[\text{RTT}_{\text{total}} =
+T_{\text{client\_edge}} + T_{\text{backbone}} + T_{\text{tick\_wait}} +
+T_{\text{sim}}\]</span></p>
+<ul>
+<li><strong>AWS Local Zones:</strong> For metropolitan areas far from
+standard AWS Regions, deploying Compute Optimized instances directly
+inside AWS Local Zones places the game server within single-digit
+milliseconds of end-user ISPs.</li>
+<li><strong>AWS Global Accelerator:</strong> Instead of routing player
+UDP traffic over the congested public internet via standard BGP routing,
+AWS Global Accelerator ingests player packets at the nearest AWS Edge
+Location via Anycast IP addresses and transports them over the private
+AWS global fiber network directly to the target EC2 instance.</li>
+<li><strong>Amazon GameLift FleetIQ:</strong> Studios orchestrating
+large fleets of Compute Optimized instances can use Amazon GameLift or
+Kubernetes (Amazon EKS with Agones) to automatically bin-pack game
+sessions onto instances with optimal vCPU availability while placing
+players into the lowest-latency geographical region using UDP latency
+telemetry.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-achieve-low-latency-tick-rates-on-amazon-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

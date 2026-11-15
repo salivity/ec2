@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which EC2 Suffix Letters Indicate the CPU Manufacturer? - ec2</title>
+    <meta name="description" content="Amazon EC2 instance type names use specific suffix letters positioned immediately after the generation number to identify the underlying CPU manufacturer, with a indicating AMD, g indicating AWS Graviton, i indicating Intel, and m indicating Apple silicon">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-ec-2-suffix-letters-indicate-the-cpu-manufacturer">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which EC2 Suffix Letters Indicate the CPU Manufacturer? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-ec-2-suffix-letters-indicate-the-cpu-manufacturer" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 instance type names use specific suffix letters positioned immediately after the generation number to identify the underlying CPU manufacturer, with a indicating AMD, g indicating AWS Graviton, i indicating Intel, and m indicating Apple silicon" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="which-ec2-suffix-letters-indicate-the-cpu-manufacturer">Which
+EC2 Suffix Letters Indicate the CPU Manufacturer?</h1>
+<p>Amazon EC2 instance type names use specific suffix letters positioned
+immediately after the generation number to identify the underlying CPU
+manufacturer, with a indicating AMD, g indicating AWS Graviton, i
+indicating Intel, and m indicating Apple silicon Mac processors.
+Understanding these naming conventions allows cloud architects and
+developers to quickly determine processor architecture, optimize
+workload performance, and manage infrastructure costs without consulting
+external documentation. When no processor suffix letter is present in an
+older generation instance name, the instance defaults to using an Intel
+processor.</p>
+<h2 id="anatomy-of-an-amazon-ec2-instance-name">Anatomy of an Amazon EC2
+Instance Name</h2>
+<p>An Amazon EC2 instance type name is composed of four distinct parts:
+the instance family, the instance generation, the processor or
+capability suffixes, and the instance size. These components are
+structured with the family, generation, and suffixes joined together
+before a period, followed by the size designation after the period.</p>
+<p>For example, in the instance type name <code>c7gn.xlarge</code>:</p>
+<ul>
+<li><strong>Instance Family (<code>c</code>)</strong>: Indicates a
+compute-optimized workload classification.</li>
+<li><strong>Instance Generation (<code>7</code>)</strong>: Represents
+the seventh generation of this hardware family.</li>
+<li><strong>Attribute and Processor Suffixes (<code>gn</code>)</strong>:
+Letters immediately following the generation number that specify the
+processor manufacturer (<code>g</code> for AWS Graviton) and additional
+capabilities (<code>n</code> for network optimization).</li>
+<li><strong>Instance Size (<code>xlarge</code>)</strong>: Defines the
+allocation of vCPUs, memory, and bandwidth relative to the family
+baseline.</li>
+</ul>
+<h2 id="suffix-letters-for-cpu-manufacturers">Suffix Letters for CPU
+Manufacturers</h2>
+<p>AWS assigns dedicated single-letter suffixes right after the
+generation number to denote the chipmaker powering the underlying host
+hardware.</p>
+<h3 id="i--intel-processors"><code>i</code> – Intel Processors</h3>
+<p>In newer EC2 generations (starting primarily with the 6th
+generation), the letter <code>i</code> explicitly designates instances
+powered by Intel Xeon Scalable processors. In generations 1 through 5,
+Intel was the default processor for most families, so no processor
+suffix was included (for example, <code>m5.large</code> runs on Intel).
+From the 6th generation onward, AWS introduced the <code>i</code> suffix
+to clearly distinguish Intel instances from AMD and AWS Graviton
+alternatives.</p>
+<ul>
+<li><strong>Examples</strong>: <code>m6i.large</code>,
+<code>c7i.xlarge</code>, <code>r6in.2xlarge</code></li>
+<li><strong>Architecture</strong>: 64-bit x86 (<code>x86_64</code>)</li>
+</ul>
+<h3 id="a--amd-processors"><code>a</code> – AMD Processors</h3>
+<p>The letter <code>a</code> indicates that the instance is powered by
+AMD EPYC processors. AWS introduced AMD-based instances to offer an
+x86-compatible alternative that typically provides a lower cost per vCPU
+compared to equivalent Intel-based instances. Because both Intel and AMD
+share the <code>x86_64</code> instruction set architecture, applications
+compiled for standard x86 Linux or Windows environments can generally
+transition between <code>i</code> and <code>a</code> instances without
+code modifications.</p>
+<ul>
+<li><strong>Examples</strong>: <code>m5a.large</code>,
+<code>c6a.2xlarge</code>, <code>r7a.xlarge</code></li>
+<li><strong>Architecture</strong>: 64-bit x86 (<code>x86_64</code>)</li>
+</ul>
+<h3 id="g--aws-graviton-processors"><code>g</code> – AWS Graviton
+Processors</h3>
+<p>The letter <code>g</code> denotes instances powered by custom-built
+AWS Graviton processors, which are designed by AWS and Annapurna Labs
+using 64-bit Arm Neoverse cores. Graviton instances are engineered for
+high price-performance and energy efficiency across cloud-native
+workloads, containerized microservices, and open-source databases.
+Migrating from an <code>i</code> or <code>a</code> instance to a
+<code>g</code> instance requires software and container images to be
+compiled for the <code>arm64</code> (<code>aarch64</code>)
+architecture.</p>
+<ul>
+<li><strong>Examples</strong>: <code>m6g.large</code>,
+<code>c7g.xlarge</code>, <code>t4g.micro</code>,
+<code>r8g.medium</code></li>
+<li><strong>Architecture</strong>: 64-bit Arm (<code>arm64</code>)</li>
+</ul>
+<h3 id="m--apple-silicon-processors-mac-instances"><code>m</code> –
+Apple Silicon Processors (Mac Instances)</h3>
+<p>Within the <code>mac</code> instance family, the <code>m</code>
+suffix combined with the generation number indicates Apple silicon
+M-series processors as opposed to Intel-based Mac hardware. For
+instance, <code>mac1.metal</code> utilizes Intel Core i7 processors,
+whereas <code>mac2.metal</code> and <code>mac2-m2pro.metal</code> run on
+Apple-designed M1 and M2 system-on-chip (SoC) architectures.</p>
+<ul>
+<li><strong>Examples</strong>: <code>mac2.metal</code>,
+<code>mac2-m2.metal</code>, <code>mac2-m2pro.metal</code></li>
+<li><strong>Architecture</strong>: 64-bit Arm (<code>arm64</code>
+macOS)</li>
+</ul>
+<h2 id="summary-comparison-of-cpu-suffixes">Summary Comparison of CPU
+Suffixes</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Suffix Letter</th>
+<th style="text-align: left;">CPU Manufacturer</th>
+<th style="text-align: left;">Processor Line</th>
+<th style="text-align: left;">Instruction Set Architecture</th>
+<th style="text-align: left;">Example Instance Types</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong><code>i</code></strong> (or
+none)</td>
+<td style="text-align: left;">Intel</td>
+<td style="text-align: left;">Intel Xeon Scalable</td>
+<td style="text-align: left;"><code>x86_64</code></td>
+<td style="text-align: left;"><code>m6i.xlarge</code>,
+<code>c7i.large</code>, <code>m5.large</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>a</code></strong></td>
+<td style="text-align: left;">AMD</td>
+<td style="text-align: left;">AMD EPYC</td>
+<td style="text-align: left;"><code>x86_64</code></td>
+<td style="text-align: left;"><code>m6a.xlarge</code>,
+<code>c7a.large</code>, <code>t3a.micro</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>g</code></strong></td>
+<td style="text-align: left;">AWS</td>
+<td style="text-align: left;">AWS Graviton</td>
+<td style="text-align: left;"><code>arm64</code>
+(<code>aarch64</code>)</td>
+<td style="text-align: left;"><code>m7g.xlarge</code>,
+<code>c6g.large</code>, <code>t4g.small</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><code>m</code></strong> (in Mac
+family)</td>
+<td style="text-align: left;">Apple</td>
+<td style="text-align: left;">Apple Silicon (M-series)</td>
+<td style="text-align: left;"><code>arm64</code></td>
+<td style="text-align: left;"><code>mac2-m2.metal</code>,
+<code>mac2-m1ultra.metal</code></td>
+</tr>
+</tbody>
+</table>
+<h2
+id="distinguishing-cpu-suffixes-from-capability-suffixes">Distinguishing
+CPU Suffixes from Capability Suffixes</h2>
+<p>Not every letter following the generation number refers to a CPU
+manufacturer. AWS frequently chains multiple suffix letters together,
+placing the CPU manufacturer letter first and capability modifiers
+immediately after it. Knowing the non-CPU capability letters prevents
+confusion when reading complex instance names:</p>
+<ul>
+<li><strong><code>d</code> (Instance Store Volumes)</strong>: Indicates
+that local NVMe-based SSD block storage is physically attached to the
+host server (for example, <code>m6id.large</code> is an Intel instance
+with local NVMe storage, and <code>c6gd.xlarge</code> is a Graviton
+instance with local NVMe storage).</li>
+<li><strong><code>n</code> (Network and EBS Optimization)</strong>:
+Signifies enhanced networking throughput and higher Amazon EBS bandwidth
+(for example, <code>c6in.xlarge</code> runs on an Intel CPU with up to
+200 Gbps network performance).</li>
+<li><strong><code>e</code> (Extra Capacity)</strong>: Represents extra
+memory or storage capacity within a family (for example,
+<code>r6ie.xlarge</code> or <code>i4g.large</code>).</li>
+<li><strong><code>z</code> (High Frequency)</strong>: Denotes processors
+running at sustained high all-core turbo clock frequencies (for example,
+<code>c7i-flex.large</code> vs <code>z1d.large</code> or
+<code>m5zn.large</code>).</li>
+<li><strong><code>b</code> (Block Storage Optimized)</strong>: Indicates
+instances specifically tuned for high Amazon EBS performance (for
+example, <code>r5b.xlarge</code>).</li>
+<li><strong><code>flex</code> (Flexible Compute)</strong>: Appended with
+a hyphen (such as <code>c7i-flex.large</code> or
+<code>m7i-flex.xlarge</code>) to indicate instances designed to deliver
+baseline performance with the ability to scale up to full compute
+utilization for the majority of workloads.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-ec-2-suffix-letters-indicate-the-cpu-manufacturer';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

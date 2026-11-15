@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Should EC2 Web Tiers Use Compute Optimized Instances? - ec2</title>
+    <meta name="description" content="Choosing between Compute Optimized and General Purpose instances in Amazon EC2 for a high-traffic web tier depends primarily on the ratio of CPU consumption to memory utilization under peak load. While General Purpose instances offer a balanced allocation">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-should-ec-2-web-tiers-use-compute-optimized-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When Should EC2 Web Tiers Use Compute Optimized Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-should-ec-2-web-tiers-use-compute-optimized-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Choosing between Compute Optimized and General Purpose instances in Amazon EC2 for a high-traffic web tier depends primarily on the ratio of CPU consumption to memory utilization under peak load. While General Purpose instances offer a balanced allocation" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="when-should-ec2-web-tiers-use-compute-optimized-instances">When
+Should EC2 Web Tiers Use Compute Optimized Instances?</h1>
+<p>Choosing between Compute Optimized and General Purpose instances in
+Amazon EC2 for a high-traffic web tier depends primarily on the ratio of
+CPU consumption to memory utilization under peak load. While General
+Purpose instances offer a balanced allocation of compute, memory, and
+networking resources suitable for standard web applications, Compute
+Optimized instances are engineered for workloads that require high
+processing power per gigabyte of RAM. A high-traffic web tier should
+transition to Compute Optimized instances when CPU utilization
+consistently becomes the primary scaling bottleneck while a significant
+portion of system memory remains unused, allowing organizations to
+maximize request throughput and reduce infrastructure costs per
+vCPU.</p>
+<h2 id="resource-ratios-and-architectural-differences">Resource Ratios
+and Architectural Differences</h2>
+<p>The fundamental technical distinction between Amazon EC2 General
+Purpose (such as the M7g, M7i, and M6i series) and Compute Optimized
+(such as the C7g, C7i, and C6i series) families lies in their
+memory-to-vCPU ratio:</p>
+<p><span class="math display">\[R = \frac{\text{Memory
+(GiB)}}{\text{vCPU Count}}\]</span></p>
+<p>For General Purpose instances, this ratio is fixed at <span
+class="math inline">\(R = 4\text{ GiB/vCPU}\)</span>. For Compute
+Optimized instances, the ratio is halved to <span
+class="math inline">\(R = 2\text{ GiB/vCPU}\)</span>. In addition to
+providing less memory per vCPU, Compute Optimized instances often
+feature higher sustained all-core turbo clock speeds and are priced
+lower per vCPU-hour than their General Purpose counterparts of the same
+generation and processor architecture.</p>
+<p>When evaluating efficiency, architects look at the cost per request
+served:</p>
+<p><span class="math display">\[\text{Cost per Request} =
+\frac{\text{Instance Hourly Cost}}{\text{Throughput (Requests/Second)}
+\times 3600}\]</span></p>
+<p>If a web tier does not require <span class="math inline">\(4\text{
+GiB}\)</span> of RAM per vCPU, running on General Purpose instances
+means paying for unallocated memory capacity. Shifting to a Compute
+Optimized instance of the same vCPU count provides equivalent or
+superior CPU processing capability at a lower hourly rate.</p>
+<h2 id="key-scenarios-for-choosing-compute-optimized-instances">Key
+Scenarios for Choosing Compute Optimized Instances</h2>
+<p>A high-traffic web tier benefits from Compute Optimized instances
+when the nature of incoming requests places heavy demands on the
+processor without retaining large datasets in local memory.</p>
+<h3 id="heavy-cryptographic-and-tls-termination-overhead">Heavy
+Cryptographic and TLS Termination Overhead</h3>
+<p>When a web tier handles tens of thousands of new HTTPS connections
+per second and performs TLS/SSL termination directly on the EC2
+instances rather than offloading entirely to an AWS Application Load
+Balancer (ALB) or Amazon CloudFront, asymmetric cryptographic handshakes
+(RSA or ECDHE) consume substantial CPU cycles. Similarly, web tiers that
+perform payload-level encryption, JWT signature verification (such as
+RS256 or ES256), or mutual TLS (mTLS) authentication on every request
+are heavily compute-bound.</p>
+<h3 id="dynamic-content-compression-and-serialization">Dynamic Content
+Compression and Serialization</h3>
+<p>High-traffic API gateways and web servers that dynamically compress
+responses using algorithms like Brotli or high-level Gzip experience
+sharp increases in CPU usage proportional to traffic volume.
+Furthermore, applications that serialize and deserialize large, complex
+JSON, XML, or Protocol Buffer payloads on every request spend most of
+their execution time in CPU-bound parsing routines rather than memory
+allocation.</p>
+<h3 id="server-side-rendering-ssr-and-template-compilation">Server-Side
+Rendering (SSR) and Template Compilation</h3>
+<p>Modern frontend architectures utilizing Server-Side Rendering (such
+as Next.js, Nuxt, or Angular Universal) execute JavaScript or compile
+templates on the server for each incoming page request. Because
+executing component trees and generating HTML strings is heavily
+processor-dependent and typically short-lived in memory, SSR fleets
+under high concurrency scale much more efficiently on C-family
+instances.</p>
+<h3 id="stateless-microservices-and-reverse-proxies">Stateless
+Microservices and Reverse Proxies</h3>
+<p>Reverse proxies (such as NGINX, HAProxy, or Envoy) and stateless
+routing tiers that inspect headers, evaluate complex regular expressions
+for Web Application Firewall (WAF) rules or URL rewriting, and forward
+traffic maintain minimal state in memory. Their memory footprint remains
+nearly flat even as request concurrency spikes, making them ideal
+candidates for a <span class="math inline">\(2\text{ GiB/vCPU}\)</span>
+profile.</p>
+<h2
+id="quantitative-indicators-for-transitioning-to-c-family-instances">Quantitative
+Indicators for Transitioning to C-Family Instances</h2>
+<p>Before migrating a web tier from M-family to C-family instances,
+examine your Amazon CloudWatch metrics and CloudWatch Agent memory
+telemetry during peak traffic periods. Compute Optimized instances are
+the right choice when your fleet exhibits the following metrics:</p>
+<ul>
+<li><strong>High CPU to Memory Utilization Ratio:</strong> Average CPU
+utilization exceeds <span class="math inline">\(60\%\)</span> to <span
+class="math inline">\(70\%\)</span> (triggering Auto Scaling policies),
+while <code>mem_used_percent</code> consistently stays below <span
+class="math inline">\(40\%\)</span> on General Purpose instances.</li>
+<li><strong>Sub-2 GiB Active Footprint per vCPU:</strong> The working
+set of your web server processes, runtime environment, and operating
+system overhead satisfies the inequality:</li>
+</ul>
+<p><span class="math display">\[\frac{\text{Peak Active Memory
+(GiB)}}{\text{Active vCPUs}} &lt; 1.5\text{ GiB/vCPU}\]</span></p>
+<p>Maintaining a threshold below <span class="math inline">\(1.5\text{
+GiB/vCPU}\)</span> ensures a safe buffer against Out-Of-Memory (OOM)
+errors when transitioning to a <span class="math inline">\(2\text{
+GiB/vCPU}\)</span> instance.</p>
+<ul>
+<li><strong>Zero Swap Activity:</strong> The
+<code>swap_used_percent</code> metric remains at <span
+class="math inline">\(0\%\)</span>, confirming that the application is
+not relying on disk paging to handle traffic spikes.</li>
+</ul>
+<h2 id="when-to-remain-on-general-purpose-instances">When to Remain on
+General Purpose Instances</h2>
+<p>Despite the cost-per-vCPU advantages of Compute Optimized instances,
+a high-traffic web tier should remain on General Purpose (M-family)
+instances under the following conditions:</p>
+<ul>
+<li><strong>Large In-Memory Local Caches:</strong> If each web server
+maintains a large local in-memory cache (such as APCu, Guava Cache, or
+local Redis sidecars) to reduce latency and offload downstream
+databases, reducing RAM by <span class="math inline">\(50\%\)</span> can
+lower cache hit ratios and degrade overall system performance.</li>
+<li><strong>Memory-Heavy Application Runtimes:</strong> Monolithic
+enterprise applications running on runtimes with large heap requirements
+(such as large JVM deployments or memory-intensive Ruby/Python worker
+pools where each worker process consumes hundreds of megabytes of
+unshared RAM) can exhaust <span class="math inline">\(2\text{
+GiB}\)</span> per vCPU before saturating the processor.</li>
+<li><strong>Stateful Session Storage:</strong> Web tiers that store user
+session state directly in instance memory rather than externalizing
+state to Amazon ElastiCache or Amazon DynamoDB require the higher memory
+ceiling of General Purpose instances to support high numbers of
+concurrent users.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-should-ec-2-web-tiers-use-compute-optimized-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

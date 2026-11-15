@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do EC2 Dedicated Hosts and Dedicated Instances Differ? - ec2</title>
+    <meta name="description" content="Amazon EC2 Dedicated Hosts and Amazon EC2 Dedicated Instances both isolate your virtual machines on physical hardware dedicated to a single AWS account, eliminating shared physical infrastructure with other cloud customers. The primary distinction lies in">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-ec-2-dedicated-hosts-and-dedicated-instances-differ">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do EC2 Dedicated Hosts and Dedicated Instances Differ? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-ec-2-dedicated-hosts-and-dedicated-instances-differ" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Dedicated Hosts and Amazon EC2 Dedicated Instances both isolate your virtual machines on physical hardware dedicated to a single AWS account, eliminating shared physical infrastructure with other cloud customers. The primary distinction lies in" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-ec2-dedicated-hosts-and-dedicated-instances-differ">How
+Do EC2 Dedicated Hosts and Dedicated Instances Differ?</h1>
+<p>Amazon EC2 Dedicated Hosts and Amazon EC2 Dedicated Instances both
+isolate your virtual machines on physical hardware dedicated to a single
+AWS account, eliminating shared physical infrastructure with other cloud
+customers. The primary distinction lies in hardware visibility,
+placement control, and software licensing capabilities. Dedicated Hosts
+provide direct visibility into physical processor sockets and cores,
+enabling bring-your-own-license software compliance and deterministic
+instance placement, whereas Dedicated Instances provide hardware
+isolation at the instance level without exposing underlying physical
+server attributes or guaranteeing host affinity across reboots.</p>
+<h2 id="what-is-an-amazon-ec2-dedicated-instance">What Is an Amazon EC2
+Dedicated Instance?</h2>
+<p>An Amazon EC2 Dedicated Instance is a virtual server that runs on
+Virtual Private Cloud (VPC) hardware dedicated exclusively to a single
+customer. While your Dedicated Instances are physically isolated at the
+host hardware level from instances belonging to other AWS accounts, they
+may share the same underlying physical server with other instances in
+your own account—even if those other instances are not configured as
+Dedicated Instances.</p>
+<p>With Dedicated Instances, AWS completely manages the underlying
+physical infrastructure and placement logic. You do not see which
+physical server hosts a given instance, nor can you query the number of
+physical CPU sockets or cores on the host machine. Furthermore, if you
+stop and restart a Dedicated Instance, AWS may launch it on a different
+physical server within the same Availability Zone.</p>
+<h3 id="key-characteristics-of-dedicated-instances">Key Characteristics
+of Dedicated Instances</h3>
+<ul>
+<li><strong>Hardware Isolation:</strong> Guarantees that no other AWS
+customer shares the physical server hosting your instance.</li>
+<li><strong>No Hardware Visibility:</strong> Physical sockets, physical
+cores, and host identifiers remain abstracted by the hypervisor.</li>
+<li><strong>Dynamic Placement:</strong> Stopping and starting an
+instance can migrate it to a new physical server.</li>
+<li><strong>Billing Model:</strong> You pay an hourly per-instance usage
+fee plus a flat hourly per-region fee (once per region where at least
+one Dedicated Instance is running), regardless of how many Dedicated
+Instances you launch in that region.</li>
+</ul>
+<h2 id="what-is-an-amazon-ec2-dedicated-host">What Is an Amazon EC2
+Dedicated Host?</h2>
+<p>An Amazon EC2 Dedicated Host is a complete physical server with EC2
+instance capacity fully dedicated to your use. Unlike Dedicated
+Instances, a Dedicated Host grants you full visibility and control over
+how instances are placed on that specific physical machine. You allocate
+the entire host in your account first, and then launch EC2 instances
+directly onto it.</p>
+<p>Because you control the specific physical host, you can inspect its
+hardware specifications, including the exact number of physical sockets
+and physical cores. You also retain host affinity: instances stopped and
+restarted on a Dedicated Host stay on that exact same physical server
+unless you explicitly move them.</p>
+<h3 id="key-characteristics-of-dedicated-hosts">Key Characteristics of
+Dedicated Hosts</h3>
+<ul>
+<li><strong>Full Hardware Visibility:</strong> Exposes physical sockets,
+physical cores, and the unique Host ID for auditing and compliance.</li>
+<li><strong>Consistent Host Affinity:</strong> Instances remain tied to
+the same physical server across stop and start cycles.</li>
+<li><strong>Targeted Placement:</strong> Allows you to place instances
+on specific hosts or let AWS distribute them automatically across a Host
+Resource Group.</li>
+<li><strong>Billing Model:</strong> You pay a flat hourly rate for the
+entire physical host based on its instance family or size configuration,
+regardless of how many virtual instances you actively run on it (up to
+the physical capacity of the server).</li>
+</ul>
+<h2 id="feature-comparison-matrix">Feature Comparison Matrix</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">EC2 Dedicated Host</th>
+<th style="text-align: left;">EC2 Dedicated Instance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Physical Hardware
+Isolation</strong></td>
+<td style="text-align: left;">Yes (single-tenant server)</td>
+<td style="text-align: left;">Yes (single-tenant server)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Billing Unit</strong></td>
+<td style="text-align: left;">Per physical host</td>
+<td style="text-align: left;">Per instance + per-region hourly fee</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Visibility of Sockets and
+Cores</strong></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Placement
+Control</strong></td>
+<td style="text-align: left;">High (target specific Host ID)</td>
+<td style="text-align: left;">None (managed by AWS)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Host Affinity Across
+Stop/Start</strong></td>
+<td style="text-align: left;">Guaranteed on the same physical
+server</td>
+<td style="text-align: left;">Not guaranteed (may change physical
+host)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>BYOL for Core/Socket Bound
+Licenses</strong></td>
+<td style="text-align: left;">Supported</td>
+<td style="text-align: left;">Not supported</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Automatic Host
+Recovery</strong></td>
+<td style="text-align: left;">Supported</td>
+<td style="text-align: left;">Supported (automatic replacement)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Nitro System Enclaves
+Support</strong></td>
+<td style="text-align: left;">Supported on compatible families</td>
+<td style="text-align: left;">Supported on compatible families</td>
+</tr>
+</tbody>
+</table>
+<h2 id="software-licensing-and-byol-considerations">Software Licensing
+and BYOL Considerations</h2>
+<p>The most critical operational driver for choosing an EC2 Dedicated
+Host over a Dedicated Instance is software licensing—specifically Bring
+Your Own License (BYOL) agreements for enterprise vendors such as
+Microsoft SQL Server, Windows Server, Oracle Database, and Red Hat
+Enterprise Linux.</p>
+<p>Many legacy enterprise software licenses are bound to physical
+hardware metrics:</p>
+<ol type="1">
+<li><strong>Physical Core or Socket Licensing:</strong> Licenses require
+tracking the exact number of physical CPU sockets (<span
+class="math inline">\(S\)</span>) and physical cores (<span
+class="math inline">\(C_{\text{phys}}\)</span>) on the server where the
+workload executes.</li>
+<li><strong>Hardware Mobility Restrictions:</strong> Vendor license
+terms often prohibit reassigning a license to a different physical
+server more than once every <span class="math inline">\(90\)</span>
+days.</li>
+</ol>
+<p>Dedicated Instances fail both requirements because they hide <span
+class="math inline">\(S\)</span> and <span
+class="math inline">\(C_{\text{phys}}\)</span> and may move to a new
+physical server every time the instance stops and starts. Dedicated
+Hosts satisfy both requirements by exposing the physical hardware
+topology via AWS Config and preserving exact server affinity across
+instance lifecycle events.</p>
+<h2 id="cost-modeling-and-capacity-planning">Cost Modeling and Capacity
+Planning</h2>
+<p>Understanding how costs scale helps determine which option is more
+economical for your workload size.</p>
+<h3 id="dedicated-instance-cost-formula">Dedicated Instance Cost
+Formula</h3>
+<p>For <span class="math inline">\(N\)</span> running Dedicated
+Instances of the same type in a single region, the total hourly cost
+<span class="math inline">\(C_{\text{DI}}\)</span> is:</p>
+<p><span class="math display">\[C_{\text{DI}} = R_{\text{region}} +
+\sum_{i=1}^{N} P_{\text{instance}, i}\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(R_{\text{region}}\)</span> is the fixed
+hourly per-region Dedicated fee (typically <span
+class="math inline">\(\$2.00\)</span> per hour when at least one
+Dedicated Instance is active).</li>
+<li><span class="math inline">\(P_{\text{instance}, i}\)</span> is the
+hourly rate for Dedicated Instance <span
+class="math inline">\(i\)</span>.</li>
+</ul>
+<h3 id="dedicated-host-cost-formula">Dedicated Host Cost Formula</h3>
+<p>For <span class="math inline">\(H\)</span> allocated Dedicated Hosts
+in a region, each capable of running up to <span
+class="math inline">\(K\)</span> instances of a given size, the total
+hourly cost <span class="math inline">\(C_{\text{DH}}\)</span> is:</p>
+<p><span class="math display">\[C_{\text{DH}} = \sum_{j=1}^{H}
+P_{\text{host}, j}\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(P_{\text{host}, j}\)</span> is the
+hourly rate for physical host <span class="math inline">\(j\)</span>,
+independent of whether you run <span class="math inline">\(1\)</span>
+instance or <span class="math inline">\(K\)</span> instances on it.</li>
+</ul>
+<h3 id="utilization-efficiency">Utilization Efficiency</h3>
+<p>For a Dedicated Host with maximum capacity <span
+class="math inline">\(K\)</span> vCPUs and active allocated instance
+vCPUs <span class="math inline">\(V_{\text{used}}\)</span>, the host
+utilization ratio <span class="math inline">\(U\)</span> is:</p>
+<p><span class="math display">\[U =
+\frac{V_{\text{used}}}{K}\]</span></p>
+<p>When <span class="math inline">\(U \to 1\)</span> (near <span
+class="math inline">\(100\%\)</span> capacity utilization) and you are
+leveraging existing server-bound software licenses (avoiding
+license-included instance surcharges), Dedicated Hosts are substantially
+more cost-effective than Dedicated Instances. Conversely, if you only
+need to isolate a single small or medium virtual machine (<span
+class="math inline">\(U \ll 1\)</span>) and do not require BYOL
+tracking, a Dedicated Instance avoids paying for an entire underutilized
+physical server.</p>
+<h2 id="operational-management-and-automation">Operational Management
+and Automation</h2>
+<p>Managing Dedicated Hosts used to require manual tracking of host
+capacities, which introduced operational overhead compared to the
+fire-and-forget experience of Dedicated Instances. Today, AWS simplifies
+Dedicated Host operations through integration with two primary
+services:</p>
+<ul>
+<li><strong>AWS License Manager:</strong> Tracks physical socket and
+core usage rules, prevents launching instances that violate licensing
+thresholds, and automates host allocation and deallocation.</li>
+<li><strong>AWS Resource Access Manager (RAM):</strong> Allows sharing
+Dedicated Hosts across multiple AWS accounts within an AWS Organization,
+making it easier to drive utilization <span
+class="math inline">\(U\)</span> closer to <span
+class="math inline">\(1\)</span> across business units.</li>
+</ul>
+<h2 id="when-to-choose-each-option">When to Choose Each Option</h2>
+<h3 id="choose-ec2-dedicated-hosts-when">Choose EC2 Dedicated Hosts
+When:</h3>
+<ul>
+<li>You need to bring existing per-socket or per-physical-core software
+licenses (such as Windows Server, SQL Server, or Oracle) to AWS.</li>
+<li>Your regulatory or corporate compliance standards require auditing
+physical server serial numbers, Host IDs, and instance-to-host mappings
+via AWS Config.</li>
+<li>You must guarantee that an instance remains on the exact same
+physical hardware across stop and start operations to comply with <span
+class="math inline">\(90\)</span>-day license reassignment rules.</li>
+<li>You can maintain high host packing utilization across predictable
+workloads.</li>
+</ul>
+<h3 id="choose-ec2-dedicated-instances-when">Choose EC2 Dedicated
+Instances When:</h3>
+<ul>
+<li>You require single-tenant physical hardware isolation to satisfy a
+security policy or customer contract, but you do not need visibility
+into physical sockets or cores.</li>
+<li>You are using license-included AMIs or open-source software without
+physical hardware licensing constraints.</li>
+<li>Your workload scales elastically with variable instance sizes and
+counts, and you want AWS to handle physical server placement
+automatically without paying for idle physical host capacity.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-ec-2-dedicated-hosts-and-dedicated-instances-differ';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

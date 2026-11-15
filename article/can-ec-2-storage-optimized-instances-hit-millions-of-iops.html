@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can EC2 Storage Optimized Instances Hit Millions of IOPS? - ec2</title>
+    <meta name="description" content="Amazon EC2 Storage Optimized instances can sustain millions of random read IOPS without network storage bottlenecks by utilizing locally attached NVMe SSD instance store volumes instead of network-attached storage like Amazon EBS. Because these drives are">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-ec-2-storage-optimized-instances-hit-millions-of-iops">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can EC2 Storage Optimized Instances Hit Millions of IOPS? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-ec-2-storage-optimized-instances-hit-millions-of-iops" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Storage Optimized instances can sustain millions of random read IOPS without network storage bottlenecks by utilizing locally attached NVMe SSD instance store volumes instead of network-attached storage like Amazon EBS. Because these drives are" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="can-ec2-storage-optimized-instances-hit-millions-of-iops">Can
+EC2 Storage Optimized Instances Hit Millions of IOPS?</h1>
+<p>Amazon EC2 Storage Optimized instances can sustain millions of random
+read IOPS without network storage bottlenecks by utilizing locally
+attached NVMe SSD instance store volumes instead of network-attached
+storage like Amazon EBS. Because these drives are physically connected
+to the host server through the local PCIe bus, input and output
+operations bypass the network interface completely, eliminating network
+bandwidth ceilings and packet processing overhead. Modern instance
+families such as I4i, I4g, and I7ie leverage AWS Nitro SSDs and the AWS
+Nitro System to deliver up to 3.3 million or more random read IOPS at
+sub-millisecond latencies. This architecture makes them ideal for
+high-throughput, low-latency workloads such as NoSQL databases,
+real-time analytics, and distributed file systems that would otherwise
+saturate standard cloud network storage pipelines.</p>
+<h2 id="local-nvme-instance-store-vs-amazon-ebs-architecture">Local NVMe
+Instance Store vs. Amazon EBS Architecture</h2>
+<p>To understand how Storage Optimized instances bypass network
+bottlenecks, it is essential to distinguish between Amazon Elastic Block
+Store (EBS) and EC2 instance store volumes.</p>
+<p>Amazon EBS provides persistent, block-level storage that is attached
+to an EC2 instance over the AWS network fabric. Even on EBS-optimized
+instances with dedicated network bandwidth for storage traffic, every
+read and write operation must traverse the virtualized network stack,
+leave the host server, and reach the distributed EBS storage fleet.
+While modern EBS volumes like <code>io2</code> Block Express can achieve
+up to 256,000 IOPS per volume, scaling into the millions of IOPS over
+the network introduces two primary constraints:</p>
+<ol type="1">
+<li><strong>Per-Instance EBS Bandwidth and IOPS Caps:</strong> Every EC2
+instance has a hard ceiling on total EBS throughput and IOPS (for
+example, up to 260,000 to 400,000 EBS IOPS on the largest
+general-purpose or storage-optimized sizes).</li>
+<li><strong>Network Serialization Latency:</strong> Passing storage
+requests over a network fabric inherently adds serialization overhead,
+keeping round-trip latencies in the sub-millisecond to low-millisecond
+range (<span class="math inline">\(0.25\text{ ms}\)</span> to <span
+class="math inline">\(1\text{ ms}\)</span>).</li>
+</ol>
+<p>In contrast, Storage Optimized EC2 instances feature <strong>NVMe
+instance store volumes</strong>. These are solid-state drives physically
+installed inside the same bare-metal chassis as the compute processors.
+Data transfers occur directly over the PCIe (Peripheral Component
+Interconnect Express) bus. Because the traffic never touches the Elastic
+Network Adapter (ENA) or the EBS storage network, network storage
+bottlenecks are completely removed from the data path.</p>
+<h2 id="the-role-of-the-aws-nitro-system-and-nitro-ssds">The Role of the
+AWS Nitro System and Nitro SSDs</h2>
+<p>Achieving millions of random read IOPS requires more than just local
+physical drives; it requires eliminating hypervisor virtualization
+overhead. In legacy cloud architectures, the hypervisor intercepts
+storage I/O instructions from the guest operating system, translates
+them, and forwards them to the physical hardware. At millions of
+operations per second, this software translation layer becomes a severe
+CPU bottleneck.</p>
+<p>AWS solves this through two custom hardware innovations:</p>
+<ul>
+<li><strong>AWS Nitro System:</strong> The Nitro hypervisor offloads
+storage and networking virtualization to dedicated hardware cards (Nitro
+Cards). For local NVMe drives, the Nitro controller exposes the physical
+SSDs directly to the instance using SR-IOV (Single Root I/O
+Virtualization). The guest operating system interacts with the NVMe
+devices via bare-metal-equivalent PCIe pass-through, reducing CPU
+interrupt overhead and keeping I/O jitter near zero.</li>
+<li><strong>AWS Nitro SSDs:</strong> Introduced in fourth-generation and
+newer storage instances (such as I4i, I4g, and Im4gn), Nitro SSDs are
+custom-built by AWS. Because AWS controls both the SSD firmware and the
+Nitro hardware controller, tasks like garbage collection, wear leveling,
+and encryption (via always-on XTS-AES-256 hardware encryption) are
+coordinated to prevent the latency spikes typically seen in commercial
+off-the-shelf SSDs under heavy random read/write loads.</li>
+</ul>
+<h2 id="iops-capabilities-across-ec2-storage-optimized-families">IOPS
+Capabilities Across EC2 Storage Optimized Families</h2>
+<p>Different EC2 Storage Optimized instance families are engineered for
+specific ratios of compute, memory, and local NVMe performance. When
+benchmarking random read IOPS using <span class="math inline">\(4\text{
+KiB}\)</span> block sizes, top-tier instances easily cross the
+multi-million IOPS threshold:</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Family</th>
+<th style="text-align: left;">Processor Architecture</th>
+<th style="text-align: left;">Max Local NVMe Storage</th>
+<th style="text-align: left;">Max Random Read IOPS (<span
+class="math inline">\(4\text{ KiB}\)</span>)</th>
+<th style="text-align: left;">Primary Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>I3 / I3en</strong></td>
+<td style="text-align: left;">Intel Xeon (Broadwell / Skylake / Cascade
+Lake)</td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(15.2\text{ TB}\)</span> (I3) / <span
+class="math inline">\(60\text{ TB}\)</span> (I3en)</td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(3.3\text{ Million}\)</span> (I3) / <span
+class="math inline">\(2.0\text{ Million}\)</span> (I3en)</td>
+<td style="text-align: left;">High-IOPS NoSQL (I3) and dense data
+warehousing (I3en)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>I4i</strong></td>
+<td style="text-align: left;">Intel Xeon Scalable (Ice Lake)</td>
+<td style="text-align: left;">Up to <span class="math inline">\(30\text{
+TB}\)</span> AWS Nitro SSD</td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(3.5\text{ Million+}\)</span></td>
+<td style="text-align: left;">Low-latency transactional databases,
+real-time analytics</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>I4g / Im4gn</strong></td>
+<td style="text-align: left;">AWS Graviton2 (ARM64)</td>
+<td style="text-align: left;">Up to <span class="math inline">\(30\text{
+TB}\)</span> AWS Nitro SSD</td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(2.0\text{ Million+}\)</span></td>
+<td style="text-align: left;">Cost-optimized distributed databases,
+search engines</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>I7ie</strong></td>
+<td style="text-align: left;">5th Gen Intel Xeon Scalable (Emerald
+Rapids)</td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(120\text{ TB}\)</span> AWS Nitro SSD</td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(3.3\text{ Million+}\)</span></td>
+<td style="text-align: left;">High-density storage clusters requiring
+massive capacity and IOPS</td>
+</tr>
+</tbody>
+</table>
+<p>For example, an <code>i3.16xlarge</code> or <code>i3.metal</code>
+instance distributes its <span class="math inline">\(15.2\text{
+TB}\)</span> of capacity across eight distinct <span
+class="math inline">\(1.9\text{ TB}\)</span> NVMe SSDs. Similarly, an
+<code>i4i.32xlarge</code> or <code>i4i.metal</code> distributes <span
+class="math inline">\(30\text{ TB}\)</span> across eight <span
+class="math inline">\(3.75\text{ TB}\)</span> AWS Nitro SSDs. By
+striping reads across all eight PCIe-connected drives simultaneously,
+the instance aggregates the bandwidth and queue processing power of each
+independent NVMe controller.</p>
+<h2
+id="mathematical-relationship-between-latency-queue-depth-and-iops">Mathematical
+Relationship Between Latency, Queue Depth, and IOPS</h2>
+<p>Sustaining millions of random read IOPS on local NVMe storage is
+governed by Little's Law, which relates throughput (<span
+class="math inline">\(\text{IOPS}\)</span>), average latency (<span
+class="math inline">\(L\)</span>), and concurrency or Queue Depth (<span
+class="math inline">\(\text{QD}\)</span>):</p>
+<p><span class="math display">\[\text{IOPS} =
+\frac{\text{QD}}{L}\]</span></p>
+<p>If a single NVMe operation over the local PCIe bus takes an average
+latency of <span class="math inline">\(L = 100\text{
+}\mu\text{s}\)</span> (<span class="math inline">\(0.0001\text{
+seconds}\)</span>), a single thread issuing synchronous reads (<span
+class="math inline">\(\text{QD} = 1\)</span>) can only achieve:</p>
+<p><span class="math display">\[\text{IOPS} = \frac{1}{0.0001\text{ s}}
+= 10,000\text{ IOPS}\]</span></p>
+<p>To reach <span class="math inline">\(3,300,000\text{ IOPS}\)</span>
+at a sustained average latency of <span class="math inline">\(150\text{
+}\mu\text{s}\)</span> (<span class="math inline">\(0.00015\text{
+seconds}\)</span>), the storage subsystem must maintain an aggregate
+in-flight queue depth across all drives of:</p>
+<p><span class="math display">\[\text{QD} = \text{IOPS} \times L =
+3,300,000 \times 0.00015 = 495\]</span></p>
+<p>At a block size (<span class="math inline">\(B\)</span>) of <span
+class="math inline">\(4\text{ KiB}\)</span>, the total PCIe bus
+throughput (<span class="math inline">\(T\)</span>) required to sustain
+<span class="math inline">\(3.3\text{ million}\)</span> IOPS is:</p>
+<p><span class="math display">\[T = \text{IOPS} \times B = 3,300,000
+\times 4\text{ KiB} \approx 13.2\text{ GiB/s}\]</span></p>
+<p>Because a single PCIe Gen 4 x4 link provides nearly <span
+class="math inline">\(8\text{ GB/s}\)</span> of raw unidirectional
+bandwidth—and large Storage Optimized instances attach up to eight NVMe
+drives across dedicated PCIe lanes—the PCIe interconnect easily
+accommodates <span class="math inline">\(13.2\text{ GiB/s}\)</span>
+without saturation.</p>
+<h2 id="os-and-application-tuning-to-reach-multi-million-iops">OS and
+Application Tuning to Reach Multi-Million IOPS</h2>
+<p>While the underlying EC2 hardware eliminates network storage
+bottlenecks, the guest operating system and application stack can
+quickly become the new bottleneck if not configured for extreme
+concurrency. Processing <span class="math inline">\(3\text{
+million}\)</span> IOPS means handling <span
+class="math inline">\(3\text{ million}\)</span> completion events per
+second.</p>
+<h3 id="1-software-raid-0-striping">1. Software RAID 0 Striping</h3>
+<p>Large Storage Optimized instances present multiple discrete NVMe
+block devices (e.g., <code>/dev/nvme1n1</code> through
+<code>/dev/nvme8n1</code>). A single drive cannot deliver <span
+class="math inline">\(3.3\text{ million}\)</span> IOPS on its own. You
+must distribute the workload across all drives, either at the
+application layer (such as configuring multiple data directories in
+Apache Cassandra or ScyllaDB) or by uniting the drives into a RAID 0
+array using Linux <code>mdadm</code> with an appropriate chunk size
+(typically <span class="math inline">\(64\text{ KiB}\)</span> to <span
+class="math inline">\(256\text{ KiB}\)</span>).</p>
+<h3 id="2-using-io_uring-or-libaio">2. Using <code>io_uring</code> or
+<code>libaio</code></h3>
+<p>Standard synchronous POSIX read calls (<code>read()</code> or
+<code>pread()</code>) incur context-switch penalties between user space
+and kernel space on every operation. To saturate multiple NVMe queues
+without exhausting CPU cores on system calls, applications must use
+asynchronous I/O interfaces:</p>
+<ul>
+<li><strong><code>io_uring</code>:</strong> The modern Linux
+asynchronous I/O framework that uses shared ring buffers between user
+space and kernel space, supporting polling modes
+(<code>IORING_SETUP_IOPOLL</code>) that eliminate hardware interrupt
+overhead entirely.</li>
+<li><strong><code>libaio</code>:</strong> The traditional Linux native
+asynchronous I/O library, using <code>O_DIRECT</code> to bypass the OS
+page cache and send requests directly to the NVMe submission
+queues.</li>
+</ul>
+<h3 id="3-interrupt-affinity-and-nvme-multi-queue-blk-mq">3. Interrupt
+Affinity and NVMe Multi-Queue (<code>blk-mq</code>)</h3>
+<p>The NVMe specification supports up to 64,000 queues with 64,000
+commands per queue. In Linux, the multi-queue block layer
+(<code>blk-mq</code>) maps individual NVMe submission and completion
+queues directly to specific vCPUs. Ensuring that the
+<code>irqbalance</code> daemon is properly distributing interrupts—or
+manually pinning application worker threads to the exact vCPUs coupled
+with the NVMe hardware queues—prevents cross-socket NUMA (Non-Uniform
+Memory Access) penalties.</p>
+<h3 id="4-disabling-file-system-overhead">4. Disabling File System
+Overhead</h3>
+<p>When testing or running custom database engines that manage their own
+block allocation, bypassing the file system (or using XFS with
+<code>noatime</code> and <code>nodiratime</code> mount options) prevents
+metadata locking from throttling high-concurrency random reads.</p>
+<h2
+id="architectural-trade-offs-ephemeral-storage-durability">Architectural
+Trade-Offs: Ephemeral Storage Durability</h2>
+<p>The primary trade-off when using EC2 instance store volumes to
+achieve millions of IOPS is <strong>data persistence</strong>. Unlike
+Amazon EBS, whose volumes persist independently of the compute instance
+lifecycle, local NVMe instance store volumes are ephemeral.</p>
+<p>Data on an instance store volume survives if the guest operating
+system reboots (via <code>sudo reboot</code> or the
+<code>RebootInstances</code> API). However, the data is permanently lost
+if:</p>
+<ul>
+<li>The instance is stopped or hibernated
+(<code>StopInstances</code>).</li>
+<li>The instance is terminated (<code>TerminateInstances</code>).</li>
+<li>The underlying physical host experiences a catastrophic hardware
+failure or drive failure.</li>
+</ul>
+<p>Consequently, workloads running on Storage Optimized instances do not
+rely on AWS to replicate block data at the storage layer. Instead,
+durability is handled at the <strong>application layer</strong> using
+shared-nothing distributed architectures. Databases like Aerospike,
+ScyllaDB, Apache Cassandra, OpenSearch, and ClickHouse replicate data
+asynchronously or synchronously across multiple EC2 instances situated
+in different Availability Zones. Notice that while local random
+<strong>reads</strong> never touch the network, replicating
+<strong>writes</strong> between cluster nodes will utilize the
+instance's Elastic Network Adapter (ENA)—which on large I4i and I7ie
+instances supports up to <span class="math inline">\(75\text{
+Gbps}\)</span> or <span class="math inline">\(100\text{ Gbps}\)</span>
+of network bandwidth to prevent inter-node replication bottlenecks.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-ec-2-storage-optimized-instances-hit-millions-of-iops';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

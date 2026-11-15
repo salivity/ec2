@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do EC2 Instances Communicate with AWS Nitro Enclaves? - ec2</title>
+    <meta name="description" content="An Amazon EC2 parent instance communicates with its isolated AWS Nitro Enclave using a local virtual socket interface known as vsock. Because Nitro Enclaves are hardened virtual machines without persistent storage, external network interfaces, or interact">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-ec-2-instances-communicate-with-aws-nitro-enclaves">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do EC2 Instances Communicate with AWS Nitro Enclaves? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-ec-2-instances-communicate-with-aws-nitro-enclaves" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon EC2 parent instance communicates with its isolated AWS Nitro Enclave using a local virtual socket interface known as vsock. Because Nitro Enclaves are hardened virtual machines without persistent storage, external network interfaces, or interact" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-ec2-instances-communicate-with-aws-nitro-enclaves">How Do
+EC2 Instances Communicate with AWS Nitro Enclaves?</h1>
+<p>An Amazon EC2 parent instance communicates with its isolated AWS
+Nitro Enclave using a local virtual socket interface known as vsock.
+Because Nitro Enclaves are hardened virtual machines without persistent
+storage, external network interfaces, or interactive administrator
+access, the vsock channel serves as the sole data pathway between the
+parent instance and the enclave environment. By addressing endpoints
+using Context Identifiers and port numbers instead of standard IP
+addresses, applications on the parent EC2 instance can securely exchange
+cryptographic payloads, KMS requests, and application state with enclave
+processes.</p>
+<h2 id="understanding-the-aws-nitro-enclaves-architecture">Understanding
+the AWS Nitro Enclaves Architecture</h2>
+<p>AWS Nitro Enclaves allow customers to carve out dedicated CPU cores
+and memory from an existing Amazon EC2 parent instance to create an
+isolated compute environment. The enclave runs an independent kernel and
+operates without any traditional network stack, meaning it has no
+Ethernet interface, no IP address, no routing tables, and no direct
+access to the internet or Amazon Virtual Private Cloud (VPC).</p>
+<p>To bridge the communication gap between the parent instance and the
+isolated enclave, the AWS Nitro Hypervisor exposes a virtual socket
+(<code>AF_VSOCK</code>) device. This point-to-point communication
+channel bypasses the traditional TCP/IP stack while retaining standard
+POSIX socket semantics (<code>socket</code>, <code>bind</code>,
+<code>listen</code>, <code>accept</code>, <code>connect</code>,
+<code>send</code>, and <code>recv</code>).</p>
+<h2 id="how-vsock-addressing-works">How Vsock Addressing Works</h2>
+<p>Instead of IPv4 or IPv6 addresses, the <code>AF_VSOCK</code> address
+family identifies endpoints using a tuple consisting of a 32-bit Context
+Identifier (CID) and a 32-bit port number:</p>
+<p><span class="math display">\[\text{Address} = (\text{CID},
+\text{Port})\]</span></p>
+<p>In an AWS Nitro Enclaves environment, specific CIDs are reserved or
+assigned dynamically:</p>
+<ul>
+<li><strong>Parent EC2 Instance CID (<code>3</code>):</strong> The
+parent instance is always assigned a static CID of <code>3</code>
+(<code>VMADDR_CID_HOST</code> is <code>2</code>, while the parent EC2
+instance in Nitro is consistently <code>3</code>).</li>
+<li><strong>Enclave CID (Dynamic or User-Defined):</strong> When
+starting an enclave with the <code>nitro-cli run-enclave</code> command,
+the administrator can specify a unique CID (for example,
+<code>16</code>) using the <code>--enclave-cid</code> flag, or allow the
+Nitro CLI to assign one automatically.</li>
+<li><strong>Loopback CID (<code>1</code>):</strong> Represents local
+loopback communication (<code>VMADDR_CID_LOCAL</code>).</li>
+<li><strong>Wildcard CID (<code>4294967295</code> or
+<code>0xFFFFFFFF</code>):</strong> Known as <code>VMADDR_CID_ANY</code>,
+allowing a listening socket to bind and accept incoming connections
+regardless of the local CID assignment.</li>
+</ul>
+<h2 id="implementing-direct-vsock-communication-in-python">Implementing
+Direct Vsock Communication in Python</h2>
+<p>Standard Linux programming languages with socket support—including C,
+Rust, Go, and Python (version 3.7 and later)—support
+<code>socket.AF_VSOCK</code> natively. Either the parent instance or the
+enclave can act as the server or client. A common pattern is to run a
+listening server inside the enclave on a specific port and connect to it
+from the parent EC2 instance.</p>
+<h3 id="enclave-server-implementation">Enclave Server
+Implementation</h3>
+<p>Inside the enclave, the application binds to
+<code>VMADDR_CID_ANY</code> and listens on a chosen port (such as port
+<code>5000</code>):</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> socket</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>PORT <span class="op">=</span> <span class="dv">5000</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_enclave_server():</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM) <span class="im">as</span> server_socket:</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Bind to any CID on the specified port</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        server_socket.bind((socket.VMADDR_CID_ANY, PORT))</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        server_socket.listen(<span class="dv">1</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&quot;Enclave listening on vsock port </span><span class="sc">{</span>PORT<span class="sc">}</span><span class="ss">...&quot;</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="va">True</span>:</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>            conn, (remote_cid, remote_port) <span class="op">=</span> server_socket.accept()</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">with</span> conn:</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>                <span class="bu">print</span>(<span class="ss">f&quot;Accepted connection from CID </span><span class="sc">{</span>remote_cid<span class="sc">}</span><span class="ss">, port </span><span class="sc">{</span>remote_port<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>                data <span class="op">=</span> conn.recv(<span class="dv">4096</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> data:</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>                    <span class="co"># Process sensitive payload inside the enclave</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>                    response <span class="op">=</span> <span class="st">b&quot;Processed by Enclave: &quot;</span> <span class="op">+</span> data</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>                    conn.sendall(response)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    run_enclave_server()</span></code></pre></div>
+<h3 id="parent-ec2-client-implementation">Parent EC2 Client
+Implementation</h3>
+<p>On the parent EC2 instance, the client connects to the enclave's
+assigned CID (for example, <code>16</code>) and port
+<code>5000</code>:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> socket</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ENCLAVE_CID <span class="op">=</span> <span class="dv">16</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>PORT <span class="op">=</span> <span class="dv">5000</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> send_to_enclave(payload: <span class="bu">bytes</span>) <span class="op">-&gt;</span> <span class="bu">bytes</span>:</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM) <span class="im">as</span> client_socket:</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Connect to the enclave&#39;s CID and port</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        client_socket.<span class="ex">connect</span>((ENCLAVE_CID, PORT))</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        client_socket.sendall(payload)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        response <span class="op">=</span> client_socket.recv(<span class="dv">4096</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> response</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    reply <span class="op">=</span> send_to_enclave(<span class="st">b&quot;Hello from EC2 parent&quot;</span>)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(reply.decode(<span class="st">&quot;utf-8&quot;</span>))</span></code></pre></div>
+<h2 id="bridging-tcp-and-vsock-using-socat-or-vsock-proxy">Bridging TCP
+and Vsock Using Socat or Vsock-Proxy</h2>
+<p>Many existing applications and SDKs expect standard TCP/IP sockets
+(<code>AF_INET</code>) rather than <code>AF_VSOCK</code>. Moreover, when
+an enclave needs to communicate with an external endpoint—such as AWS
+Key Management Service (AWS KMS) to verify cryptographic attestation
+documents and decrypt secrets—traffic must be forwarded through the
+parent EC2 instance.</p>
+<h3 id="forwarding-external-traffic-with-vsock-proxy">Forwarding
+External Traffic with <code>vsock-proxy</code></h3>
+<p>AWS provides a built-in utility called <code>vsock-proxy</code> as
+part of the Nitro Enclaves CLI package. It runs on the parent EC2
+instance, listens on a local vsock port, and forwards traffic over
+TCP/TLS to an allowlisted external endpoint such as AWS KMS.</p>
+<p>To start <code>vsock-proxy</code> on the parent instance for AWS KMS
+in <code>us-east-1</code> on vsock port <code>8000</code>:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vsock-proxy</span> 8000 kms.us-east-1.amazonaws.com 443</span></code></pre></div>
+<p>Inside the enclave, an application or local forwarder connects to CID
+<code>3</code> (the parent instance) on port <code>8000</code>. Because
+the TLS handshake occurs end-to-end between the enclave and AWS KMS, the
+parent EC2 instance only passes encrypted ciphertext and cannot inspect
+or tamper with the payload.</p>
+<h3 id="translating-local-tcp-to-vsock-with-socat">Translating Local TCP
+to Vsock with <code>socat</code></h3>
+<p>If an application inside the enclave only speaks standard TCP on
+<code>127.0.0.1</code>, you can use <code>socat</code> (version 1.7.4 or
+later with vsock support) inside the enclave to bridge local TCP
+connections to the parent's <code>vsock-proxy</code>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run inside the enclave to forward localhost:443 to parent CID 3, vsock port 8000</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">socat</span> TCP4-LISTEN:443,bind=127.0.0.1,fork VSOCK-CONNECT:3:8000</span></code></pre></div>
+<p>By combining an <code>/etc/hosts</code> entry inside the enclave
+(<code>127.0.0.1 kms.us-east-1.amazonaws.com</code>) with this
+<code>socat</code> bridge, standard AWS SDKs running inside the enclave
+can make HTTPS requests to AWS KMS transparently over the virtual
+socket.</p>
+<h2 id="security-considerations-for-vsock-channels">Security
+Considerations for Vsock Channels</h2>
+<p>While the Nitro Hypervisor guarantees isolation between the parent
+instance and the enclave, the vsock channel itself is an unencrypted raw
+byte stream by default. Under the Nitro Enclaves threat model, the
+parent EC2 instance is considered untrusted or potentially compromised.
+Consequently, developers should enforce strict security practices over
+vsock:</p>
+<ol type="1">
+<li><strong>Authenticate and Encrypt Traffic:</strong> Use TLS or a
+mutual authentication protocol over the vsock stream when transmitting
+sensitive records from external clients through the parent instance into
+the enclave.</li>
+<li><strong>Use Cryptographic Attestation:</strong> Before sending
+sensitive keys or data to an enclave, verify the enclave's identity
+using an attestation document signed by the Nitro Hypervisor's Platform
+Configuration Registers (PCRs), such as <code>PCR0</code> (enclave image
+hash) and <code>PCR8</code> (signing certificate hash).</li>
+<li><strong>Validate Input Strictly:</strong> Treat all bytes received
+over <code>AF_VSOCK</code> inside the enclave as untrusted input,
+applying strict schema validation, length bounds, and deserialization
+safeguards.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-ec-2-instances-communicate-with-aws-nitro-enclaves';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

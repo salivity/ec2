@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can EC2 Auto Scaling Launch Into Capacity Reservation Groups? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 Auto Scaling groups can be configured to launch instances exclusively into specific Capacity Reservation resource groups through their launch template settings and capacity distribution policies. By combining targeted On-Demand Capacity Re">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-ec-2-auto-scaling-launch-into-capacity-reservation-groups">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can EC2 Auto Scaling Launch Into Capacity Reservation Groups? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-ec-2-auto-scaling-launch-into-capacity-reservation-groups" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 Auto Scaling groups can be configured to launch instances exclusively into specific Capacity Reservation resource groups through their launch template settings and capacity distribution policies. By combining targeted On-Demand Capacity Re" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="can-ec2-auto-scaling-launch-into-capacity-reservation-groups">Can
+EC2 Auto Scaling Launch Into Capacity Reservation Groups?</h1>
+<p>Yes, Amazon EC2 Auto Scaling groups can be configured to launch
+instances exclusively into specific Capacity Reservation resource groups
+through their launch template settings and capacity distribution
+policies. By combining targeted On-Demand Capacity Reservations grouped
+via AWS Resource Groups with the appropriate Auto Scaling capacity
+reservation preference, organizations can guarantee that scaling
+activities only succeed when reserved compute capacity is available. If
+the specified Capacity Reservation group runs out of available
+instances, the Auto Scaling group can either wait for capacity to free
+up or fall back to standard On-Demand capacity, depending on how the
+launch template and Auto Scaling group parameters are defined.</p>
+<h2
+id="understanding-on-demand-capacity-reservations-and-resource-groups">Understanding
+On-Demand Capacity Reservations and Resource Groups</h2>
+<p>An On-Demand Capacity Reservation enables you to reserve compute
+capacity for your Amazon EC2 instances in a specific Availability Zone
+for any duration. To manage multiple reservations as a single logical
+unit, AWS allows you to group them using AWS Resource Groups.</p>
+<p>When you create a Capacity Reservation resource group, you can pool
+reservations across different Availability Zones or instance types.
+Rather than targeting a single reservation ID, an EC2 launch template
+can reference the Amazon Resource Name (ARN) of the resource group.</p>
+<p>There are two primary types of Capacity Reservation eligibility:</p>
+<ul>
+<li><strong>Open</strong>: Any instance launched with matching
+attributes (instance type, platform, and Availability Zone)
+automatically runs in the reservation.</li>
+<li><strong>Targeted</strong>: Only instances that explicitly specify
+the Capacity Reservation ID or belong to a launch configuration
+targeting a Capacity Reservation resource group can run in the
+reservation.</li>
+</ul>
+<p>To ensure exclusive launching into your designated reservations, the
+reservations inside the resource group should be configured as
+<strong>Targeted</strong>, and the launch template must explicitly
+target that group.</p>
+<h2 id="how-to-configure-launch-templates-for-reservation-groups">How to
+Configure Launch Templates for Reservation Groups</h2>
+<p>Amazon EC2 Auto Scaling groups rely on launch templates to define
+instance configuration details, including Capacity Reservation
+targeting. Within the launch template, under the advanced details for
+<strong>Capacity Reservation</strong>, you can specify the target
+preference:</p>
+<ol type="1">
+<li><strong>Open</strong>: Launches instances into any open Capacity
+Reservation that has matching attributes.</li>
+<li><strong>None</strong>: Prevents instances from using any Capacity
+Reservation, running them as standard On-Demand instances instead.</li>
+<li><strong>Target by ID</strong>: Launches instances into a single
+specified Capacity Reservation.</li>
+<li><strong>Target by group</strong>: Launches instances into any
+Capacity Reservation with matching attributes inside a selected Capacity
+Reservation resource group.</li>
+</ol>
+<h3 id="enforcing-exclusive-launches-vs-fallback-behavior">Enforcing
+Exclusive Launches vs. Fallback Behavior</h3>
+<p>When you configure a launch template to target a specific Capacity
+Reservation group, EC2 attempts to fulfill the launch request using the
+unused capacity in that group. However, whether the Auto Scaling group
+launches instances <em>exclusively</em> into that reserved
+capacity—failing to launch if the reservation is full—depends on both
+the launch template settings and the Auto Scaling group's
+<strong>CapacityReservationPreference</strong> setting.</p>
+<p>In recent AWS EC2 Auto Scaling configurations, you can define how the
+group behaves when reserved capacity is exhausted:</p>
+<ul>
+<li><strong>capacity-reservations-only</strong>: The Auto Scaling group
+launches instances strictly into the targeted Capacity Reservations or
+resource group. If no matching reserved capacity is available in the
+group, the launch fails and the Auto Scaling group keeps retrying until
+capacity becomes available.</li>
+<li><strong>capacity-reservations-first</strong>: The Auto Scaling group
+attempts to launch instances into the targeted Capacity Reservation
+group first. If all reservations in the group are fully utilized, it
+falls back to launching standard On-Demand instances outside the
+reservation.</li>
+</ul>
+<h2 id="mathematical-model-of-capacity-fulfillment">Mathematical Model
+of Capacity Fulfillment</h2>
+<p>When an Auto Scaling group scales out to a desired capacity <span
+class="math inline">\(D\)</span>, the number of instances launched into
+the targeted reservation group <span
+class="math inline">\(L_{res}\)</span> versus standard On-Demand
+capacity <span class="math inline">\(L_{od}\)</span> depends on the
+available reserved capacity <span
+class="math inline">\(C_{avail}\)</span> across the matching
+Availability Zones.</p>
+<p>Under the <code>capacity-reservations-only</code> policy, the number
+of running instances <span class="math inline">\(R\)</span> launched by
+the scaling action is strictly bounded:</p>
+<p><span class="math display">\[L_{res} = \min(D,
+C_{avail})\]</span></p>
+<p><span class="math display">\[L_{od} = 0\]</span></p>
+<p>If <span class="math inline">\(D &gt; C_{avail}\)</span>, the
+unfulfilled deficit <span class="math inline">\(U = D -
+C_{avail}\)</span> remains pending until additional capacity is added to
+the resource group or existing instances terminate.</p>
+<p>Under the <code>capacity-reservations-first</code> policy, the
+deficit overflows into standard On-Demand capacity:</p>
+<p><span class="math display">\[L_{res} = \min(D,
+C_{avail})\]</span></p>
+<p><span class="math display">\[L_{od} = \max(0, D -
+C_{avail})\]</span></p>
+<h2 id="step-by-step-configuration-using-aws-cli">Step-by-Step
+Configuration Using AWS CLI</h2>
+<p>To set up an Auto Scaling group that launches instances exclusively
+into a specific Capacity Reservation resource group, follow these
+steps.</p>
+<h3 id="step-1-create-the-capacity-reservation-resource-group">Step 1:
+Create the Capacity Reservation Resource Group</h3>
+<p>Use the AWS Resource Groups CLI to create a group specifically for
+Capacity Reservations:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> resource-groups create-group <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--name</span> MyCapacityReservationGroup <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--configuration</span> <span class="st">&#39;{&quot;Type&quot;:&quot;AWS::EC2::CapacityReservationPool&quot;}&#39;</span> <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;{&quot;Type&quot;:&quot;AWS::ResourceGroups::Generic&quot;,&quot;Parameters&quot;:[{&quot;Name&quot;:&quot;allowed-resource-types&quot;,&quot;Values&quot;:[&quot;AWS::EC2::CapacityReservation&quot;]}]}&#39;</span></span></code></pre></div>
+<h3 id="step-2-add-capacity-reservations-to-the-group">Step 2: Add
+Capacity Reservations to the Group</h3>
+<p>Add your existing targeted Capacity Reservations (by their ARNs) to
+the newly created resource group:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> resource-groups group-resources <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--group</span> MyCapacityReservationGroup <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--resource-arns</span> arn:aws:ec2:us-east-1:123456789012:capacity-reservation/cr-0123456789abcdef0</span></code></pre></div>
+<h3 id="step-3-create-the-launch-template-targeting-the-group">Step 3:
+Create the Launch Template Targeting the Group</h3>
+<p>Create an EC2 launch template that specifies the
+<code>CapacityReservationResourceGroupArn</code> in the
+<code>CapacityReservationTarget</code> block:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 create-launch-template <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--launch-template-name</span> MyExclusiveCRTemplate <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--version-description</span> <span class="st">&quot;Targets MyCapacityReservationGroup&quot;</span> <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--launch-template-data</span> <span class="st">&#39;{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;ImageId&quot;: &quot;ami-0abcdef1234567890&quot;,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;InstanceType&quot;: &quot;m5.large&quot;,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;CapacityReservationSpecification&quot;: {</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="st">            &quot;CapacityReservationTarget&quot;: {</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="st">                &quot;CapacityReservationResourceGroupArn&quot;: &quot;arn:aws:resource-groups:us-east-1:123456789012:group/MyCapacityReservationGroup&quot;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="st">            }</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="st">        }</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="st">    }&#39;</span></span></code></pre></div>
+<h3
+id="step-4-configure-the-auto-scaling-group-for-exclusive-reservation-usage">Step
+4: Configure the Auto Scaling Group for Exclusive Reservation Usage</h3>
+<p>Create or update the Auto Scaling group using the launch template and
+set the <code>CapacityReservationSpecification</code> (or
+<code>InstanceMaintenancePolicy</code> / capacity distribution settings
+depending on your SDK version) to strictly use Capacity
+Reservations:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> autoscaling create-auto-scaling-group <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--auto-scaling-group-name</span> MyExclusiveCRAutoScalingGroup <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--launch-template</span> LaunchTemplateName=MyExclusiveCRTemplate,Version=<span class="st">&#39;$Latest&#39;</span> <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--min-size</span> 2 <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--max-size</span> 10 <span class="dt">\</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--desired-capacity</span> 4 <span class="dt">\</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--availability-zones</span> us-east-1a us-east-1b <span class="dt">\</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">--capacity-reservation-specification</span> <span class="st">&#39;{&quot;CapacityReservationPreference&quot;: &quot;capacity-reservations-only&quot;}&#39;</span></span></code></pre></div>
+<h2 id="key-requirements-and-limitations">Key Requirements and
+Limitations</h2>
+<p>When implementing this architecture, keep the following operational
+constraints in mind:</p>
+<ul>
+<li><strong>Attribute Matching</strong>: The instance type, platform
+(OS), tenancy, and Availability Zone configured in the Auto Scaling
+group and launch template must exactly match the attributes of the
+Capacity Reservations inside the resource group.</li>
+<li><strong>Mixed Instances Policy</strong>: If your Auto Scaling group
+uses a mixed instances policy with multiple instance types, you must
+ensure the Capacity Reservation resource group contains matching
+reservations for each instance type override, or specify separate launch
+template overrides per instance type.</li>
+<li><strong>Availability Zone Alignment</strong>: If an Auto Scaling
+group spans three Availability Zones (e.g., <code>us-east-1a</code>,
+<code>us-east-1b</code>, <code>us-east-1c</code>), but the Capacity
+Reservation group only has available capacity in <code>us-east-1a</code>
+and <code>us-east-1b</code>, scaling attempts in <code>us-east-1c</code>
+will fail when using <code>capacity-reservations-only</code>, triggering
+Auto Scaling to rebalance or retry in the zones with available reserved
+capacity.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-ec-2-auto-scaling-launch-into-capacity-reservation-groups';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

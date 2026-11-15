@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which EC2 Spot allocation strategy minimizes interruptions? - ec2</title>
+    <meta name="description" content="Amazon EC2 Spot Instances offer significant cost savings over On-Demand prices, though Amazon Web Services can reclaim capacity with a two-minute notice when demand rises. To reduce the frequency of these interruptions when launching a pool of Spot Instan">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-ec-2-spot-allocation-strategy-minimizes-interruptions">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which EC2 Spot allocation strategy minimizes interruptions? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-ec-2-spot-allocation-strategy-minimizes-interruptions" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Spot Instances offer significant cost savings over On-Demand prices, though Amazon Web Services can reclaim capacity with a two-minute notice when demand rises. To reduce the frequency of these interruptions when launching a pool of Spot Instan" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="which-ec2-spot-allocation-strategy-minimizes-interruptions">Which
+EC2 Spot allocation strategy minimizes interruptions?</h1>
+<p>Amazon EC2 Spot Instances offer significant cost savings over
+On-Demand prices, though Amazon Web Services can reclaim capacity with a
+two-minute notice when demand rises. To reduce the frequency of these
+interruptions when launching a pool of Spot Instances via EC2 Auto
+Scaling or EC2 Fleet, you should select an allocation strategy that
+prioritizes spare capacity stability. The most effective strategies for
+minimizing interruptions are price-capacity-optimized and
+capacity-optimized, whereas the lowest-price strategy increases
+interruption risk by focusing purely on immediate unit cost rather than
+pool availability.</p>
+<h2 id="understanding-spot-capacity-pools">Understanding Spot Capacity
+Pools</h2>
+<p>A Spot capacity pool is a set of unused EC2 instances sharing the
+same instance type and Availability Zone. Each pool has its own
+fluctuating supply and demand dynamics. When launching Spot Instances
+across multiple instance types and Availability Zones, an allocation
+strategy determines how EC2 selects and fulfills capacity from the
+candidate pools you specify in your launch template or fleet
+configuration.</p>
+<p>If you allow your fleet to draw from <span
+class="math inline">\(N\)</span> distinct instance types across <span
+class="math inline">\(M\)</span> Availability Zones, the total number of
+candidate Spot capacity pools <span class="math inline">\(P\)</span> is
+given by:</p>
+<p><span class="math display">\[P = N \times M\]</span></p>
+<p>Providing a larger value of <span class="math inline">\(P\)</span>
+gives the allocation strategy more choices to find deep, stable capacity
+pools with low reclamation rates.</p>
+<h2 id="allocation-strategies-that-minimize-interruptions">Allocation
+Strategies That Minimize Interruptions</h2>
+<h3 id="price-capacity-optimized-recommended">Price-Capacity-Optimized
+(Recommended)</h3>
+<p>The <code>price-capacity-optimized</code> strategy is the recommended
+default for most workloads. It balances two critical goals: minimizing
+the likelihood of interruptions and maintaining a low cost.</p>
+<p>When you use this strategy, EC2 carries out a two-step
+evaluation:</p>
+<ol type="1">
+<li>It identifies the candidate Spot pools with the highest available
+spare capacity, which inherently have the lowest probability of
+near-term interruption.</li>
+<li>From that subset of high-capacity pools, it requests Spot Instances
+from the pool with the lowest price.</li>
+</ol>
+<p>This approach gives you stability comparable to pure capacity
+optimization while preventing your fleet from unnecessarily landing on
+more expensive instance types when equally stable, cheaper alternatives
+exist.</p>
+<h3 id="capacity-optimized">Capacity-Optimized</h3>
+<p>The <code>capacity-optimized</code> strategy focuses strictly on
+reducing the risk of Spot Instance interruptions without considering
+price differences among your allowed instance types.</p>
+<p>Under this strategy, EC2 analyzes real-time capacity data and
+provisions instances from the pools with the most available spare
+capacity for the number of instances being launched. This is ideal for
+workloads where the cost of interruption—such as restarting long batch
+jobs, losing state, or migrating big data nodes—outweighs small
+variations in hourly Spot pricing.</p>
+<h3
+id="capacity-optimized-prioritized">Capacity-Optimized-Prioritized</h3>
+<p>Available in EC2 Fleet and Spot Fleet,
+<code>capacity-optimized-prioritized</code> operates like
+<code>capacity-optimized</code> but allows you to define a priority
+order for your instance types. EC2 first optimizes for capacity to
+minimize interruptions, and then uses your priority rankings as a
+tie-breaker among pools that offer similarly high levels of available
+capacity. This is useful when specific instance families provide better
+performance for your application, but availability remains your primary
+concern.</p>
+<h2
+id="allocation-strategies-to-avoid-for-interruption-sensitive-workloads">Allocation
+Strategies to Avoid for Interruption-Sensitive Workloads</h2>
+<h3 id="lowest-price">Lowest-Price</h3>
+<p>The <code>lowest-price</code> strategy provisions instances from the
+pools with the lowest current Spot price at the time of fulfillment,
+without evaluating the depth of spare capacity in those pools. Because
+inexpensive pools often attract heavy demand or have shallow reserves,
+instances launched with <code>lowest-price</code> face a significantly
+higher rate of interruption. This strategy is generally discouraged
+unless your workload is extremely short-lived and completely
+stateless.</p>
+<h3 id="diversified">Diversified</h3>
+<p>The <code>diversified</code> strategy distributes instances evenly
+across all defined Spot pools. While spreading instances across pools
+ensures that a single pool outage does not terminate your entire fleet
+simultaneously, it forces EC2 to place instances into shallow capacity
+pools alongside deep ones. Consequently, individual instance
+interruptions occur more frequently than with capacity-aware
+strategies.</p>
+<h2 id="comparison-of-ec2-spot-allocation-strategies">Comparison of EC2
+Spot Allocation Strategies</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Allocation Strategy</th>
+<th style="text-align: left;">Primary Optimization Goal</th>
+<th style="text-align: left;">Interruption Risk</th>
+<th style="text-align: left;">Best Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>price-capacity-optimized</code></td>
+<td style="text-align: left;">Low interruption rate and low cost</td>
+<td style="text-align: left;">Very Low</td>
+<td style="text-align: left;">General stateless web services,
+containers, CI/CD, and standard batch workloads</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>capacity-optimized</code></td>
+<td style="text-align: left;">Lowest possible interruption rate</td>
+<td style="text-align: left;">Lowest</td>
+<td style="text-align: left;">High-compute jobs, machine learning
+training, and stateful big data clusters</td>
+</tr>
+<tr>
+<td
+style="text-align: left;"><code>capacity-optimized-prioritized</code></td>
+<td style="text-align: left;">Low interruption rate with instance
+preference</td>
+<td style="text-align: left;">Lowest</td>
+<td style="text-align: left;">Workloads that benefit from specialized
+hardware when high capacity is available</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>diversified</code></td>
+<td style="text-align: left;">Even distribution across pools</td>
+<td style="text-align: left;">Moderate</td>
+<td style="text-align: left;">Legacy fleets requiring strict
+distribution ratios across instance types</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>lowest-price</code></td>
+<td style="text-align: left;">Cheapest hourly Spot price</td>
+<td style="text-align: left;">High</td>
+<td style="text-align: left;">Ultra-short tasks or testing environments
+where interruptions have zero impact</td>
+</tr>
+</tbody>
+</table>
+<h2 id="best-practices-to-further-reduce-interruptions">Best Practices
+to Further Reduce Interruptions</h2>
+<ol type="1">
+<li><strong>Practice Instance Flexibility</strong>: Include multiple
+instance generations, sizes, and families (such as <code>m5</code>,
+<code>m6i</code>, <code>c5</code>, and <code>c6i</code>) in your Auto
+Scaling group or EC2 Fleet configuration. Alternatively, use
+Attribute-Based Instance Type Selection (ABIS) to specify vCPU and
+memory bounds, automatically expanding the number of candidate
+pools.</li>
+<li><strong>Span Multiple Availability Zones</strong>: Always enable all
+healthy Availability Zones in your target region so the allocation
+strategy can route around localized capacity constraints.</li>
+<li><strong>Enable Capacity Rebalancing</strong>: Turn on Capacity
+Rebalancing in EC2 Auto Scaling. When EC2 emits a rebalance
+recommendation signaling that a Spot Instance is at elevated risk of
+interruption, Auto Scaling proactively launches a replacement instance
+using your chosen allocation strategy before terminating the at-risk
+instance.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-ec-2-spot-allocation-strategy-minimizes-interruptions';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

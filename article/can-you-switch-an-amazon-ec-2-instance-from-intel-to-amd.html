@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can You Switch an Amazon EC2 Instance from Intel to AMD? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 allows customers to switch an existing stopped Amazon EBS-backed instance from an Intel processor instance type to an AMD processor instance type because both processor families share the same x8664 instruction set architecture. This trans">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-you-switch-an-amazon-ec-2-instance-from-intel-to-amd">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can You Switch an Amazon EC2 Instance from Intel to AMD? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-you-switch-an-amazon-ec-2-instance-from-intel-to-amd" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 allows customers to switch an existing stopped Amazon EBS-backed instance from an Intel processor instance type to an AMD processor instance type because both processor families share the same x8664 instruction set architecture. This trans" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="can-you-switch-an-amazon-ec2-instance-from-intel-to-amd">Can You
+Switch an Amazon EC2 Instance from Intel to AMD?</h1>
+<p>Yes, Amazon EC2 allows customers to switch an existing stopped Amazon
+EBS-backed instance from an Intel processor instance type to an AMD
+processor instance type because both processor families share the same
+x86_64 instruction set architecture. This transition is a
+straightforward configuration update that enables organizations to
+optimize compute costs while maintaining the existing operating system,
+attached Elastic Block Store volumes, and network interface
+configurations. Before initiating the change, administrators must verify
+that the current instance meets specific virtualization, driver, and
+storage prerequisites to ensure a seamless boot process on the new
+underlying hardware.</p>
+<h2 id="understanding-x86_64-architecture-compatibility">Understanding
+x86_64 Architecture Compatibility</h2>
+<p>Both Intel Xeon and AMD EPYC processors deployed in Amazon EC2
+utilize the 64-bit x86 (<code>x86_64</code>) architecture. Because the
+underlying instruction set is identical across both processor
+manufacturers, an Amazon Machine Image (AMI) compiled for
+<code>x86_64</code> runs natively on both Intel-based instances (such as
+<code>m5.large</code> or <code>c6i.xlarge</code>) and AMD-based
+instances (such as <code>m5a.large</code> or
+<code>c6a.xlarge</code>).</p>
+<p>Unlike migrating to an AWS Graviton instance—which requires an
+<code>arm64</code> architecture and an entirely new operating system
+image—switching between Intel and AMD instances only requires modifying
+the instance type attribute while the instance is in a
+<code>stopped</code> state.</p>
+<h2 id="prerequisites-for-switching-from-intel-to-amd">Prerequisites for
+Switching from Intel to AMD</h2>
+<p>Before modifying the instance type, you must confirm that your
+existing EC2 instance satisfies several technical requirements:</p>
+<ul>
+<li><strong>EBS-Backed Root Volume:</strong> Only Amazon EBS-backed
+instances can be stopped and resized. Instance store-backed instances do
+not support stopping; migrating them requires launching a brand-new
+instance from an AMI.</li>
+<li><strong>AWS Nitro System Compatibility:</strong> All AMD-based EC2
+instance families (such as <code>t3a</code>, <code>m5a</code>,
+<code>m6a</code>, <code>m7a</code>, <code>c5a</code>, <code>c6a</code>,
+<code>c7a</code>, <code>r5a</code>, <code>r6a</code>, and
+<code>r7a</code>) are built on the AWS Nitro System. If you are
+migrating from an older-generation Intel instance (such as
+<code>m4</code>, <code>c4</code>, or <code>t2</code>), your operating
+system must have the Elastic Network Adapter (ENA) and NVMe drivers
+installed and enabled before switching.</li>
+<li><strong>Virtualization Type:</strong> The target AMD instance
+requires Hardware Virtual Machine (HVM) virtualization. Legacy
+Paravirtual (PV) instances cannot be converted to AMD instance
+types.</li>
+<li><strong>Placement Group Constraints:</strong> If the stopped
+instance belongs to a cluster placement group, verify that the target
+AMD instance type is supported within that placement group
+configuration.</li>
+</ul>
+<h2 id="instance-family-mapping-and-cost-calculation">Instance Family
+Mapping and Cost Calculation</h2>
+<p>AWS uses the <code>a</code> suffix in the instance family name to
+designate AMD EPYC processors, while standard numbering or the
+<code>i</code> suffix designates Intel Xeon processors.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Workload Category</th>
+<th style="text-align: left;">Intel Instance Examples</th>
+<th style="text-align: left;">Equivalent AMD Instance Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Burstable General Purpose</td>
+<td style="text-align: left;"><code>t3.medium</code>,
+<code>t3.large</code></td>
+<td style="text-align: left;"><code>t3a.medium</code>,
+<code>t3a.large</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">General Purpose</td>
+<td style="text-align: left;"><code>m5.xlarge</code>,
+<code>m6i.xlarge</code>, <code>m7i.xlarge</code></td>
+<td style="text-align: left;"><code>m5a.xlarge</code>,
+<code>m6a.xlarge</code>, <code>m7a.xlarge</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Compute Optimized</td>
+<td style="text-align: left;"><code>c5.2xlarge</code>,
+<code>c6i.2xlarge</code>, <code>c7i.2xlarge</code></td>
+<td style="text-align: left;"><code>c5a.2xlarge</code>,
+<code>c6a.2xlarge</code>, <code>c7a.2xlarge</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Memory Optimized</td>
+<td style="text-align: left;"><code>r5.large</code>,
+<code>r6i.large</code>, <code>r7i.large</code></td>
+<td style="text-align: left;"><code>r5a.large</code>,
+<code>r6a.large</code>, <code>r7a.large</code></td>
+</tr>
+</tbody>
+</table>
+<p>AMD instances generally provide up to a 10% price reduction compared
+to comparable Intel instances in the same generation. When evaluating
+the monthly cost difference between an Intel rate <span
+class="math inline">\(R_{\text{Intel}}\)</span> and an AMD rate <span
+class="math inline">\(R_{\text{AMD}}\)</span> over <span
+class="math inline">\(H\)</span> running hours, the total savings <span
+class="math inline">\(S\)</span> is calculated as:</p>
+<p><span class="math display">\[S = (R_{\text{Intel}} - R_{\text{AMD}})
+\times H\]</span></p>
+<p>And the percentage reduction <span class="math inline">\(P\)</span>
+is expressed as:</p>
+<p><span class="math display">\[P = \left( \frac{R_{\text{Intel}} -
+R_{\text{AMD}}}{R_{\text{Intel}}} \right) \times 100\]</span></p>
+<h2
+id="how-to-change-the-instance-type-using-the-aws-management-console">How
+to Change the Instance Type Using the AWS Management Console</h2>
+<ol type="1">
+<li>Open the Amazon EC2 console and navigate to the
+<strong>Instances</strong> section.</li>
+<li>Select the running Intel-based instance you want to convert.</li>
+<li>Choose <strong>Instance state</strong>, then select <strong>Stop
+instance</strong>. Wait for the instance state to transition completely
+to <strong>Stopped</strong>.</li>
+<li>With the instance still selected, choose <strong>Actions</strong>,
+navigate to <strong>Instance settings</strong>, and select
+<strong>Change instance type</strong>.</li>
+<li>In the <strong>Change instance type</strong> dialog box, select the
+desired AMD instance type (for example, switching from
+<code>m6i.large</code> to <code>m6a.large</code>) and click
+<strong>Apply</strong>.</li>
+<li>Choose <strong>Instance state</strong> and select <strong>Start
+instance</strong> to boot the instance on the AMD hardware.</li>
+</ol>
+<h2 id="how-to-change-the-instance-type-using-the-aws-cli">How to Change
+the Instance Type Using the AWS CLI</h2>
+<p>You can also perform the switch programmatically using the AWS
+Command Line Interface (CLI). Replace <code>i-0123456789abcdef0</code>
+with your specific instance ID.</p>
+<p>First, stop the running EC2 instance and wait for it to reach the
+stopped state:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 stop-instances <span class="at">--instance-ids</span> i-0123456789abcdef0</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 wait instance-stopped <span class="at">--instance-ids</span> i-0123456789abcdef0</span></code></pre></div>
+<p>Next, modify the <code>instanceType</code> attribute to the target
+AMD instance type:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-instance-attribute <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-id</span> i-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> <span class="st">&quot;{</span><span class="dt">\&quot;</span><span class="st">Value</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">m6a.large</span><span class="dt">\&quot;</span><span class="st">}&quot;</span></span></code></pre></div>
+<p>Finally, start the instance back up:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 start-instances <span class="at">--instance-ids</span> i-0123456789abcdef0</span></code></pre></div>
+<h2 id="post-switch-considerations">Post-Switch Considerations</h2>
+<p>When you stop and start an EC2 instance to change its instance type,
+keep the following operational behaviors in mind:</p>
+<ul>
+<li><strong>Public IPv4 Addresses:</strong> Stopping an instance
+releases its auto-assigned public IPv4 address. If your workload relies
+on a static public IP address, associate an Elastic IP address with the
+instance before stopping it.</li>
+<li><strong>Instance Store Volumes:</strong> If your original Intel
+instance included ephemeral instance store volumes (such as an
+<code>m5d.large</code>), any data on those ephemeral volumes is
+permanently erased when the instance stops.</li>
+<li><strong>CPU-Specific Software Optimizations:</strong> While standard
+<code>x86_64</code> binaries run seamlessly on both Intel and AMD
+processors, applications compiled strictly with Intel-specific
+instruction extensions (such as Intel AVX-512 on generations where the
+target AMD processor does not support it, or older versions of the Intel
+Math Kernel Library) should be tested to ensure expected performance and
+compatibility.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-you-switch-an-amazon-ec-2-instance-from-intel-to-amd';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

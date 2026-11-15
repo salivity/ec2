@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which Operating Systems Do AWS AMIs Support in Amazon EC2? - ec2</title>
+    <meta name="description" content="Amazon Web Services provides officially supported Amazon Machine Images for several major operating system families in Amazon EC2, including Amazon Linux, Ubuntu, Red Hat Enterprise Linux, SUSE Linux Enterprise Server, Debian, Microsoft Windows Server, an">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-operating-systems-do-aws-am-is-support-in-amazon-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which Operating Systems Do AWS AMIs Support in Amazon EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-operating-systems-do-aws-am-is-support-in-amazon-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Web Services provides officially supported Amazon Machine Images for several major operating system families in Amazon EC2, including Amazon Linux, Ubuntu, Red Hat Enterprise Linux, SUSE Linux Enterprise Server, Debian, Microsoft Windows Server, an" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="which-operating-systems-do-aws-amis-support-in-amazon-ec2">Which
+Operating Systems Do AWS AMIs Support in Amazon EC2?</h1>
+<p>Amazon Web Services provides officially supported Amazon Machine
+Images for several major operating system families in Amazon EC2,
+including Amazon Linux, Ubuntu, Red Hat Enterprise Linux, SUSE Linux
+Enterprise Server, Debian, Microsoft Windows Server, and Apple macOS.
+This article provides a comprehensive breakdown of these officially
+supported operating systems, their typical enterprise and cloud-native
+use cases, licensing models, and architecture compatibility across x86
+and ARM-based AWS Graviton processors.</p>
+<h2 id="amazon-linux">Amazon Linux</h2>
+<p>Amazon Linux is AWS's own Linux distribution, engineered specifically
+to run on Amazon EC2. It offers tight integration with AWS services,
+pre-installed AWS tools, and optimized performance for EC2 instance
+types.</p>
+<ul>
+<li><strong>Amazon Linux 2023 (AL2023):</strong> The current generation
+of Amazon Linux, featuring a predictable two-year major release cycle
+and long-term support. It uses deterministic updates via versioned
+repositories, SELinux enabled in permissive mode by default, and
+optimized kernel configurations for both x86_64 and ARM64 (AWS Graviton)
+architectures.</li>
+<li><strong>Amazon Linux 2 (AL2):</strong> The previous-generation
+distribution, offering long-term support for legacy workloads
+transitioning to newer environments.</li>
+<li><strong>Licensing and Cost:</strong> Provided at no additional
+charge beyond standard EC2 instance compute and storage costs.</li>
+</ul>
+<h2 id="enterprise-linux-distributions">Enterprise Linux
+Distributions</h2>
+<p>AWS partners directly with major commercial Linux vendors to provide
+certified, ready-to-launch AMIs that include optional support
+subscriptions billed directly through the AWS account.</p>
+<h3 id="red-hat-enterprise-linux-rhel">Red Hat Enterprise Linux
+(RHEL)</h3>
+<p>Red Hat Enterprise Linux is widely used for mission-critical
+enterprise workloads, databases, and commercial software requiring
+strict certification.</p>
+<ul>
+<li><strong>Supported Versions:</strong> RHEL 7, RHEL 8, and RHEL 9
+(plus specialized variants like RHEL for SAP).</li>
+<li><strong>Architectures:</strong> x86_64 and ARM64.</li>
+<li><strong>Licensing:</strong> Available as Pay-As-You-Go (hourly
+software charges bundled into EC2 pricing) or through Red Hat Cloud
+Access (Bring Your Own Subscription).</li>
+</ul>
+<h3 id="suse-linux-enterprise-server-sles">SUSE Linux Enterprise Server
+(SLES)</h3>
+<p>SUSE Linux Enterprise Server is a popular choice for enterprise
+computing, high-performance computing, and SAP HANA deployments on
+AWS.</p>
+<ul>
+<li><strong>Supported Versions:</strong> SLES 12 and SLES 15, including
+SLES for SAP Applications.</li>
+<li><strong>Architectures:</strong> x86_64 and ARM64.</li>
+<li><strong>Licensing:</strong> Available with on-demand hourly
+licensing or Bring Your Own Subscription (BYOS).</li>
+</ul>
+<h2 id="community-and-open-source-linux-distributions">Community and
+Open-Source Linux Distributions</h2>
+<p>For developers and organizations preferring open-source distributions
+without mandatory commercial licensing fees, AWS provides official
+quick-start AMIs maintained in collaboration with the respective
+distribution vendors.</p>
+<h3 id="ubuntu-server-and-ubuntu-pro">Ubuntu Server and Ubuntu Pro</h3>
+<p>Maintained by Canonical, Ubuntu is one of the most popular operating
+systems on EC2 for web applications, container hosts, and machine
+learning workloads.</p>
+<ul>
+<li><strong>Supported Versions:</strong> Long Term Support (LTS)
+releases such as Ubuntu 20.04 LTS (Focal Fossa), Ubuntu 22.04 LTS (Jammy
+Jellyfish), and Ubuntu 24.04 LTS (Noble Numbat).</li>
+<li><strong>Ubuntu Pro:</strong> AWS also offers Ubuntu Pro AMIs, which
+include expanded security maintenance, kernel livepatching, and FIPS/CIS
+compliance tooling on an hourly billing model.</li>
+<li><strong>Architectures:</strong> x86_64 and ARM64.</li>
+</ul>
+<h3 id="debian">Debian</h3>
+<p>Debian GNU/Linux is known for its stability, minimal footprint, and
+extensive package repositories.</p>
+<ul>
+<li><strong>Supported Versions:</strong> Debian 11 (Bullseye) and Debian
+12 (Bookworm).</li>
+<li><strong>Architectures:</strong> x86_64 and ARM64.</li>
+<li><strong>Licensing:</strong> Free to use; users pay only for the
+underlying EC2 resources.</li>
+</ul>
+<h2 id="container-optimized-operating-systems">Container-Optimized
+Operating Systems</h2>
+<p>For workloads running on Amazon Elastic Container Service (ECS) or
+Amazon Elastic Kubernetes Service (EKS), AWS provides purpose-built
+AMIs.</p>
+<ul>
+<li><strong>Bottlerocket:</strong> An open-source, Linux-based operating
+system purpose-built by AWS for hosting containers. It features a
+minimal attack surface, atomic updates that can be rolled back
+automatically, and read-only root filesystems.</li>
+<li><strong>ECS-Optimized and EKS-Optimized AMIs:</strong> Built on top
+of Amazon Linux 2023, Amazon Linux 2, or Windows Server, pre-configured
+with Docker/containerd, the ECS agent, or <code>kubelet</code>.</li>
+</ul>
+<h2 id="microsoft-windows-server">Microsoft Windows Server</h2>
+<p>AWS provides a comprehensive catalog of official Microsoft Windows
+Server AMIs for running .NET applications, Active Directory, Microsoft
+SQL Server, and legacy Windows workloads.</p>
+<ul>
+<li><strong>Supported Versions:</strong> Windows Server 2016, Windows
+Server 2019, Windows Server 2022, and Windows Server 2025.</li>
+<li><strong>Variants:</strong> Available in Full (Desktop Experience)
+and Server Core (headless, minimal footprint) installations. AWS also
+provides Windows Server AMIs pre-installed with Microsoft SQL Server
+(Express, Web, Standard, and Enterprise editions) and .NET runtime
+environments.</li>
+<li><strong>Architectures:</strong> x86_64.</li>
+<li><strong>Licensing:</strong> License Included (LI) AMIs bundle the
+Microsoft license cost into the EC2 instance hourly rate. Customers can
+also use Bring Your Own License (BYOL) on Dedicated Hosts or through AWS
+License Manager with eligible Microsoft Volume Licensing
+agreements.</li>
+</ul>
+<h2 id="apple-macos">Apple macOS</h2>
+<p>Through Amazon EC2 Mac instances, AWS officially supports macOS for
+developers building, testing, and signing applications for Apple
+platforms (iOS, iPadOS, macOS, tvOS, watchOS, and visionOS).</p>
+<ul>
+<li><strong>Supported Versions:</strong> Recent versions of macOS (such
+as macOS Monterey, Ventura, Sonoma, and Sequoia) delivered as macOS AMIs
+backed by Amazon EBS.</li>
+<li><strong>Architectures:</strong> x86_64 (<code>mac1</code> instances
+powered by Intel processors) and ARM64 (<code>mac2</code> instances
+powered by Apple Silicon M1, M2, and M2 Pro chips).</li>
+<li><strong>Deployment Requirements:</strong> Due to Apple licensing
+terms, EC2 Mac instances must be launched on Dedicated Hosts with a
+minimum allocation period of 24 hours.</li>
+</ul>
+<h2 id="summary-comparison-of-official-aws-amis">Summary Comparison of
+Official AWS AMIs</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Operating System Family</th>
+<th style="text-align: left;">Supported Architectures</th>
+<th style="text-align: left;">Licensing Model on EC2</th>
+<th style="text-align: left;">Primary Use Cases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Amazon Linux (AL2023 /
+AL2)</strong></td>
+<td style="text-align: left;">x86_64, ARM64</td>
+<td style="text-align: left;">Free (Included in EC2 cost)</td>
+<td style="text-align: left;">Cloud-native apps, AWS-integrated
+microservices</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ubuntu Server / Ubuntu
+Pro</strong></td>
+<td style="text-align: left;">x86_64, ARM64</td>
+<td style="text-align: left;">Free (Server) / Paid (Pro)</td>
+<td style="text-align: left;">Web servers, AI/ML, development
+environments</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Red Hat Enterprise
+Linux</strong></td>
+<td style="text-align: left;">x86_64, ARM64</td>
+<td style="text-align: left;">License Included / BYOS</td>
+<td style="text-align: left;">Enterprise applications, regulated
+workloads</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SUSE Linux Enterprise
+Server</strong></td>
+<td style="text-align: left;">x86_64, ARM64</td>
+<td style="text-align: left;">License Included / BYOS</td>
+<td style="text-align: left;">SAP HANA, enterprise Linux workloads</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Debian</strong></td>
+<td style="text-align: left;">x86_64, ARM64</td>
+<td style="text-align: left;">Free (Included in EC2 cost)</td>
+<td style="text-align: left;">Lightweight servers, general-purpose
+Linux</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Bottlerocket</strong></td>
+<td style="text-align: left;">x86_64, ARM64</td>
+<td style="text-align: left;">Free (Included in EC2 cost)</td>
+<td style="text-align: left;">Hosting containers on Amazon EKS and
+ECS</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Microsoft Windows
+Server</strong></td>
+<td style="text-align: left;">x86_64</td>
+<td style="text-align: left;">License Included / BYOL</td>
+<td style="text-align: left;">.NET apps, Active Directory, SQL
+Server</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Apple macOS</strong></td>
+<td style="text-align: left;">x86_64, ARM64 (Apple Silicon)</td>
+<td style="text-align: left;">Included in Dedicated Host cost</td>
+<td style="text-align: left;">Xcode CI/CD builds, iOS/macOS app
+testing</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-operating-systems-do-aws-am-is-support-in-amazon-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

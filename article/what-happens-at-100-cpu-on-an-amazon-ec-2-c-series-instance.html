@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens at 100% CPU on an Amazon EC2 C-Series Instance? - ec2</title>
+    <meta name="description" content="When a compute-intensive batch job reaches 100 percent CPU utilization on an Amazon EC2 C-series instance, the virtual machine continues to run at its full provisioned capacity without experiencing CPU credit throttling or unexpected surcharge billing. Un">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-at-100-cpu-on-an-amazon-ec-2-c-series-instance">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens at 100% CPU on an Amazon EC2 C-Series Instance? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-at-100-cpu-on-an-amazon-ec-2-c-series-instance" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When a compute-intensive batch job reaches 100 percent CPU utilization on an Amazon EC2 C-series instance, the virtual machine continues to run at its full provisioned capacity without experiencing CPU credit throttling or unexpected surcharge billing. Un" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-at-100-cpu-on-an-amazon-ec2-c-series-instance">What
+Happens at 100% CPU on an Amazon EC2 C-Series Instance?</h1>
+<p>When a compute-intensive batch job reaches 100 percent CPU
+utilization on an Amazon EC2 C-series instance, the virtual machine
+continues to run at its full provisioned capacity without experiencing
+CPU credit throttling or unexpected surcharge billing. Unlike T-series
+burstable instances, C-series compute-optimized instances provide
+dedicated, fixed performance for every allocated virtual CPU (vCPU).
+However, operating at maximum processor capacity means any additional
+compute threads will enter a run queue, causing increased execution
+times, higher context-switching overhead, and potential delays in
+operating system tasks, health checks, and network packet
+processing.</p>
+<h2 id="fixed-performance-vs-burstable-instances">Fixed Performance vs.
+Burstable Instances</h2>
+<p>To understand how an EC2 C-series instance behaves under full load,
+it helps to contrast it with AWS burstable performance instances (such
+as the T3 or T4g families). Burstable instances operate on a credit
+system where baseline CPU utilization is capped at a fraction of a vCPU,
+and sustained 100 percent usage either drains CPU credits—eventually
+throttling the processor back to baseline—or incurs extra charges in
+Unlimited mode.</p>
+<p>Amazon EC2 C-series instances (such as C5, C6i, C6g, and C7g) are
+fixed-performance, compute-optimized instances. When you provision a
+C-series instance, you receive full, continuous access to the underlying
+hardware threads or cores mapped to your vCPUs:</p>
+<ul>
+<li><strong>No Throttling:</strong> You can run all vCPUs at 100 percent
+utilization 24 hours a day, 7 days a week, without performance
+degradation from hypervisor rate-limiting.</li>
+<li><strong>No Burst Charges:</strong> Your hourly instance cost remains
+constant regardless of whether your average CPU utilization is 1 percent
+or 100 percent.</li>
+<li><strong>Consistent Clock Speeds:</strong> Powered by high-frequency
+Intel Xeon, AMD EPYC, or AWS Graviton processors, C-series instances are
+engineered to maintain sustained all-core turbo clock frequencies during
+heavy batch processing.</li>
+</ul>
+<h2 id="operating-system-scheduling-and-run-queue-contention">Operating
+System Scheduling and Run Queue Contention</h2>
+<p>While the AWS Nitro hypervisor will not throttle your C-series
+instance at 100 percent CPU utilization, the guest operating system must
+manage how threads share the finite number of vCPUs.</p>
+<p>If your batch job spawns strictly as many active worker threads as
+there are vCPUs (<span class="math inline">\(N_{\text{threads}} =
+N_{\text{vCPUs}}\)</span>), the workload runs at peak efficiency. Each
+thread can stay pinned to a vCPU with minimal interruption. However, if
+the total number of runnable threads exceeds the number of available
+vCPUs (<span class="math inline">\(N_{\text{threads}} &gt;
+N_{\text{vCPUs}}\)</span>), contention occurs:</p>
+<p><span class="math display">\[\text{CPU Saturation Ratio} =
+\frac{R}{N_{\text{vCPUs}}}\]</span></p>
+<p>Where <span class="math inline">\(R\)</span> represents the number of
+runnable processes in the operating system run queue (visible via the
+<code>r</code> column in <code>vmstat</code> or load averages in
+<code>uptime</code>). When <span
+class="math inline">\(\frac{R}{N_{\text{vCPUs}}} &gt; 1\)</span>,
+threads must wait for CPU time slices.</p>
+<h3 id="context-switching-overhead">Context Switching Overhead</h3>
+<p>When the run queue grows beyond the vCPU count, the Linux kernel
+scheduler (such as the Completely Fair Scheduler, or CFS) must rapidly
+switch between active threads to ensure fairness. High context switching
+leads to:</p>
+<ol type="1">
+<li><strong>Direct CPU Overhead:</strong> The processor spends cycles
+saving and restoring CPU registers rather than executing batch
+application code.</li>
+<li><strong>CPU Cache Thrashing:</strong> As threads are swapped out and
+replaced by others, L1, L2, and L3 processor caches are invalidated and
+overwritten, increasing memory access latency.</li>
+</ol>
+<h2 id="hardware-architecture-considerations-x86-vs-graviton">Hardware
+Architecture Considerations: x86 vs. Graviton</h2>
+<p>How a C-series instance performs at 100 percent CPU utilization also
+depends on the underlying processor architecture of the specific
+C-series family you choose.</p>
+<h3 id="intel-and-amd-c-series-c5-c6i-c6a-c7i-c7a">Intel and AMD
+C-Series (C5, C6i, C6a, C7i, C7a)</h3>
+<p>On most x86-based C-series instances (excluding bare-metal sizes),
+each vCPU corresponds to a single Simultaneous Multithreading (SMT)
+hardware thread (Intel Hyper-Threading). Two vCPUs share the execution
+resources of a single physical processor core.</p>
+<p>When a compute-intensive batch job pushes all vCPUs from 50 percent
+to 100 percent utilization, total throughput does not double. Because
+pairs of vCPUs contend for the same physical core execution units (such
+as floating-point units and vector processing pipelines), scaling from
+50 percent to 100 percent utilization typically yields an additional 15
+to 30 percent increase in actual throughput rather than a linear 100
+percent gain.</p>
+<h3 id="aws-graviton-c-series-c6g-c7g-c8g">AWS Graviton C-Series (C6g,
+C7g, C8g)</h3>
+<p>On AWS Graviton-based instances, each vCPU is a physical core with no
+SMT sharing. Two vCPUs do not compete for the same core pipeline.
+Consequently, scaling a batch workload up to 100 percent CPU utilization
+on a Graviton C-series instance exhibits much more linear throughput
+scaling up to the point of saturation.</p>
+<h2 id="impact-on-io-networking-and-system-agents">Impact on I/O,
+Networking, and System Agents</h2>
+<p>Even if a batch job is purely compute-bound, no EC2 instance operates
+in a complete vacuum. Reaching 100 percent CPU utilization across all
+vCPUs can starve background processes that are essential for cluster
+management and data persistence:</p>
+<ul>
+<li><strong>Network and EBS Interrupts:</strong> Modern C-series
+instances built on the AWS Nitro System offload virtualization and I/O
+functions to dedicated hardware, preventing hypervisor steal time
+(<code>%st</code>). However, the guest OS kernel still requires CPU
+cycles to handle network interrupts (<code>%si</code> / softirq) and
+write checkpoints to Amazon EBS.</li>
+<li><strong>Orchestration and Monitoring Agents:</strong> Background
+daemons such as the Amazon ECS agent, <code>kubelet</code> (on Amazon
+EKS), AWS Systems Manager Agent (SSM), and CloudWatch agent require
+small slices of CPU time. If the batch job runs at default or elevated
+priority and saturates all cores, these agents may fail to respond to
+heartbeat probes.</li>
+<li><strong>False-Positive Instance Failures:</strong> If an
+orchestrator or load balancer health check times out because the OS
+could not schedule the agent thread in time, the control plane may mark
+the instance as unhealthy and terminate it mid-job.</li>
+</ul>
+<h2 id="best-practices-for-running-batch-jobs-at-100-cpu">Best Practices
+for Running Batch Jobs at 100% CPU</h2>
+<p>For batch processing workloads—such as video encoding, financial risk
+modeling, scientific simulations, or data compression—running near 100
+percent CPU utilization is often the goal, as it maximizes cost
+efficiency per dollar spent on EC2. To maintain stability at maximum
+load, apply the following practices:</p>
+<h3 id="1-match-worker-threads-to-vcpu-or-physical-core-counts">1. Match
+Worker Threads to vCPU or Physical Core Counts</h3>
+<p>Configure your batch application thread pool to match the hardware
+concurrency of the instance. For floating-point-heavy workloads on x86
+instances, test whether binding one thread per physical core (<span
+class="math inline">\(0.5 \times N_{\text{vCPUs}}\)</span>) completes
+batches faster than saturating all hyperthreads.</p>
+<h3 id="2-lower-the-process-priority-of-the-batch-job">2. Lower the
+Process Priority of the Batch Job</h3>
+<p>Use the Linux <code>nice</code> command or <code>cgroups</code> (such
+as Kubernetes CPU shares/requests or systemd <code>CPUWeight</code>) to
+run the batch worker at a slightly lower scheduling priority than system
+daemons:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nice</span> <span class="at">-n</span> 10 ./run-batch-worker <span class="at">--threads</span> <span class="va">$(</span><span class="fu">nproc</span><span class="va">)</span></span></code></pre></div>
+<p>This allows the batch job to consume 100 percent of the CPU when
+nothing else needs it, while guaranteeing that SSH, SSM, monitoring
+agents, and kernel I/O threads immediately preempt the batch job when
+they need a few milliseconds of compute time.</p>
+<h3 id="3-monitor-load-average-alongside-cpu-utilization">3. Monitor
+Load Average Alongside CPU Utilization</h3>
+<p>Amazon CloudWatch <code>CPUUtilization</code> tops out at 100
+percent, which masks whether your instance is running efficiently with 1
+thread per vCPU or thrashing with 50 threads per vCPU. Use the
+CloudWatch Agent to collect internal OS metrics—specifically
+<code>cpu_usage_iowait</code>, <code>processes_running</code>, and
+system load averages (<code>load1</code>, <code>load5</code>,
+<code>load15</code>)—to verify that 100 percent utilization reflects
+productive compute rather than scheduling bottleneck.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-at-100-cpu-on-an-amazon-ec-2-c-series-instance';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

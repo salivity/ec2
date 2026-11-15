@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Should You Choose Amazon EC2 Over AWS Lambda? - ec2</title>
+    <meta name="description" content="Cloud architects should select Amazon EC2 over serverless compute options like AWS Lambda when workloads require long execution times, predictable high-throughput pricing, specialized hardware, or granular control over the underlying operating system. Whi">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-should-you-choose-amazon-ec-2-over-aws-lambda">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When Should You Choose Amazon EC2 Over AWS Lambda? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-should-you-choose-amazon-ec-2-over-aws-lambda" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Cloud architects should select Amazon EC2 over serverless compute options like AWS Lambda when workloads require long execution times, predictable high-throughput pricing, specialized hardware, or granular control over the underlying operating system. Whi" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="when-should-you-choose-amazon-ec2-over-aws-lambda">When Should
+You Choose Amazon EC2 Over AWS Lambda?</h1>
+<p>Cloud architects should select Amazon EC2 over serverless compute
+options like AWS Lambda when workloads require long execution times,
+predictable high-throughput pricing, specialized hardware, or granular
+control over the underlying operating system. While AWS Lambda excels at
+event-driven, short-lived, and variable workloads by removing
+infrastructure management, its execution limits and per-invocation
+pricing model make it unsuitable for every architecture. Understanding
+the operational, financial, and technical boundaries of both services
+ensures that applications run on the most cost-effective and performant
+compute platform.</p>
+<h2 id="1-execution-duration-and-stateful-workloads">1. Execution
+Duration and Stateful Workloads</h2>
+<p>AWS Lambda enforces a strict maximum execution timeout of 15 minutes
+per invocation. If a process cannot be broken down into smaller,
+stateless chunks that complete within this window, Amazon EC2 is the
+appropriate choice.</p>
+<p>Workloads that naturally fit EC2 due to duration or state
+requirements include:</p>
+<ul>
+<li><strong>Long-running batch jobs:</strong> Data processing pipelines,
+video transcoding, and financial modeling that run continuously for
+hours.</li>
+<li><strong>Persistent connections:</strong> Applications requiring
+long-lived WebSocket connections, custom TCP/UDP sockets, or continuous
+streaming protocols where maintaining state in memory is critical.</li>
+<li><strong>Monolithic or legacy applications:</strong> Traditional
+enterprise software designed to keep state in local memory or rely on
+local filesystem persistence across transactions.</li>
+</ul>
+<h2 id="2-predictable-high-utilization-cost-optimization">2.
+Predictable, High-Utilization Cost Optimization</h2>
+<p>Serverless compute uses a pay-per-use billing model based on the
+number of requests and the duration of execution measured in
+gigabyte-seconds (<span class="math inline">\(\text{GB-s}\)</span>). We
+can express the monthly compute cost for AWS Lambda as:</p>
+<p><span class="math display">\[\text{Cost}_{\text{Lambda}} = N \times D
+\times M \times C_{\text{GB-s}} + N \times C_{\text{req}}\]</span></p>
+<p>Where <span class="math inline">\(N\)</span> is the number of
+invocations, <span class="math inline">\(D\)</span> is the average
+duration in seconds, <span class="math inline">\(M\)</span> is the
+allocated memory in gigabytes, <span
+class="math inline">\(C_{\text{GB-s}}\)</span> is the price per
+gigabyte-second, and <span class="math inline">\(C_{\text{req}}\)</span>
+is the price per request.</p>
+<p>When traffic is spiky or infrequent, Lambda is highly economical
+because idle capacity costs nothing. However, for steady-state,
+high-throughput workloads running at high utilization24/7, Lambda's
+per-millisecond premium becomes more expensive than provisioned
+infrastructure.</p>
+<p>On Amazon EC2, architects can leverage EC2 Savings Plans or Reserved
+Instances to commit to consistent usage in exchange for discounts of up
+to 72% compared to On-Demand rates. Once a workload crosses a specific
+utilization threshold—often around 25% to 40% continuous load—EC2
+instances generally deliver a lower total cost of ownership than
+equivalent serverless functions.</p>
+<h2 id="3-specialized-hardware-and-high-resource-demands">3. Specialized
+Hardware and High Resource Demands</h2>
+<p>AWS Lambda provides a fixed ceiling of resources: up to 10 GB of
+memory and 6 vCPUs per execution environment, with no access to
+specialized hardware accelerators. Amazon EC2 offers hundreds of
+instance types tailored to demanding hardware specifications:</p>
+<ul>
+<li><strong>GPU and AI/ML Acceleration:</strong> Instance families like
+P5, G6, and Inf2 provide NVIDIA GPUs or AWS Inferentia chips required
+for deep learning training, complex inference, and graphics
+rendering.</li>
+<li><strong>High Memory and Compute:</strong> Workloads such as
+in-memory databases (e.g., SAP HANA) or high-performance computing (HPC)
+simulations can utilize EC2 instances offering multiple terabytes of RAM
+and hundreds of vCPUs.</li>
+<li><strong>High-Performance Storage and Networking:</strong> EC2
+supports local NVMe instance store volumes for ultra-low-latency disk
+I/O and Elastic Fabric Adapter (EFA) for tightly coupled cluster
+networking.</li>
+</ul>
+<h2 id="4-granular-control-over-the-os-and-runtime-environment">4.
+Granular Control Over the OS and Runtime Environment</h2>
+<p>Serverless environments abstract the underlying operating system,
+which restricts low-level customization. A cloud architect must choose
+Amazon EC2 when the application requires:</p>
+<ul>
+<li><strong>Custom Kernels or OS Tuning:</strong> Modifying Linux kernel
+parameters (<code>sysctl</code>), installing custom kernel modules, or
+running specific operating systems like Windows Server, Red Hat
+Enterprise Linux, or macOS.</li>
+<li><strong>System-Level Daemons and Agents:</strong> Running custom
+security agents, network packet sniffers, or monitoring tools that
+require root privileges (<code>sudo</code>) or direct access to the host
+network interface.</li>
+<li><strong>Third-Party Licensing Constraints:</strong> Software vendors
+often tie licenses to physical cores, sockets, or specific host IDs,
+requiring EC2 Dedicated Hosts or Dedicated Instances to maintain
+compliance.</li>
+</ul>
+<h2 id="5-eliminating-cold-starts-for-ultra-low-latency">5. Eliminating
+Cold Starts for Ultra-Low Latency</h2>
+<p>When an AWS Lambda function is invoked for the first time or scales
+up to meet a sudden burst of traffic, it experiences a "cold start"
+while AWS provisions a new execution environment and initializes the
+code. Although features like Provisioned Concurrency and SnapStart
+mitigate this latency, they add cost and configuration complexity.</p>
+<p>For ultra-low-latency applications—such as high-frequency trading
+platforms, real-time bidding engines, or gaming servers—where every
+millisecond of jitter impacts the user experience, running pre-warmed
+application servers on Amazon EC2 guarantees immediate request
+processing without initialization overhead.</p>
+<h2 id="summary-comparison-matrix">Summary Comparison Matrix</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Architectural Factor</th>
+<th style="text-align: left;">Select Amazon EC2</th>
+<th style="text-align: left;">Select AWS Lambda</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Traffic Pattern</strong></td>
+<td style="text-align: left;">Predictable, steady-state, high
+volume</td>
+<td style="text-align: left;">Unpredictable, spiky, or infrequent</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Execution Time</strong></td>
+<td style="text-align: left;">Greater than 15 minutes or continuous</td>
+<td style="text-align: left;">Short-lived, under 15 minutes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>State Management</strong></td>
+<td style="text-align: left;">Stateful, in-memory session
+persistence</td>
+<td style="text-align: left;">Stateless, event-driven</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hardware Needs</strong></td>
+<td style="text-align: left;">GPUs, &gt;10 GB RAM, &gt;6 vCPUs, high
+disk I/O</td>
+<td style="text-align: left;">Standard CPU/memory up to 10 GB</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>OS &amp; Runtime
+Control</strong></td>
+<td style="text-align: left;">Full root access, custom OS, kernel
+tuning</td>
+<td style="text-align: left;">Managed runtime or container image
+only</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Operational Overhead</strong></td>
+<td style="text-align: left;">High (patching, scaling, security)</td>
+<td style="text-align: left;">Minimal (fully managed scaling and
+OS)</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-should-you-choose-amazon-ec-2-over-aws-lambda';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

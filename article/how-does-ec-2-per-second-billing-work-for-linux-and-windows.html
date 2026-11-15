@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does EC2 Per-Second Billing Work for Linux and Windows? - ec2</title>
+    <meta name="description" content="Amazon EC2 per-second billing charges users for the exact number of seconds their Linux and Windows instances remain in a running state, subject to a 60-second minimum charge per launch. This model applies to open-source Linux distributions such as Amazon">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-ec-2-per-second-billing-work-for-linux-and-windows">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does EC2 Per-Second Billing Work for Linux and Windows? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-ec-2-per-second-billing-work-for-linux-and-windows" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 per-second billing charges users for the exact number of seconds their Linux and Windows instances remain in a running state, subject to a 60-second minimum charge per launch. This model applies to open-source Linux distributions such as Amazon" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-ec2-per-second-billing-work-for-linux-and-windows">How
+Does EC2 Per-Second Billing Work for Linux and Windows?</h1>
+<p>Amazon EC2 per-second billing charges users for the exact number of
+seconds their Linux and Windows instances remain in a running state,
+subject to a 60-second minimum charge per launch. This model applies to
+open-source Linux distributions such as Amazon Linux, Ubuntu, and
+Debian, as well as Windows Server instances across On-Demand, Reserved,
+and Spot purchasing models. By eliminating paying for unused minutes at
+the end of an hour, per-second billing lowers compute costs for
+variable, transient, and auto-scaling workloads. Commercial third-party
+operating systems with separate licensing agreements and hourly AWS
+Marketplace products may still default to hourly increments.</p>
+<h2 id="core-mechanics-of-ec2-per-second-billing">Core Mechanics of EC2
+Per-Second Billing</h2>
+<p>When you launch an eligible Amazon EC2 instance, billing starts the
+moment the instance transitions into the <code>running</code> state and
+stops immediately when the instance enters the <code>stopping</code> or
+<code>shutting-down</code> state. Instead of rounding usage up to the
+nearest full hour, AWS calculates the billable duration down to a single
+second.</p>
+<p>Every time an instance is started or launched, AWS enforces a
+60-second minimum charge. If an instance runs for 25 seconds and is then
+terminated, your account is billed for 60 seconds. Once usage exceeds 60
+seconds, charges accumulate strictly on a per-second basis. If you stop
+an instance and start it again later, that subsequent start begins a new
+billing period subject to its own 60-second minimum.</p>
+<h2 id="operating-system-eligibility-linux-vs-windows">Operating System
+Eligibility: Linux vs. Windows</h2>
+<p>While both Linux and Windows instances support per-second billing,
+licensing structures determine which distributions qualify.</p>
+<h3 id="linux-instances">Linux Instances</h3>
+<p>Per-second billing was initially introduced for open-source Linux
+distributions that do not carry external commercial licensing fees. The
+following Linux operating systems are billed per second:</p>
+<ul>
+<li>Amazon Linux and Amazon Linux 2 / 2023</li>
+<li>Ubuntu</li>
+<li>CentOS and Rocky Linux</li>
+<li>Debian</li>
+<li>Fedora</li>
+</ul>
+<p>Commercial Linux distributions that bundle paid support or
+subscription licenses directly into the EC2 instance price follow
+different rules. Red Hat Enterprise Linux (RHEL) and SUSE Linux
+Enterprise Server (SLES) have historically relied on hourly billing
+unless launched through specific Bring Your Own Subscription (BYOS)
+programs or updated AWS licensing tiers that explicitly enable
+per-second tracking.</p>
+<h3 id="windows-instances">Windows Instances</h3>
+<p>AWS extended per-second billing to Windows Server instances
+(including Windows Server with SQL Server) across standard EC2
+purchasing options. When running licensed Windows AMIs provided by AWS,
+the per-second rate incorporates both the underlying compute hardware
+and the Microsoft Windows Server license cost, prorated to the second
+after the 60-second minimum threshold.</p>
+<h2 id="supported-purchasing-options">Supported Purchasing Options</h2>
+<p>Per-second billing works across the primary EC2 purchasing
+models:</p>
+<ul>
+<li><strong>On-Demand Instances:</strong> Billed directly per second
+based on the published hourly rate divided by 3,600.</li>
+<li><strong>Spot Instances:</strong> Billed per second at the prevailing
+Spot market price, allowing interrupted or short-lived batch jobs to pay
+only for exact runtimes.</li>
+<li><strong>Reserved Instances and Savings Plans:</strong> Per-second
+usage is aggregated across an entire billing hour. If you hold one
+Reserved Instance for a <code>c6i.large</code> in a specific
+Availability Zone, you receive 3,600 seconds of discounted compute
+capacity inside that clock hour. You can consume those 3,600 seconds by
+running one instance for a full hour, four instances concurrently for 15
+minutes, or sixty instances concurrently for 1 minute.</li>
+<li><strong>Dedicated Hosts and Dedicated Instances:</strong> The
+per-second model applies to qualified instances launched onto Dedicated
+infrastructure, though the underlying Dedicated Host reservation itself
+may follow separate hourly or commitment terms.</li>
+</ul>
+<h2 id="cost-calculation-formula">Cost Calculation Formula</h2>
+<p>Although usage is tracked in seconds, AWS price sheets list EC2 rates
+per hour and report line items on your monthly bill in decimal hours. To
+calculate the exact cost <span class="math inline">\(C\)</span> of
+running an instance for <span class="math inline">\(t\)</span> seconds
+at a published hourly rate <span class="math inline">\(R\)</span>, use
+the following formula:</p>
+<p><span class="math display">\[C = \max(t, 60) \times
+\frac{R}{3600}\]</span></p>
+<p>Similarly, the billable quantity in hours <span
+class="math inline">\(H\)</span> displayed on your AWS Cost and Usage
+Report is calculated as:</p>
+<p><span class="math display">\[H = \frac{\max(t,
+60)}{3600}\]</span></p>
+<h3 id="calculation-example">Calculation Example</h3>
+<p>Suppose you run a Windows Server <code>m6i.xlarge</code> instance
+with an On-Demand hourly rate of <span class="math inline">\(R =
+\$0.376\)</span> for 15 minutes and 30 seconds (<span
+class="math inline">\(t = 930\)</span> seconds):</p>
+<ol type="1">
+<li>Verify that <span class="math inline">\(t \ge 60\)</span>: Since
+<span class="math inline">\(930 &gt; 60\)</span>, the actual runtime of
+930 seconds is used.</li>
+<li>Convert seconds to decimal hours: <span class="math display">\[H =
+\frac{930}{3600} \approx 0.258333 \text{ hours}\]</span></li>
+<li>Multiply by the hourly rate: <span class="math display">\[C = 930
+\times \frac{0.376}{3600} \approx \$0.09713\]</span></li>
+</ol>
+<p>Under legacy hourly billing, this 15.5-minute task would have cost
+the full <span class="math inline">\(\$0.376\)</span> for one hour. With
+per-second billing, the cost drops to <span
+class="math inline">\(\$0.097\)</span>, saving roughly <span
+class="math inline">\(74\%\)</span>.</p>
+<h2 id="related-services-and-exceptions">Related Services and
+Exceptions</h2>
+<p>When budgeting for EC2 workloads, remember how attached resources and
+Marketplace software interact with per-second billing:</p>
+<ul>
+<li><strong>Amazon EBS Volumes:</strong> Provisioned Elastic Block Store
+(EBS) volumes (<code>gp3</code>, <code>gp2</code>, <code>io2</code>) and
+snapshots are also billed in per-second increments (with a 60-second
+minimum). However, EBS storage charges continue to accrue while an EC2
+instance is in the <code>stopped</code> state because the storage blocks
+remain allocated until the volume is deleted.</li>
+<li><strong>AWS Marketplace AMIs:</strong> Many third-party software
+appliances sold on the AWS Marketplace charge an hourly software fee on
+top of the base EC2 infrastructure cost. While the underlying EC2
+instance might be billed per second, the third-party software vendor fee
+may still bill by the full hour unless the vendor supports per-second
+metering.</li>
+<li><strong>Elastic IP Addresses:</strong> Unassociated Elastic IP
+addresses or additional IPs attached to instances are billed on an
+hourly basis rather than per second.</li>
+</ul>
+<h2 id="workloads-that-benefit-most">Workloads That Benefit Most</h2>
+<p>Per-second billing provides the greatest financial impact for elastic
+and ephemeral compute patterns:</p>
+<ul>
+<li><strong>CI/CD Build Agents:</strong> Automated testing and
+compilation runners that spin up for 3 to 8 minutes per pull request and
+terminate immediately afterward.</li>
+<li><strong>Auto Scaling Groups:</strong> Web tiers that scale out
+rapidly during brief traffic spikes and scale back in within minutes
+once demand subsides.</li>
+<li><strong>Container Clusters (ECS and EKS):</strong> Worker nodes
+managed by Karpenter or Cluster Autoscaler that provision capacity for
+burst pods and deprovision nodes as soon as jobs finish.</li>
+<li><strong>Batch Processing and Analytics:</strong> Amazon EMR
+clusters, data transcoding pipelines, and machine learning training jobs
+that scale horizontally across hundreds of nodes to finish a multi-hour
+job in a few minutes.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-ec-2-per-second-billing-work-for-linux-and-windows';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

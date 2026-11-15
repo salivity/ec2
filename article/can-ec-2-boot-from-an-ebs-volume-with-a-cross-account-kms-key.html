@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can EC2 boot from an EBS volume with a cross-account KMS key? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 can boot from an encrypted root EBS volume using a customer-managed KMS key shared from another AWS account. This article explains the permission requirements in both the source and target AWS accounts, how to configure the KMS key policy">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-ec-2-boot-from-an-ebs-volume-with-a-cross-account-kms-key">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can EC2 boot from an EBS volume with a cross-account KMS key? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-ec-2-boot-from-an-ebs-volume-with-a-cross-account-kms-key" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 can boot from an encrypted root EBS volume using a customer-managed KMS key shared from another AWS account. This article explains the permission requirements in both the source and target AWS accounts, how to configure the KMS key policy" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="can-ec2-boot-from-an-ebs-volume-with-a-cross-account-kms-key">Can
+EC2 boot from an EBS volume with a cross-account KMS key?</h1>
+<p>Yes, Amazon EC2 can boot from an encrypted root EBS volume using a
+customer-managed KMS key shared from another AWS account. This article
+explains the permission requirements in both the source and target AWS
+accounts, how to configure the KMS key policy and IAM roles, and the
+steps needed to launch an instance from a shared encrypted AMI or
+snapshot.</p>
+<h2 id="how-cross-account-kms-encryption-works-for-root-volumes">How
+Cross-Account KMS Encryption Works for Root Volumes</h2>
+<p>When an Amazon EC2 instance boots from an encrypted Amazon Elastic
+Block Store (EBS) root volume, the EC2 service must communicate with AWS
+Key Management Service (KMS) to generate a data key and decrypt the
+volume's encryption key. When the KMS key resides in a different AWS
+account (the key owner account) than the EC2 instance (the target
+account), permissions must be explicitly granted on both sides:</p>
+<ol type="1">
+<li><strong>Key Owner Account</strong>: The KMS key policy must allow
+the target AWS account (or specific IAM principals within it) to perform
+cryptographic operations and create grants.</li>
+<li><strong>Target Account</strong>: The IAM user or role launching the
+EC2 instance must have IAM policy permissions to use the remote KMS key
+via its full Amazon Resource Name (ARN).</li>
+</ol>
+<p>Note that AWS-managed keys (such as the default <code>aws/ebs</code>
+key) cannot be shared across accounts. You must use a
+<strong>customer-managed key (CMK)</strong> to share encrypted snapshots
+or AMIs and boot instances across account boundaries.</p>
+<h2 id="step-1-configure-the-kms-key-policy-in-the-source-account">Step
+1: Configure the KMS Key Policy in the Source Account</h2>
+<p>In the AWS account that owns the customer-managed KMS key (Account
+A), update the key policy to grant access to the target AWS account
+(Account B). Amazon EBS requires both standard cryptographic permissions
+and grant permissions (<code>kms:CreateGrant</code>,
+<code>kms:ListGrants</code>, <code>kms:RevokeGrant</code>) so the EC2
+infrastructure can attach and manage the volume.</p>
+<p>Add the following statements to your KMS key policy in Account A,
+replacing <code>222222222222</code> with the 12-digit account ID of
+Account B:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;2012-10-17&quot;</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Statement&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;AllowUseOfTheKeyCrossAccount&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Principal&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;AWS&quot;</span><span class="fu">:</span> <span class="st">&quot;arn:aws:iam::222222222222:root&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:Encrypt&quot;</span><span class="ot">,</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:Decrypt&quot;</span><span class="ot">,</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:ReEncrypt*&quot;</span><span class="ot">,</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:GenerateDataKey*&quot;</span><span class="ot">,</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:DescribeKey&quot;</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;*&quot;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;AllowAttachmentOfPersistentResourcesCrossAccount&quot;</span><span class="fu">,</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Principal&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;AWS&quot;</span><span class="fu">:</span> <span class="st">&quot;arn:aws:iam::222222222222:root&quot;</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:CreateGrant&quot;</span><span class="ot">,</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:ListGrants&quot;</span><span class="ot">,</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:RevokeGrant&quot;</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;*&quot;</span><span class="fu">,</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Condition&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;Bool&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;kms:GrantIsForAWSResource&quot;</span><span class="fu">:</span> <span class="st">&quot;true&quot;</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Specifying <code>arn:aws:iam::222222222222:root</code> delegates
+permission management to Account B's IAM administrators rather than
+granting access to every principal in Account B automatically. The
+<code>kms:GrantIsForAWSResource</code> condition ensures that grants can
+only be created when an integrated AWS service like Amazon EBS or EC2
+requests them on the user's behalf.</p>
+<h2 id="step-2-configure-iam-permissions-in-the-target-account">Step 2:
+Configure IAM Permissions in the Target Account</h2>
+<p>In the target account where the EC2 instance will run (Account B),
+attach an IAM policy to the user or role responsible for launching the
+EC2 instance (or to the Auto Scaling service-linked role if launching
+via an Auto Scaling group).</p>
+<p>Replace <code>111111111111</code> with Account A's ID and provide the
+specific key ID:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;2012-10-17&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Statement&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;AllowTargetPrincipalToUseCrossAccountKMSKey&quot;</span><span class="fu">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:Decrypt&quot;</span><span class="ot">,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:GenerateDataKeyWithoutPlaintext&quot;</span><span class="ot">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:ReEncryptFrom&quot;</span><span class="ot">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:ReEncryptTo&quot;</span><span class="ot">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:DescribeKey&quot;</span><span class="ot">,</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:CreateGrant&quot;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;arn:aws:kms:us-east-1:111111111111:key/12345678-1234-1234-1234-123456789012&quot;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="special-consideration-for-auto-scaling-groups">Special
+Consideration for Auto Scaling Groups</h3>
+<p>If you are launching EC2 instances in Account B using an Amazon EC2
+Auto Scaling group, the <strong>Service-Linked Role</strong>
+(<code>AWSServiceRoleForAutoScaling</code>) in Account B initiates the
+instance launch. Because you cannot modify the inline IAM policies of a
+service-linked role directly, you must add the Auto Scaling
+service-linked role ARN of Account B
+(<code>arn:aws:iam::222222222222:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling</code>)
+directly into the <code>Principal</code> section of the KMS key policy
+in Account A, or create a KMS grant for it using the AWS CLI.</p>
+<h2 id="step-3-share-the-ami-or-snapshot-and-launch-the-instance">Step
+3: Share the AMI or Snapshot and Launch the Instance</h2>
+<p>To boot an EC2 instance using a shared key, you typically share an
+Amazon Machine Image (AMI) backed by an encrypted root snapshot from
+Account A to Account B:</p>
+<ol type="1">
+<li><strong>Create the AMI with a Customer-Managed Key</strong>: Ensure
+the AMI's root volume snapshot in Account A is encrypted with your
+customer-managed KMS key (not the default <code>aws/ebs</code>
+key).</li>
+<li><strong>Share the AMI</strong>: Modify the AMI's launch permissions
+in Account A to share it with Account B (<code>222222222222</code>).
+When you share an AMI through the console or API, AWS automatically
+shares the underlying EBS snapshots for launch purposes.</li>
+<li><strong>Launch the EC2 Instance in Account B</strong>:
+<ul>
+<li>You can launch the instance directly using the shared AMI and leave
+the root volume encrypted with Account A's KMS key.</li>
+<li>Alternatively, during launch (via <code>RunInstances</code>), you
+can specify a new KMS key owned by Account B in the
+<code>BlockDeviceMappings</code> parameter. Amazon EBS will decrypt the
+snapshot data using Account A's key and re-encrypt the newly created
+root volume on the fly using Account B's KMS key.</li>
+</ul></li>
+</ol>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--instance-type</span> t3.micro <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--block-device-mappings</span> <span class="st">&#39;[</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="st">    {</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;DeviceName&quot;: &quot;/dev/xvda&quot;,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;Ebs&quot;: {</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;Encrypted&quot;: true,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;KmsKeyId&quot;: &quot;arn:aws:kms:us-east-1:111111111111:key/12345678-1234-1234-1234-123456789012&quot;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="st">      }</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="st">    }</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="st">  ]&#39;</span></span></code></pre></div>
+<h2 id="troubleshooting-immediate-instance-termination">Troubleshooting
+Immediate Instance Termination</h2>
+<p>If your EC2 instance enters the <code>pending</code> state and
+immediately transitions to <code>shutting-down</code> and
+<code>terminated</code> with a state transition reason of
+<code>Client.InternalError</code> or
+<code>Client.UserInitiatedShutdown</code>, KMS permission failure is the
+most common cause.</p>
+<p>Check AWS CloudTrail in <strong>both Account A and Account B</strong>
+for <code>CreateGrant</code>, <code>Decrypt</code>, or
+<code>GenerateDataKeyWithoutPlaintext</code> events with an
+<code>AccessDenied</code> error code. Common issues include:</p>
+<ul>
+<li>The KMS key is in a different AWS Region than the EC2 instance (KMS
+keys are regional resources unless configured as Multi-Region
+keys).</li>
+<li>Missing <code>kms:CreateGrant</code> permission in either the KMS
+key policy or the launching principal's IAM policy.</li>
+<li>The KMS key in Account A is disabled or pending deletion. If the key
+is disabled later in Account A, running instances in Account B will
+continue operating until they are stopped and started again, at which
+point they will fail to boot.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-ec-2-boot-from-an-ebs-volume-with-a-cross-account-kms-key';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

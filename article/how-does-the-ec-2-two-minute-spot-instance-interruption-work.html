@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How does the EC2 two-minute Spot Instance interruption work? - ec2</title>
+    <meta name="description" content="The Amazon EC2 two-minute Spot Instance interruption notice is an automated warning issued when AWS needs to reclaim spare compute capacity. This mechanism provides applications with exactly 120 seconds before an instance is terminated, stopped, or hibern">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-the-ec-2-two-minute-spot-instance-interruption-work">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How does the EC2 two-minute Spot Instance interruption work? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-the-ec-2-two-minute-spot-instance-interruption-work" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Amazon EC2 two-minute Spot Instance interruption notice is an automated warning issued when AWS needs to reclaim spare compute capacity. This mechanism provides applications with exactly 120 seconds before an instance is terminated, stopped, or hibern" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-the-ec2-two-minute-spot-instance-interruption-work">How
+does the EC2 two-minute Spot Instance interruption work?</h1>
+<p>The Amazon EC2 two-minute Spot Instance interruption notice is an
+automated warning issued when AWS needs to reclaim spare compute
+capacity. This mechanism provides applications with exactly 120 seconds
+before an instance is terminated, stopped, or hibernated. Organizations
+detect this signal by either polling the local instance metadata service
+or listening for events through Amazon EventBridge. This brief window
+enables automated workflows to save state, drain active network
+connections, upload final log files, and safely detach from load
+balancers before the underlying virtual machine shuts down.</p>
+<h2 id="why-amazon-ec2-interrupts-spot-instances">Why Amazon EC2
+Interrupts Spot Instances</h2>
+<p>Spot Instances run on unused EC2 capacity offered at a steep discount
+compared to On-Demand pricing. Because this pool of spare compute
+fluctuates continuously, Amazon EC2 reserves the right to reclaim those
+resources at any time. Interruptions primarily occur for the following
+reasons:</p>
+<ul>
+<li><strong>Capacity requirements:</strong> Demand for On-Demand or
+Reserved Instances increases in a specific Availability Zone, requiring
+EC2 to pull hardware back from the Spot pool.</li>
+<li><strong>Price fluctuations:</strong> If you set a maximum price for
+your Spot request and the current Spot market price rises above that
+threshold, your instance is marked for interruption.</li>
+<li><strong>Constraint fulfillment:</strong> If your Spot request
+includes specific availability or launch group constraints that can no
+longer be satisfied, EC2 initiates an interruption.</li>
+</ul>
+<p>When an interruption is triggered, AWS determines the final action
+based on your configuration: terminating the instance (the default
+behavior), stopping the instance on Amazon EBS, or hibernating the
+instance memory state to disk. For stop and terminate actions, the
+two-minute countdown begins immediately. Note that if you configure
+hibernation as the interruption behavior, the instance begins
+hibernating immediately upon receiving the notice without waiting for
+the two-minute window to expire.</p>
+<h2
+id="detecting-the-interruption-notice-via-instance-metadata">Detecting
+the Interruption Notice via Instance Metadata</h2>
+<p>The most direct way for a running workload to detect its own
+impending shutdown is by querying the EC2 Instance Metadata Service
+(IMDS) from inside the guest operating system. When EC2 marks an
+instance for reclamation, it publishes an <code>instance-action</code>
+item to the metadata endpoint at the local link-local address
+<code>169.254.169.254</code>.</p>
+<p>Because the metadata service does not push notifications to the
+operating system, a local daemon or script must poll the endpoint every
+5 seconds. When no interruption is pending, the endpoint returns an HTTP
+<code>404 Not Found</code> status code. Once an interruption is
+scheduled, it returns an HTTP <code>200 OK</code> along with a JSON
+payload containing the scheduled action and the exact UTC timestamp when
+the shutdown will occur.</p>
+<p>Using IMDSv2 (which requires a session token for security), a
+monitoring script checks the endpoint as follows:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">TOKEN</span><span class="op">=</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-X</span> PUT <span class="st">&quot;http://169.254.169.254/latest/api/token&quot;</span> <span class="at">-H</span> <span class="st">&quot;X-aws-ec2-metadata-token-ttl-seconds: 21600&quot;</span> <span class="at">-s</span><span class="va">)</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="va">HTTP_CODE</span><span class="op">=</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-H</span> <span class="st">&quot;X-aws-ec2-metadata-token: </span><span class="va">$TOKEN</span><span class="st">&quot;</span> <span class="at">-s</span> <span class="at">-w</span> <span class="st">&quot;%{http_code}&quot;</span> <span class="at">-o</span> /tmp/spot-action.json http://169.254.169.254/latest/meta-data/spot/instance-action<span class="va">)</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="st">&quot;</span><span class="va">$HTTP_CODE</span><span class="st">&quot;</span> <span class="ot">-eq</span> 200 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span> /tmp/spot-action.json</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Trigger local graceful shutdown scripts here</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code></pre></div>
+<p>When an interruption is active, the output stored in
+<code>/tmp/spot-action.json</code> looks like this:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;action&quot;</span><span class="fu">:</span> <span class="st">&quot;terminate&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;time&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-11-15T11:00:00Z&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="detecting-the-notice-via-amazon-eventbridge">Detecting the
+Notice via Amazon EventBridge</h2>
+<p>Instead of polling from within every individual virtual machine, you
+can monitor Spot interruptions centrally using Amazon EventBridge. When
+EC2 prepares to reclaim a Spot Instance, it emits an event to the
+default EventBridge event bus two minutes prior to the interruption
+action.</p>
+<p>This event-driven approach allows external orchestration services to
+react without relying on agents inside the instance. You can configure
+an EventBridge rule matching the following pattern to trigger AWS Lambda
+functions, Amazon SNS notifications, or AWS Systems Manager Run Command
+documents:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;aws.ec2&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;detail-type&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;EC2 Spot Instance Interruption Warning&quot;</span><span class="ot">]</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>The generated event payload identifies the exact
+<code>instance-id</code> and <code>instance-action</code>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;0&quot;</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;12345678-1234-1234-1234-123456789012&quot;</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;detail-type&quot;</span><span class="fu">:</span> <span class="st">&quot;EC2 Spot Instance Interruption Warning&quot;</span><span class="fu">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;aws.ec2&quot;</span><span class="fu">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;account&quot;</span><span class="fu">:</span> <span class="st">&quot;111122223333&quot;</span><span class="fu">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;time&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-11-15T10:58:00Z&quot;</span><span class="fu">,</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;region&quot;</span><span class="fu">:</span> <span class="st">&quot;us-east-1&quot;</span><span class="fu">,</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;resources&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;arn:aws:ec2:us-east-1b:instance/i-0abcdef1234567890&quot;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;detail&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;instance-id&quot;</span><span class="fu">:</span> <span class="st">&quot;i-0abcdef1234567890&quot;</span><span class="fu">,</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;instance-action&quot;</span><span class="fu">:</span> <span class="st">&quot;terminate&quot;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2
+id="automated-handling-for-containers-and-auto-scaling-groups">Automated
+Handling for Containers and Auto Scaling Groups</h2>
+<p>When running workloads on orchestration platforms, specialized AWS
+tools manage the two-minute notice automatically so you do not have to
+write custom polling scripts:</p>
+<ul>
+<li><strong>Amazon EKS:</strong> The open-source AWS Node Termination
+Handler runs as a DaemonSet on each Spot node. It polls IMDS, detects
+the two-minute warning, cordons the Kubernetes node to prevent new pods
+from scheduling, and drains existing pods so they can relocate to
+healthy nodes. Alternatively, Karpenter handles Spot interruption events
+natively via EventBridge queues, provisioning replacement capacity and
+draining nodes automatically.</li>
+<li><strong>Amazon ECS:</strong> By setting the
+<code>ECS_ENABLE_SPOT_INSTANCE_DRAINING</code> parameter to
+<code>true</code> in the ECS container agent configuration
+(<code>/etc/ecs/ecs.config</code>), the agent monitors IMDS
+automatically. Upon receiving the two-minute warning, the agent sets the
+instance state to <code>DRAINING</code>, stops placing new tasks on the
+host, and sends <code>SIGTERM</code> signals to running containers.</li>
+<li><strong>EC2 Auto Scaling and Elastic Load Balancing:</strong> If a
+Spot Instance is registered to an Application Load Balancer or Network
+Load Balancer through an Auto Scaling group, configuring a
+deregistration delay (connection draining) shorter than 120 seconds
+(such as 60 to 90 seconds) ensures in-flight requests complete cleanly
+when detachment is triggered.</li>
+</ul>
+<h2 id="designing-workloads-for-the-120-second-window">Designing
+Workloads for the 120-Second Window</h2>
+<p>To prevent data corruption or dropped requests, your shutdown
+procedures must complete well within the allotted window. If an instance
+is detected at <span class="math inline">\(t_{\text{detect}}\)</span>
+and scheduled for reclamation at <span
+class="math inline">\(t_{\text{action}}\)</span>, the effective time
+remaining <span class="math inline">\(\Delta t\)</span> is governed by
+your polling interval <span
+class="math inline">\(I_{\text{poll}}\)</span> and network latency <span
+class="math inline">\(L_{\text{net}}\)</span>:</p>
+<p><span class="math display">\[\Delta t = (t_{\text{action}} -
+t_{\text{detect}}) - I_{\text{poll}} - L_{\text{net}} \le 120\text{
+seconds}\]</span></p>
+<p>To ensure reliable recovery, engineering teams follow three primary
+practices during this window:</p>
+<ol type="1">
+<li><strong>Fail health checks immediately:</strong> Have your local
+shutdown script immediately return an unhealthy status code on your
+application's load balancer health check endpoint. This stops new
+traffic from routing to the instance within seconds.</li>
+<li><strong>Enforce strict process timeouts:</strong> Configure your
+service manager (<code>systemd</code> or container runtime) to send a
+<code>SIGTERM</code> signal to application processes immediately,
+followed by a <code>SIGKILL</code> well before the 120 seconds expire
+(for example, at 90 seconds), leaving 30 seconds for flushing logs or
+final metrics to Amazon S3 or CloudWatch.</li>
+<li><strong>Combine with EC2 Capacity Rebalancing:</strong> In addition
+to the two-minute interruption notice, AWS offers an early warning
+signal called the EC2 Instance Rebalance Recommendation. This signal
+fires when a Spot Instance is at an elevated risk of interruption—often
+several minutes before the mandatory two-minute countdown
+begins—allowing Auto Scaling groups and Kubernetes cluster autoscalers
+to proactively launch replacement instances before capacity is actually
+reclaimed.</li>
+</ol>
+<h2
+id="testing-your-interruption-handling-with-aws-fault-injection-service">Testing
+Your Interruption Handling with AWS Fault Injection Service</h2>
+<p>Waiting for a natural Spot interruption in production is an
+unreliable way to verify your shutdown scripts. You can
+deterministically test your two-minute interruption handling using AWS
+Fault Injection Service (FIS).</p>
+<p>By running the <code>aws:ec2:send-spot-instance-interruptions</code>
+action in an FIS experiment against a target Spot Instance, AWS triggers
+a genuine interruption sequence. Both the IMDS
+<code>spot/instance-action</code> endpoint and Amazon EventBridge
+receive the exact two-minute warning, allowing you to validate that your
+application drains connections, saves checkpoints, and terminates
+gracefully before the two minutes elapse.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-the-ec-2-two-minute-spot-instance-interruption-work';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

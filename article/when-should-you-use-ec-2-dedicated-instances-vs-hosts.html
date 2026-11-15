@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Should You Use EC2 Dedicated Instances vs Hosts? - ec2</title>
+    <meta name="description" content="Regulated workloads should use Amazon EC2 Dedicated Instances instead of Dedicated Hosts when compliance frameworks require single-tenant physical hardware isolation from other AWS accounts, but do not require visibility into underlying physical sockets,">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-should-you-use-ec-2-dedicated-instances-vs-hosts">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When Should You Use EC2 Dedicated Instances vs Hosts? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-should-you-use-ec-2-dedicated-instances-vs-hosts" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Regulated workloads should use Amazon EC2 Dedicated Instances instead of Dedicated Hosts when compliance frameworks require single-tenant physical hardware isolation from other AWS accounts, but do not require visibility into underlying physical sockets," />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="when-should-you-use-ec2-dedicated-instances-vs-hosts">When
+Should You Use EC2 Dedicated Instances vs Hosts?</h1>
+<p>Regulated workloads should use Amazon EC2 Dedicated Instances instead
+of Dedicated Hosts when compliance frameworks require single-tenant
+physical hardware isolation from other AWS accounts, but do not require
+visibility into underlying physical sockets, cores, or host IDs.
+Dedicated Instances satisfy strict regulatory mandates for physical
+separation while allowing AWS to automatically manage instance
+placement, host maintenance, and hardware failover without operational
+overhead. Conversely, Dedicated Hosts are only necessary when
+third-party software licensing requires bound physical core or socket
+tracking, or when compliance rules demand strict control over exact
+physical server placement and host affinity.</p>
+<h2
+id="understanding-single-tenant-isolation-in-amazon-ec2">Understanding
+Single-Tenant Isolation in Amazon EC2</h2>
+<p>When deploying regulated workloads in the cloud—such as those
+governed by HIPAA, PCI-DSS, FedRAMP, or strict financial services
+mandates—organizations often face requirements to isolate their compute
+environments from other tenants. While standard multi-tenant Amazon EC2
+instances rely on the AWS Nitro System to provide strong logical
+isolation, certain regulatory interpretations, corporate security
+policies, or customer contracts explicitly mandate physical hardware
+separation.</p>
+<p>AWS offers two single-tenant compute options to meet these
+requirements:</p>
+<ol type="1">
+<li><strong>Amazon EC2 Dedicated Instances</strong>: Virtualized
+instances that run in a Virtual Private Cloud (VPC) on hardware
+dedicated to a single customer. They are physically isolated at the host
+hardware level from instances belonging to other AWS accounts.</li>
+<li><strong>Amazon EC2 Dedicated Hosts</strong>: Physical servers with
+EC2 instance capacity fully dedicated to your use, offering visibility
+and control over how instances are placed on the underlying physical
+server and its sockets and cores.</li>
+</ol>
+<p>Importantly, there is no difference in physical security or isolation
+between the two options. Both Dedicated Instances and Dedicated Hosts
+guarantee that the underlying physical server is not shared with other
+AWS customer accounts.</p>
+<h2 id="key-scenarios-for-choosing-dedicated-instances">Key Scenarios
+for Choosing Dedicated Instances</h2>
+<p>For regulated workloads, choosing Dedicated Instances over Dedicated
+Hosts is optimal when your primary driver is hardware isolation rather
+than physical server management.</p>
+<h3 id="1-compliance-mandates-require-single-tenant-hardware-only">1.
+Compliance Mandates Require Single-Tenant Hardware Only</h3>
+<p>Many regulatory frameworks or enterprise customer agreements
+stipulate that sensitive data must be processed on dedicated physical
+hardware, without requiring you to audit or track the specific serial
+numbers or socket layouts of those servers. If your compliance auditor
+only requires proof that no other AWS customer shares the physical host
+running your instances, Dedicated Instances fulfill this requirement
+completely.</p>
+<p>Note that Dedicated Instances may share hardware with other instances
+from the same AWS account that are not Dedicated Instances. If your
+compliance boundary requires isolating regulated workloads from
+non-regulated workloads within your own organization, you should
+segregate those regulated workloads into a separate AWS account.</p>
+<h3 id="2-zero-software-licensing-constraints-tied-to-physical-cores">2.
+Zero Software Licensing Constraints Tied to Physical Cores</h3>
+<p>Dedicated Hosts are primarily designed to address Bring Your Own
+License (BYOL) scenarios where legacy enterprise software (such as
+Windows Server, SQL Server, or Oracle) is licensed per physical socket
+or per physical core. If your regulated workload uses open-source
+software, cloud-native applications, or license-included (LI) instances
+provided by AWS, you do not need visibility into physical sockets or
+cores. Dedicated Instances eliminate the need to track physical capacity
+utilization for licensing audits.</p>
+<h3 id="3-automated-capacity-management-and-elastic-scaling">3.
+Automated Capacity Management and Elastic Scaling</h3>
+<p>With Dedicated Hosts, you must first allocate a physical host of a
+specific instance family and size (or multiple sizes within the same
+family) before launching instances onto it. You are responsible for
+packing instances onto hosts and provisioning additional hosts as your
+workload scales.</p>
+<p>Dedicated Instances abstract the physical host layer away from your
+operations team:</p>
+<ul>
+<li>You launch Dedicated Instances simply by setting the placement
+tenancy attribute to <code>dedicated</code> at the instance or VPC
+level.</li>
+<li>AWS automatically provisions and manages the underlying dedicated
+physical hardware on demand.</li>
+<li>You can seamlessly combine Dedicated Instances with Amazon EC2 Auto
+Scaling groups without having to pre-allocate or manage pools of
+physical hosts.</li>
+</ul>
+<h3 id="4-hands-off-failover-and-reboot-migration">4. Hands-Off Failover
+and Reboot Migration</h3>
+<p>In a Dedicated Host environment, if you require an instance to stay
+on a specific physical server (Host Affinity), a stop-and-start cycle
+keeps the instance tied to that specific machine. With Dedicated
+Instances, AWS handles underlying hardware health transparently. If you
+stop and start a Dedicated Instance, or if the underlying hardware
+experiences degradation, AWS can automatically migrate the instance to a
+new dedicated physical server without requiring manual host
+reallocation.</p>
+<h2 id="evaluating-the-cost-model">Evaluating the Cost Model</h2>
+<p>Understanding the pricing structure helps determine the most
+cost-effective choice for your regulated environment. Both options carry
+different financial trade-offs depending on scale.</p>
+<p>For Dedicated Instances, the total hourly cost <span
+class="math inline">\(C_{\text{DI}}\)</span> in a given region is
+calculated using a flat per-region hourly fee plus the usage cost of the
+running instances:</p>
+<p><span class="math display">\[C_{\text{DI}} = F_{\text{region}} +
+\sum_{i=1}^{n} R_i\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(F_{\text{region}}\)</span> is the flat
+Dedicated per-region fee (charged at <span
+class="math inline">\(\$2.00\)</span> per hour when at least one
+Dedicated Instance of any family is running in that region).</li>
+<li><span class="math inline">\(R_i\)</span> is the hourly rate for each
+running Dedicated Instance <span class="math inline">\(i\)</span>
+(whichtypically includes a slight premium of approximately <span
+class="math inline">\(2\%\)</span> to <span
+class="math inline">\(10\%\)</span> over standard multi-tenant On-Demand
+rates).</li>
+<li><span class="math inline">\(n\)</span> is the total number of
+running Dedicated Instances in the region.</li>
+</ul>
+<p>For Dedicated Hosts, the total hourly cost <span
+class="math inline">\(C_{\text{DH}}\)</span> is determined by the number
+of physical hosts allocated to your account, regardless of how many
+virtual instances you run on them:</p>
+<p><span class="math display">\[C_{\text{DH}} = \sum_{j=1}^{m}
+H_j\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(H_j\)</span> is the hourly rate for each
+allocated physical Dedicated Host <span
+class="math inline">\(j\)</span>.</li>
+<li><span class="math inline">\(m\)</span> is the total number of
+allocated Dedicated Hosts.</li>
+</ul>
+<p>Because Dedicated Hosts charge for the entire physical server
+upfront, they are only cost-effective if you can maintain high
+utilization (packing the host close to <span
+class="math inline">\(100\%\)</span> capacity) or if the savings from
+bringing your own server-bound software licenses outweigh the host cost.
+For regulated workloads that scale dynamically, run mixed instance
+families, or do not fill an entire physical server's capacity, Dedicated
+Instances are significantly more economical.</p>
+<h2
+id="feature-comparison-dedicated-instances-vs-dedicated-hosts">Feature
+Comparison: Dedicated Instances vs. Dedicated Hosts</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Dedicated Instances</th>
+<th style="text-align: left;">Dedicated Hosts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Physical Isolation from Other AWS
+Accounts</strong></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Billing Model</strong></td>
+<td style="text-align: left;">Per-instance usage + <span
+class="math inline">\(\$2/\text{hr}\)</span> regional fee</td>
+<td style="text-align: left;">Per-physical host allocated</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Visibility of Sockets and Physical
+Cores</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Host ID Visibility</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Placement
+Control</strong></td>
+<td style="text-align: left;">Automatic (managed by AWS)</td>
+<td style="text-align: left;">Manual or Automatic (per Host or Host
+Resource Group)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Host Affinity (Instance stays on
+same server)</strong></td>
+<td style="text-align: left;">No (may change after stop/start)</td>
+<td style="text-align: left;">Yes (configurable)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Support for Server-Bound
+BYOL</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Automatic Instance
+Recovery</strong></td>
+<td style="text-align: left;">Supported (migrates to another dedicated
+host)</td>
+<td style="text-align: left;">Supported (migrates to another host or
+restarts in place)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="when-you-must-use-dedicated-hosts-instead">When You Must Use
+Dedicated Hosts Instead</h2>
+<p>While Dedicated Instances provide the simplest path to single-tenant
+compliance, there are specific regulatory and operational scenarios
+where Dedicated Hosts are mandatory:</p>
+<ul>
+<li><strong>Physical Audit Logging (Host ID Tracking)</strong>: Some
+strict regulatory interpretations or internal audit controls require you
+to log and prove the exact physical server (<code>HostId</code>) on
+which a virtual machine ran at any point in time, and verify that the
+instance never moved to another physical chassis during its
+lifecycle.</li>
+<li><strong>Certified Hardware-Bound Licensing</strong>: When using BYOL
+software licenses governed by terms that require counting physical cores
+or sockets, or software that prohibits migrating licenses across
+physical hardware more than once every 90 days.</li>
+<li><strong>Strict Maintenance Window Control</strong>: When your
+compliance posture requires full control over when underlying host
+maintenance occurs, or when you must ensure instances remain pinned to
+the exact same physical hardware across reboots and stop/start
+cycles.</li>
+</ul>
+<h2 id="decision-checklist-for-regulated-workloads">Decision Checklist
+for Regulated Workloads</h2>
+<p>To decide whether your regulated workload should use Amazon EC2
+Dedicated Instances, verify the following criteria:</p>
+<ol type="1">
+<li><strong>Does your regulation or customer contract mandate
+single-tenant hardware isolation?</strong> If no, use standard
+multi-tenant EC2 instances secured by the AWS Nitro System. If yes,
+proceed to the next question.</li>
+<li><strong>Do you need to bring server-bound software licenses (BYOL)
+tied to physical cores or sockets?</strong> If yes, use Dedicated
+Hosts.</li>
+<li><strong>Does your compliance auditor require tracking physical Host
+IDs or pinning instances to specific physical servers across stop/start
+cycles?</strong> If yes, use Dedicated Hosts.</li>
+<li><strong>Do you want AWS to automatically manage capacity, scaling,
+and hardware placement across instance families?</strong> If yes, and
+you answered no to questions 2 and 3, <strong>Amazon EC2 Dedicated
+Instances</strong> is the ideal choice for your workload.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-should-you-use-ec-2-dedicated-instances-vs-hosts';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does AMD SMT Compare to Intel HT on Amazon EC2? - ec2</title>
+    <meta name="description" content="This article explores the architectural, operational, and performance differences between AMD Simultaneous Multithreading and Intel Hyper-Threading across Amazon EC2 instances. Both technologies expose two logical processors per physical processor core to">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-amd-smt-compare-to-intel-ht-on-amazon-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does AMD SMT Compare to Intel HT on Amazon EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-amd-smt-compare-to-intel-ht-on-amazon-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="This article explores the architectural, operational, and performance differences between AMD Simultaneous Multithreading and Intel Hyper-Threading across Amazon EC2 instances. Both technologies expose two logical processors per physical processor core to" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-amd-smt-compare-to-intel-ht-on-amazon-ec2">How Does AMD
+SMT Compare to Intel HT on Amazon EC2?</h1>
+<p>This article explores the architectural, operational, and performance
+differences between AMD Simultaneous Multithreading and Intel
+Hyper-Threading across Amazon EC2 instances. Both technologies expose
+two logical processors per physical processor core to improve hardware
+utilization during instruction pipeline stalls, yet their behavior on
+cloud infrastructure varies depending on the instance generation,
+workload profile, and CPU allocation model. By examining how Amazon Web
+Services provisions virtual CPUs across different processor families,
+engineers can select the optimal EC2 instance type and threading
+configuration for compute, memory, and general-purpose workloads.</p>
+<h2 id="architectural-foundations-of-multithreading">Architectural
+Foundations of Multithreading</h2>
+<p>Modern superscalar processors contain multiple execution units
+capable of handling arithmetic, logic, and memory operations
+simultaneously. When a single execution thread experiences a delay, such
+as waiting for data to arrive from main memory after a cache miss, many
+of these execution units sit idle. Both Intel Hyper-Threading (HT) and
+AMD Simultaneous Multithreading (SMT) address this inefficiency by
+duplicating the architectural state of a physical core—such as registers
+and instruction pointers—while sharing the underlying execution
+resources and caches.</p>
+<p>When a physical core supports two hardware threads, the total number
+of logical processors, represented in Amazon EC2 as virtual CPUs (<span
+class="math inline">\(\text{vCPUs}\)</span>), is defined by the
+relationship:</p>
+<p><span class="math display">\[\text{vCPUs} = C \times T\]</span></p>
+<p>Where <span class="math inline">\(C\)</span> is the number of
+physical cores allocated to the instance and <span
+class="math inline">\(T\)</span> is the number of threads per core. For
+standard x86 EC2 instances using either Intel HT or AMD SMT, <span
+class="math inline">\(T = 2\)</span>. In specific non-multithreaded
+configurations or custom CPU options, <span class="math inline">\(T =
+1\)</span>.</p>
+<p>While the fundamental goal of both implementations is identical, the
+way each vendor partitions and shares internal core structures
+differs:</p>
+<ul>
+<li><strong>Resource Partitioning:</strong> Processors rely on internal
+buffers—such as the Reorder Buffer, Load/Store Queues, and Reservation
+Stations—to track instructions in flight. Intel and AMD use different
+mixes of static partitioning (dividing a buffer evenly when both threads
+are active), dynamic partitioning (allowing one thread to consume more
+entries if the other is idle), and competitive sharing.</li>
+<li><strong>Cache Hierarchy Interaction:</strong> Intel Xeon processors
+and AMD EPYC processors feature distinct L1, L2, and L3 cache
+topologies. In AMD EPYC architectures (Zen 2, Zen 3, and Zen 4), groups
+of cores share a unified L3 cache within a Core Complex (CCX), whereas
+Intel Xeon Scalable processors utilize a mesh interconnect where L3
+cache slices are distributed across all cores on the die. How sibling
+threads contend for L1 and L2 cache lines directly affects multithreaded
+scaling.</li>
+</ul>
+<h2 id="how-amazon-ec2-maps-vcpus-to-physical-cores">How Amazon EC2 Maps
+vCPUs to Physical Cores</h2>
+<p>On Amazon EC2, instance sizing is standardized around the <span
+class="math inline">\(\text{vCPU}\)</span> metric. However, not all AMD
+and Intel instance families enable multithreading in the same manner.
+Understanding which generation of EC2 instance you are deploying is
+essential before comparing SMT and HT performance.</p>
+<h3 id="standard-multithreaded-instances">Standard Multithreaded
+Instances</h3>
+<p>Across most general-purpose, compute-optimized, and memory-optimized
+EC2 families—such as the <code>m5</code>, <code>m6i</code>, and
+<code>m7i</code> families (Intel) and the <code>m5a</code>,
+<code>m6a</code>, and <code>m7a</code> families (AMD up to 6th
+generation)—each <span class="math inline">\(\text{vCPU}\)</span>
+corresponds to a single hardware thread. An instance with <span
+class="math inline">\(8\text{ vCPUs}\)</span> runs on <span
+class="math inline">\(4\)</span> physical cores with either Intel HT or
+AMD SMT enabled.</p>
+<h3 id="the-7th-generation-amd-exception">The 7th Generation AMD
+Exception</h3>
+<p>A major architectural divergence occurs in 7th-generation Amazon EC2
+instances. While Intel-based 7th-generation instances (<code>c7i</code>,
+<code>m7i</code>, <code>r7i</code>, powered by 4th Gen Intel Xeon
+Scalable processors) continue to use Hyper-Threading where <span
+class="math inline">\(1\text{ vCPU} = 1\text{ hardware thread}\)</span>
+(<span class="math inline">\(2\text{ vCPUs}\)</span> per physical core),
+AMD-based 7th-generation instances (<code>c7a</code>, <code>m7a</code>,
+<code>r7a</code>, powered by 4th Gen AMD EPYC processors) have SMT
+disabled by default at the hypervisor level.</p>
+<p>On <code>m7a</code>, <code>c7a</code>, and <code>r7a</code>
+instances, <span class="math inline">\(1\text{ vCPU} = 1\text{ physical
+core}\)</span>. Consequently, an <code>m7a.2xlarge</code> (<span
+class="math inline">\(8\text{ vCPUs}\)</span>) provides <span
+class="math inline">\(8\)</span> dedicated physical cores, whereas an
+<code>m7i.2xlarge</code> (<span class="math inline">\(8\text{
+vCPUs}\)</span>) provides <span class="math inline">\(4\)</span>
+physical cores running <span class="math inline">\(8\)</span>
+Hyper-Threads.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">EC2 Instance Generation</th>
+<th style="text-align: left;">Processor Vendor</th>
+<th style="text-align: left;">Default Threads per Core (<span
+class="math inline">\(T\)</span>)</th>
+<th style="text-align: left;">Physical Cores per <span
+class="math inline">\(8\text{ vCPUs}\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">5th Gen (<code>m5</code>, <code>c5</code>,
+<code>r5</code>)</td>
+<td style="text-align: left;">Intel Xeon</td>
+<td style="text-align: left;">2 (Hyper-Threading)</td>
+<td style="text-align: left;">4</td>
+</tr>
+<tr>
+<td style="text-align: left;">5th Gen (<code>m5a</code>,
+<code>c5a</code>, <code>r5a</code>)</td>
+<td style="text-align: left;">AMD EPYC</td>
+<td style="text-align: left;">2 (SMT)</td>
+<td style="text-align: left;">4</td>
+</tr>
+<tr>
+<td style="text-align: left;">6th Gen (<code>m6i</code>,
+<code>c6i</code>, <code>r6i</code>)</td>
+<td style="text-align: left;">Intel Xeon</td>
+<td style="text-align: left;">2 (Hyper-Threading)</td>
+<td style="text-align: left;">4</td>
+</tr>
+<tr>
+<td style="text-align: left;">6th Gen (<code>m6a</code>,
+<code>c6a</code>, <code>r6a</code>)</td>
+<td style="text-align: left;">AMD EPYC</td>
+<td style="text-align: left;">2 (SMT)</td>
+<td style="text-align: left;">4</td>
+</tr>
+<tr>
+<td style="text-align: left;">7th Gen (<code>m7i</code>,
+<code>c7i</code>, <code>r7i</code>)</td>
+<td style="text-align: left;">Intel Xeon</td>
+<td style="text-align: left;">2 (Hyper-Threading)</td>
+<td style="text-align: left;">4</td>
+</tr>
+<tr>
+<td style="text-align: left;">7th Gen (<code>m7a</code>,
+<code>c7a</code>, <code>r7a</code>)</td>
+<td style="text-align: left;">AMD EPYC</td>
+<td style="text-align: left;">1 (SMT Disabled)</td>
+<td style="text-align: left;">8</td>
+</tr>
+</tbody>
+</table>
+<h2 id="performance-comparison-by-workload-type">Performance Comparison
+by Workload Type</h2>
+<p>When comparing instances where both AMD SMT and Intel HT are active
+(such as <code>m6a</code> versus <code>m6i</code>), the performance gain
+from multithreading can be expressed as the throughput ratio <span
+class="math inline">\(S\)</span>:</p>
+<p><span class="math display">\[S = \frac{R_{\text{2
+threads}}}{R_{\text{1 thread}}}\]</span></p>
+<p>Where <span class="math inline">\(R_{\text{1 thread}}\)</span> is the
+throughput of a physical core running a single thread, and <span
+class="math inline">\(R_{\text{2 threads}}\)</span> is the combined
+throughput of the same core running two simultaneous threads. Typically,
+<span class="math inline">\(S\)</span> ranges between <span
+class="math inline">\(1.15\)</span> and <span
+class="math inline">\(1.35\)</span> for general workloads, though it can
+fall below <span class="math inline">\(1.0\)</span> if resource
+contention is severe.</p>
+<h3 id="web-servers-microservices-and-high-concurrency-io">Web Servers,
+Microservices, and High-Concurrency I/O</h3>
+<p>Workloads that manage thousands of concurrent network connections,
+database queries, or microservice requests spend significant time
+waiting on memory fetches and I/O interrupts. Both AMD SMT and Intel HT
+excel in these scenarios.</p>
+<ul>
+<li><strong>AMD SMT (<code>m6a</code>, <code>c6a</code>):</strong> AMD
+EPYC processors generally feature a high number of physical cores per
+socket and large L3 caches per CCX. When two SMT threads on a Zen 3 core
+process independent HTTP requests or gRPC calls, pipeline stalls caused
+by memory latency are effectively hidden by switching execution to the
+sibling thread.</li>
+<li><strong>Intel HT (<code>m6i</code>, <code>m7i</code>):</strong>
+Intel Xeon cores often demonstrate strong single-thread instruction
+retirement rates and lower core-to-core latencies across a single socket
+for moderate core counts. Under high-concurrency web traffic, Intel HT
+delivers comparable <span class="math inline">\(1.20\text{x}\)</span> to
+<span class="math inline">\(1.30\text{x}\)</span> throughput gains per
+core.</li>
+</ul>
+<h3 id="compute-bound-and-floating-point-workloads">Compute-Bound and
+Floating-Point Workloads</h3>
+<p>In high-performance computing (HPC), financial modeling, video
+encoding, and scientific simulations, threads continuously saturate the
+Floating-Point Units (FPUs) and vector execution pipelines (such as AVX2
+or AVX-512).</p>
+<ul>
+<li><strong>Vector Execution Contention:</strong> When two sibling
+threads simultaneously execute heavy vector instructions, they compete
+directly for the same physical execution ports. On both Intel and AMD
+instances, enabling HT or SMT for heavily optimized linear algebra
+(e.g., BLAS routines) often yields <span class="math inline">\(S \le
+1.0\)</span>, meaning two threads per core run no faster—or slightly
+slower due to cache thrashing—than one thread per core.</li>
+<li><strong>Frequency Scaling Behavior:</strong> Intel processors
+supporting AVX-512 historically adjusted clock frequencies downward
+under heavy vector loads across multiple threads, although newer
+generations (such as Sapphire Rapids in <code>m7i</code>) have largely
+mitigated frequency downclocking. AMD EPYC processors in
+<code>m6a</code> (Zen 3) execute 256-bit AVX2 instructions at steady
+all-core boost clocks, while 4th Gen EPYC in <code>m7a</code> (Zen 4)
+supports AVX-512 with <span class="math inline">\(1\text{ vCPU}\)</span>
+mapped directly to <span class="math inline">\(1\text{ physical
+core}\)</span>, avoiding sibling-thread FPU contention altogether.</li>
+</ul>
+<h3 id="in-memory-databases-and-cache-sensitive-applications">In-Memory
+Databases and Cache-Sensitive Applications</h3>
+<p>Applications like Redis, Memcached, and relational databases rely
+heavily on L1 and L2 cache hit rates. Because sibling threads share the
+L1 data cache and L2 cache of a physical core, running two unrelated
+memory-intensive threads on the same core halves the effective L1/L2
+cache capacity per thread.</p>
+<p>If two threads share data structures, multithreading can be
+beneficial because one thread can prefetch data into the L1/L2 cache
+that the sibling thread immediately uses. However, if the working set of
+two independent threads exceeds the L1/L2 capacity, cache eviction rates
+rise. AMD Zen 3 and Zen 4 architectures mitigate this with a generous
+<span class="math inline">\(32\text{ KB}\)</span> L1 data cache and
+<span class="math inline">\(512\text{ KB}\)</span> (Zen 3) or <span
+class="math inline">\(1\text{ MB}\)</span> (Zen 4) L2 cache per core,
+whereas recent Intel Xeon architectures provide <span
+class="math inline">\(48\text{ KB}\)</span> L1 data cache and <span
+class="math inline">\(1.25\text{ MB}\)</span> (<code>m6i</code>) to
+<span class="math inline">\(2\text{ MB}\)</span> (<code>m7i</code>) of
+L2 cache per core. Intel's larger L2 cache per core on 6th and 7th
+generation instances helps reduce sibling-thread cache thrashing when
+Hyper-Threading is active.</p>
+<h2 id="security-and-isolation-considerations">Security and Isolation
+Considerations</h2>
+<p>Because sibling threads share physical execution units,
+microarchitectural buffers, and L1 caches, both Intel HT and AMD SMT
+have been studied in the context of side-channel vulnerabilities.</p>
+<ol type="1">
+<li><strong>Microarchitectural Data Sampling (MDS) and L1TF:</strong>
+Older Intel processor generations required OS and hypervisor mitigations
+for speculative execution side-channels involving shared core state.
+While newer Intel Xeon generations (<code>m6i</code>, <code>m7i</code>)
+include hardware-level fixes, strict security compliance frameworks
+occasionally mandate disabling Hyper-Threading when untrusted code is
+executed inside the same virtual machine.</li>
+<li><strong>Process Scheduling:</strong> In Linux kernels running on
+EC2, the OS scheduler is topology-aware. It identifies which <span
+class="math inline">\(\text{vCPUs}\)</span> are sibling threads on the
+same physical core and spreads active tasks across distinct physical
+cores before scheduling a second thread onto a busy core. Consequently,
+at <span class="math inline">\(50\%\)</span> or lower CPU utilization on
+an <code>m6i</code> or <code>m6a</code> instance, tasks rarely contend
+with a sibling thread. Once utilization exceeds <span
+class="math inline">\(50\%\)</span>, sibling threads begin sharing
+physical cores, causing non-linear latency increases as CPU utilization
+approaches <span class="math inline">\(100\%\)</span>.</li>
+<li><strong>Predictable Latency on 7th Gen AMD:</strong> Because
+<code>m7a</code>, <code>c7a</code>, and <code>r7a</code> instances
+disable SMT and map every <span
+class="math inline">\(\text{vCPU}\)</span> to a dedicated physical core,
+latency scaling remains much more linear between <span
+class="math inline">\(50\%\)</span> and <span
+class="math inline">\(100\%\)</span> <span
+class="math inline">\(\text{vCPU}\)</span> utilization compared to
+multithreaded instances.</li>
+</ol>
+<h2 id="inspecting-and-controlling-threading-on-ec2">Inspecting and
+Controlling Threading on EC2</h2>
+<p>You can verify whether your EC2 instance is running with AMD SMT or
+Intel HT enabled by inspecting the CPU topology inside the guest
+operating system. Running the <code>lscpu</code> command on Linux
+displays the exact relationship between sockets, cores, and threads:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">lscpu</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">&quot;Model name|CPU\(s\)|Thread|Core|Socket&quot;</span></span></code></pre></div>
+<p>On an <code>m6i.xlarge</code> or <code>m6a.xlarge</code> (<span
+class="math inline">\(4\text{ vCPUs}\)</span>), the output shows:</p>
+<ul>
+<li><code>CPU(s): 4</code></li>
+<li><code>Thread(s) per core: 2</code></li>
+<li><code>Core(s) per socket: 2</code></li>
+</ul>
+<p>On an <code>m7a.xlarge</code> (<span class="math inline">\(4\text{
+vCPUs}\)</span>), the output shows:</p>
+<ul>
+<li><code>CPU(s): 4</code></li>
+<li><code>Thread(s) per core: 1</code></li>
+<li><code>Core(s) per socket: 4</code></li>
+</ul>
+<h3 id="customizing-cpu-options-at-launch">Customizing CPU Options at
+Launch</h3>
+<p>If a workload suffers from sibling-thread contention on an instance
+family where HT or SMT is enabled by default, Amazon EC2 provides the
+<strong>Optimize CPUs</strong> feature. At instance launch (or when
+modifying a stopped instance), you can specify the number of physical
+cores (<code>CoreCount</code>) and set
+<code>ThreadsPerCore=1</code>.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> m6i.4xlarge <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--cpu-options</span> <span class="st">&quot;CoreCount=8,ThreadsPerCore=1&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--key-name</span> my-key-pair</span></code></pre></div>
+<p>Disabling HT or SMT via EC2 CPU Options halves the visible <span
+class="math inline">\(\text{vCPU}\)</span> count while retaining the
+full physical core count, memory capacity, and network bandwidth of the
+instance size. Note that the hourly instance price remains unchanged
+when disabling threads per core, unless you are reducing the physical
+<code>CoreCount</code> specifically to optimize per-core commercial
+software licensing costs (such as Oracle or SQL Server).</p>
+<h2 id="choosing-between-amd-smt-and-intel-ht-on-ec2">Choosing Between
+AMD SMT and Intel HT on EC2</h2>
+<p>Selecting the right instance and threading configuration depends on
+matching the processor topology to the workload characteristics:</p>
+<ul>
+<li><strong>Choose Multithreaded 6th Gen AMD (<code>m6a</code>,
+<code>c6a</code>, <code>r6a</code>) or 6th/7th Gen Intel
+(<code>m6i</code>, <code>m7i</code>, <code>c6i</code>,
+<code>c7i</code>)</strong> when running containerized microservices, web
+application fleets, or general enterprise applications where average CPU
+utilization hovers between <span class="math inline">\(20\%\)</span> and
+<span class="math inline">\(60\%\)</span>. In these environments, SMT
+and HT provide a cost-effective buffer for handling bursty
+concurrency.</li>
+<li><strong>Choose Intel HT on <code>m7i</code> or
+<code>c7i</code></strong> if your workload benefits from Intel's larger
+<span class="math inline">\(2\text{ MB}\)</span> L2 cache per core or
+specialized hardware accelerators such as Intel Advanced Matrix
+Extensions (AMX) for AI inference alongside standard multithreaded
+execution.</li>
+<li><strong>Choose Non-SMT 7th Gen AMD (<code>m7a</code>,
+<code>c7a</code>, <code>r7a</code>)</strong> when running
+compute-intensive tasks, high-throughput media encoding, EDA workloads,
+or latency-sensitive services where consistent performance per <span
+class="math inline">\(\text{vCPU}\)</span> up to <span
+class="math inline">\(100\%\)</span> utilization is required without
+sibling-thread interference.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-amd-smt-compare-to-intel-ht-on-amazon-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

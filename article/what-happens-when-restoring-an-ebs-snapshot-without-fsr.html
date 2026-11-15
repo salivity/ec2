@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When Restoring an EBS Snapshot Without FSR? - ec2</title>
+    <meta name="description" content="When you restore an Amazon Elastic Block Store volume from a snapshot stored in Amazon Simple Storage Service without enabling Fast Snapshot Restore, the new volume becomes available for attachment immediately while its data loads lazily in the background">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-restoring-an-ebs-snapshot-without-fsr">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When Restoring an EBS Snapshot Without FSR? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-restoring-an-ebs-snapshot-without-fsr" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When you restore an Amazon Elastic Block Store volume from a snapshot stored in Amazon Simple Storage Service without enabling Fast Snapshot Restore, the new volume becomes available for attachment immediately while its data loads lazily in the background" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-restoring-an-ebs-snapshot-without-fsr">What
+Happens When Restoring an EBS Snapshot Without FSR?</h1>
+<p>When you restore an Amazon Elastic Block Store volume from a snapshot
+stored in Amazon Simple Storage Service without enabling Fast Snapshot
+Restore, the new volume becomes available for attachment immediately
+while its data loads lazily in the background. Any read request to a
+block that has not yet been transferred from Amazon S3 triggers an
+immediate on-demand fetch, which introduces higher input/output latency
+on first access. This article explains the mechanics of lazy loading,
+the performance implications of first-read latency, and how to pre-warm
+restored volumes to achieve baseline performance.</p>
+<h2 id="how-ebs-snapshot-restoration-works">How EBS Snapshot Restoration
+Works</h2>
+<p>Amazon EBS snapshots are point-in-time backups of volumes stored
+incrementally in Amazon S3. When you create a new EBS volume from a
+snapshot without Fast Snapshot Restore (FSR), AWS does not wait for all
+data blocks to copy from Amazon S3 before marking the volume state as
+available. Instead, the volume is provisioned almost instantaneously so
+you can attach it to an Amazon EC2 instance and begin using it right
+away.</p>
+<p>Behind the scenes, Amazon EBS uses a mechanism called lazy loading.
+While the volume is attached and operational, a background process
+continuously transfers blocks from the snapshot in Amazon S3 to the
+underlying storage medium of the new EBS volume.</p>
+<h2 id="the-impact-of-lazy-loading-and-first-touch-latency">The Impact
+of Lazy Loading and First-Touch Latency</h2>
+<p>Because data restoration occurs asynchronously in the background,
+blocks on the newly created volume exist in one of two states: hydrated
+(already copied from Amazon S3) or unhydrated (still residing only in
+Amazon S3).</p>
+<p>When your EC2 instance issues an I/O request to a restored volume,
+the behavior depends on the operation and the state of the target
+block:</p>
+<ul>
+<li><strong>Reading an unhydrated block:</strong> If an application
+attempts to read a storage block that has not yet been loaded by the
+background process, the I/O operation must pause while Amazon EBS
+fetches that specific block directly from Amazon S3, writes it to the
+volume, and returns the data to the instance. This synchronous retrieval
+causes a significant spike in I/O latency, often referred to as the
+first-touch penalty.</li>
+<li><strong>Reading a hydrated block:</strong> Once a block has been
+fetched—either on-demand or via the background process—subsequent reads
+to that block execute at the native performance and latency of the EBS
+volume type (such as <code>gp3</code> or <code>io2</code>).</li>
+<li><strong>Writing to a block:</strong> Writing new data directly to a
+block overwrites it on the EBS volume, marking it as initialized without
+needing to pull the older snapshot data from Amazon S3 (unless the write
+is smaller than the underlying block size, which requires a
+read-modify-write cycle).</li>
+</ul>
+<p>The effective average read latency <span
+class="math inline">\(L_{\text{avg}}\)</span> during the initial
+operation of an unhydrated volume can be modeled as:</p>
+<p><span class="math display">\[L_{\text{avg}} = (1 - p) \cdot
+L_{\text{native}} + p \cdot L_{\text{S3}}\]</span></p>
+<p>where <span class="math inline">\(p\)</span> is the proportion of
+read operations hitting unhydrated blocks, <span
+class="math inline">\(L_{\text{native}}\)</span> is the normal latency
+of the EBS volume, and <span
+class="math inline">\(L_{\text{S3}}\)</span> is the latency incurred
+when synchronously retrieving a block from Amazon S3. As the volume
+becomes fully hydrated, <span class="math inline">\(p\)</span>
+approaches <span class="math inline">\(0\)</span>, and <span
+class="math inline">\(L_{\text{avg}}\)</span> converges to <span
+class="math inline">\(L_{\text{native}}\)</span>.</p>
+<h2 id="workload-scenarios-affected-by-unhydrated-volumes">Workload
+Scenarios Affected by Unhydrated Volumes</h2>
+<p>While lazy loading reduces the time to attach and mount a volume, the
+resulting I/O latency spikes and reduced throughput can degrade
+performance for several common workloads:</p>
+<ol type="1">
+<li><strong>Production Databases:</strong> Relational and NoSQL
+databases executing table scans or index lookups across unaccessed
+blocks will experience high read latency and potential query timeouts
+until the working set is hydrated.</li>
+<li><strong>Root Volumes During Boot:</strong> Launching an EC2 instance
+from a custom Amazon Machine Image (AMI) backed by an EBS snapshot
+relies on reading operating system binaries and startup dependencies.
+While essential boot blocks are typically small, heavy application
+initialization during startup can be slowed down by synchronous S3
+fetches.</li>
+<li><strong>High-Throughput Analytics:</strong> Workloads that
+immediately stream large datasets from disk will be bottlenecked by the
+rate at which blocks are pulled from Amazon S3 rather than the
+provisioned IOPS or throughput of the EBS volume.</li>
+</ol>
+<h2 id="how-to-mitigate-first-read-latency-without-fsr">How to Mitigate
+First-Read Latency Without FSR</h2>
+<p>If you do not use Fast Snapshot Restore—which pre-initializes the
+volume at creation time for an additional hourly fee per snapshot and
+Availability Zone—you can manually initialize (pre-warm) the volume
+before placing it into production service.</p>
+<p>Pre-warming forces the immediate retrieval of all blocks from Amazon
+S3 by sequentially reading every block on the volume.</p>
+<h3 id="pre-warming-on-linux">Pre-Warming on Linux</h3>
+<p>On a Linux EC2 instance, you can use the <code>fio</code> or
+<code>dd</code> utility to read every block on the newly attached
+volume. Using <code>fio</code> is generally recommended because it
+supports concurrent asynchronous reads, which speeds up hydration:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> fio <span class="at">--filename</span><span class="op">=</span>/dev/nvme1n1 <span class="at">--rw</span><span class="op">=</span>read <span class="at">--bs</span><span class="op">=</span>128k <span class="at">--iodepth</span><span class="op">=</span>32 <span class="at">--ioengine</span><span class="op">=</span>libaio <span class="at">--direct</span><span class="op">=</span>1 <span class="at">--name</span><span class="op">=</span>volume-initialize</span></code></pre></div>
+<p>Alternatively, you can use <code>dd</code>:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dd if=/dev/nvme1n1 of=/dev/null bs=1M</span></code></pre></div>
+<p>Replace <code>/dev/nvme1n1</code> with the actual device name of your
+attached EBS volume. Because these commands only read from the device
+and write to <code>/dev/null</code>, existing data on the volume is
+preserved while forcing all blocks to hydrate from Amazon S3.</p>
+<h3 id="pre-warming-on-windows">Pre-Warming on Windows</h3>
+<p>On a Windows EC2 instance, you can use the <code>dd</code> utility
+for Windows or run a PowerShell command or disk benchmarking tool (such
+as Diskspd) to perform a full sequential read across the drive or raw
+partition.</p>
+<h2 id="comparing-standard-restore-vs-fast-snapshot-restore">Comparing
+Standard Restore vs. Fast Snapshot Restore</h2>
+<p>Choosing whether to rely on default lazy loading, manual pre-warming,
+or Fast Snapshot Restore depends on your recovery time objective (RTO)
+and cost constraints:</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Standard Restore (No FSR)</th>
+<th style="text-align: left;">Standard Restore + Manual Pre-Warming</th>
+<th style="text-align: left;">Fast Snapshot Restore (FSR)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Volume Creation Time</strong></td>
+<td style="text-align: left;">Immediate (seconds)</td>
+<td style="text-align: left;">Immediate, plus time to read full
+disk</td>
+<td style="text-align: left;">Immediate (seconds)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Initial Read Latency</strong></td>
+<td style="text-align: left;">High on first access to each block</td>
+<td style="text-align: left;">Native performance after pre-warm
+finishes</td>
+<td style="text-align: left;">Native performance immediately</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Additional AWS Cost</strong></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">EC2 compute time during pre-warming</td>
+<td style="text-align: left;">Charged per Data Services Unit (DSU)
+hour</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Best Use Case</strong></td>
+<td style="text-align: left;">Dev/test, non-critical workloads</td>
+<td style="text-align: left;">Planned migrations with flexible startup
+time</td>
+<td style="text-align: left;">Latency-sensitive auto-scaling and
+disaster recovery</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-restoring-an-ebs-snapshot-without-fsr';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

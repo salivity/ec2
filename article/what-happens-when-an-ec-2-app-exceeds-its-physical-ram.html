@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Happens When an EC2 App Exceeds Its Physical RAM? - ec2</title>
+    <meta name="description" content="When an in-memory application running on an Amazon EC2 instance exceeds its physical RAM allocation, the operating system attempts to free memory by moving inactive data to disk swap space if configured, or by reclaiming cached memory. Because most defaul">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-app-exceeds-its-physical-ram">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Happens When an EC2 App Exceeds Its Physical RAM? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-app-exceeds-its-physical-ram" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When an in-memory application running on an Amazon EC2 instance exceeds its physical RAM allocation, the operating system attempts to free memory by moving inactive data to disk swap space if configured, or by reclaiming cached memory. Because most defaul" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-happens-when-an-ec2-app-exceeds-its-physical-ram">What
+Happens When an EC2 App Exceeds Its Physical RAM?</h1>
+<p>When an in-memory application running on an Amazon EC2 instance
+exceeds its physical RAM allocation, the operating system attempts to
+free memory by moving inactive data to disk swap space if configured, or
+by reclaiming cached memory. Because most default EC2 Machine Images
+disable swap space by default, exhausting physical RAM typically
+triggers the Linux Out-Of-Memory killer to immediately terminate the
+highest-memory process, causing sudden application crashes, severe
+performance degradation, or complete instance unresponsiveness.</p>
+<h2 id="how-the-operating-system-responds-to-memory-exhaustion">How the
+Operating System Responds to Memory Exhaustion</h2>
+<p>When your application requests more memory than the physical RAM
+available on an Amazon EC2 instance, the underlying operating system
+goes through a specific sequence of memory management actions before
+failing.</p>
+<h3 id="page-cache-reclamation">Page Cache Reclamation</h3>
+<p>Before resorting to drastic measures, the OS kernel attempts to
+reclaim memory used for file system caching (known as the page cache or
+buffers). While freeing this cache provides temporary relief for the
+growing in-memory application, it degrades disk read performance because
+the system must fetch frequently accessed files directly from the Amazon
+Elastic Block Store (EBS) or instance store volumes instead of
+memory.</p>
+<h3 id="swap-space-utilization-and-thrashing">Swap Space Utilization and
+Thrashing</h3>
+<p>If the instance has swap space configured on an attached storage
+volume, the OS begins moving inactive memory pages from physical RAM to
+the disk. We can express total effective memory <span
+class="math inline">\(M_{\text{total}}\)</span> using physical RAM <span
+class="math inline">\(M_{\text{ram}}\)</span> and swap space <span
+class="math inline">\(M_{\text{swap}}\)</span>:</p>
+<p><span class="math display">\[M_{\text{total}} = M_{\text{ram}} +
+M_{\text{swap}}\]</span></p>
+<p>For an in-memory application (such as Redis, Memcached, SAP HANA, or
+Apache Spark), relying on swap space is detrimental. Disk access
+latency—even on high-performance NVMe SSDs—is orders of magnitude slower
+than physical RAM. When an in-memory application actively reads and
+writes to swapped pages, the system enters a state called thrashing.
+During thrashing, the CPU spends almost all its cycles paging data back
+and forth between RAM and the disk rather than executing application
+code:</p>
+<p><span class="math display">\[\text{Effective Access Time} = (1 - p)
+\cdot T_{\text{ram}} + p \cdot T_{\text{disk}}\]</span></p>
+<p>In this equation, <span class="math inline">\(p\)</span> represents
+the page fault rate, <span class="math inline">\(T_{\text{ram}}\)</span>
+is the memory access time (measured in nanoseconds), and <span
+class="math inline">\(T_{\text{disk}}\)</span> is the disk swap access
+time (measured in milliseconds). As <span
+class="math inline">\(p\)</span> increases, latency spikes dramatically,
+causing health checks to fail and client connections to time out.</p>
+<h2 id="the-default-ec2-behavior-no-swap-and-the-oom-killer">The Default
+EC2 Behavior: No Swap and the OOM Killer</h2>
+<p>By default, most standard Amazon Machine Images (AMIs), including
+Amazon Linux, Ubuntu, and Red Hat Enterprise Linux, launch without
+pre-configured swap space. AWS disables swap by default to prevent
+severe disk I/O bottlenecks on EBS volumes and to avoid unexpected I/O
+charges on older magnetic or burstable storage tiers.</p>
+<h3 id="triggering-the-linux-oom-killer">Triggering the Linux OOM
+Killer</h3>
+<p>When physical RAM is completely exhausted and no swap space is
+available, the kernel cannot fulfill new memory allocation requests
+(such as <code>malloc()</code>). To prevent the entire operating system
+from crashing, the Linux kernel invokes the Out-Of-Memory (OOM)
+killer.</p>
+<p>The OOM killer evaluates all running processes using a heuristic
+scoring system (<code>oom_score</code>) that heavily penalizes processes
+consuming the largest percentage of physical RAM. Because your in-memory
+application is almost always the largest consumer of memory on the
+instance, the OOM killer selects it as the primary target and sends it a
+<code>SIGKILL</code> (signal 9) instruction.</p>
+<h3 id="impact-on-the-in-memory-application">Impact on the In-Memory
+Application</h3>
+<p>When the OOM killer terminates the process:</p>
+<ul>
+<li><strong>Immediate Process Termination:</strong> The application
+shuts down instantly without a chance to run graceful shutdown hooks or
+close active network connections.</li>
+<li><strong>Data Loss:</strong> Any volatile, uncommitted in-memory
+state that has not been persisted to disk via snapshots (like Redis RDB)
+or append-only logs (like AOF) is permanently lost.</li>
+<li><strong>System Log Entries:</strong> The kernel records the event in
+<code>/var/log/messages</code> or <code>/var/log/syslog</code> with a
+message indicating <code>Out of memory: Killed process</code>.</li>
+</ul>
+<h2 id="secondary-effects-on-the-ec2-instance">Secondary Effects on the
+EC2 Instance</h2>
+<p>Even before the OOM killer intervenes—or if the OOM killer fails to
+free memory fast enough—several infrastructure-level symptoms occur on
+the EC2 instance:</p>
+<ol type="1">
+<li><strong>Unresponsive Management Access:</strong> High memory
+pressure starves system daemons of resources. The SSH daemon
+(<code>sshd</code>) or the AWS Systems Manager (SSM) Agent may become
+unresponsive or get killed, locking administrators out of the
+instance.</li>
+<li><strong>EBS Volume Throttling:</strong> If swap is enabled on a
+general-purpose EBS volume (such as <code>gp2</code> or
+<code>gp3</code>), continuous swapping rapidly consumes the volume's
+IOPS and throughput limits, paralyzing all other disk operations on the
+instance.</li>
+<li><strong>Failed EC2 Status Checks:</strong> If kernel threads lock up
+waiting for memory allocations, the instance may stop responding to ARP
+requests or hypervisor heartbeats, causing EC2 Instance Status Checks to
+fail in the AWS Management Console.</li>
+<li><strong>Application-Level OutOfMemory Errors:</strong> Managed
+runtime environments like the Java Virtual Machine (JVM) or Node.js
+often hit their internal heap limits (<code>-Xmx</code>) before the OS
+runs out of physical RAM. If the heap limit is set higher than physical
+RAM, the OS kills the runtime; if set lower, the runtime throws an
+<code>OutOfMemoryError</code> and crashes or hangs during garbage
+collection.</li>
+</ol>
+<h2 id="how-to-prevent-and-mitigate-ec2-memory-exhaustion">How to
+Prevent and Mitigate EC2 Memory Exhaustion</h2>
+<p>Running in-memory workloads reliably on Amazon EC2 requires proactive
+capacity planning and defensive configuration:</p>
+<ul>
+<li><strong>Right-Size with Memory-Optimized Instances:</strong> Migrate
+workloads to EC2 Memory-Optimized instance families (such as the
+<code>R</code>, <code>X</code>, or High Memory <code>U</code> series),
+which provide high ratios of RAM to vCPUs specifically designed for
+in-memory databases and real-time analytics.</li>
+<li><strong>Configure Application Memory Limits and Eviction
+Policies:</strong> Never allow an in-memory store to grow unbounded. In
+Redis or Memcached, set the <code>maxmemory</code> directive to 70%–80%
+of the instance's physical RAM and configure an eviction policy (such as
+<code>allkeys-lru</code> or <code>volatile-lru</code>) so the
+application gracefully drops old keys instead of crashing.</li>
+<li><strong>Monitor Memory with the CloudWatch Agent:</strong> Standard
+EC2 metrics only track hypervisor-level CPU, network, and disk usage;
+they do not track OS memory utilization. Install the unified Amazon
+CloudWatch Agent to collect the <code>mem_used_percent</code> metric and
+trigger CloudWatch Alarms when memory usage exceeds a safe threshold
+(such as 80%).</li>
+<li><strong>Tune Kernel Overcommit Settings:</strong> Adjust the Linux
+kernel parameter <code>vm.overcommit_memory</code>. Setting
+<code>vm.overcommit_memory = 2</code> prevents the kernel from
+allocating more virtual memory than the physical RAM plus a defined
+ratio, allowing applications to receive a standard allocation failure
+rather than triggering the OOM killer unexpectedly.</li>
+<li><strong>Use Dedicated Instance Store Volumes for Swap (With
+Caution):</strong> If you want a small safety buffer against sudden
+memory spikes, configure a small swap file on local NVMe Instance Store
+volumes rather than EBS, and set <code>vm.swappiness</code> to a very
+low value (such as <code>1</code> or <code>10</code>) so the OS only
+swaps in emergencies.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-an-ec-2-app-exceeds-its-physical-ram';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

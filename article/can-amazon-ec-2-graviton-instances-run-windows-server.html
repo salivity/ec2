@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can Amazon EC2 Graviton Instances Run Windows Server? - ec2</title>
+    <meta name="description" content="Amazon EC2 Graviton instances cannot run Windows Server workloads and are restricted to Arm64-compatible Linux distributions and FreeBSD. While AWS Graviton processors offer significant price-performance advantages over traditional x86 instances, Microsof">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-amazon-ec-2-graviton-instances-run-windows-server">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can Amazon EC2 Graviton Instances Run Windows Server? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-amazon-ec-2-graviton-instances-run-windows-server" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Graviton instances cannot run Windows Server workloads and are restricted to Arm64-compatible Linux distributions and FreeBSD. While AWS Graviton processors offer significant price-performance advantages over traditional x86 instances, Microsof" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="can-amazon-ec2-graviton-instances-run-windows-server">Can Amazon
+EC2 Graviton Instances Run Windows Server?</h1>
+<p>Amazon EC2 Graviton instances cannot run Windows Server workloads and
+are restricted to Arm64-compatible Linux distributions and FreeBSD.
+While AWS Graviton processors offer significant price-performance
+advantages over traditional x86 instances, Microsoft does not license or
+support a general-purpose Windows Server operating system for
+cloud-based Arm64 environments on Amazon EC2. Organizations looking to
+migrate Windows applications to Graviton must first modernize their
+workloads to run on Linux-based operating systems, such as through the
+use of cross-platform frameworks like modern .NET or
+containerization.</p>
+<h2 id="why-windows-server-is-unavailable-on-aws-graviton">Why Windows
+Server Is Unavailable on AWS Graviton</h2>
+<p>The restriction comes down to architecture and operating system
+licensing rather than hardware capability alone. AWS Graviton processors
+are custom-built by Amazon using the 64-bit Arm Neoverse architecture
+(Arm64/aarch64), whereas traditional Intel Xeon and AMD EPYC EC2
+instances use the x86_64 architecture.</p>
+<ol type="1">
+<li><strong>Operating System Support:</strong> Although Microsoft
+develops Windows 11 on Arm for client devices and maintains internal Arm
+builds, there is no commercially supported Windows Server Arm64 Amazon
+Machine Image (AMI) available on AWS.</li>
+<li><strong>Instruction Set Incompatibility:</strong> Standard Windows
+Server binaries are compiled for the x86_64 instruction set and cannot
+execute natively on Graviton processors without emulation or
+recompilation.</li>
+<li><strong>Hypervisor and Driver Ecosystem:</strong> EC2 Graviton
+instances rely on the AWS Nitro System designed around Arm64
+virtualization standards, for which AWS and Microsoft only provide
+production server support on x86 platforms.</li>
+</ol>
+<h2 id="supported-operating-systems-on-ec2-graviton">Supported Operating
+Systems on EC2 Graviton</h2>
+<p>EC2 Graviton instances (including Graviton2, Graviton3, and Graviton4
+families like <code>t4g</code>, <code>m6g</code>, <code>m7g</code>,
+<code>c7g</code>, and <code>r8g</code>) support a wide ecosystem of
+open-source and enterprise Linux distributions compiled for the
+<code>arm64</code> architecture:</p>
+<ul>
+<li><strong>Amazon Linux:</strong> Amazon Linux 2 and Amazon Linux
+2023</li>
+<li><strong>Ubuntu:</strong> Ubuntu Server LTS releases</li>
+<li><strong>Red Hat Enterprise Linux (RHEL):</strong> RHEL 8 and
+newer</li>
+<li><strong>SUSE Linux Enterprise Server (SLES):</strong> SLES 15 and
+newer</li>
+<li><strong>Debian, Rocky Linux, and AlmaLinux:</strong> Full native
+<code>aarch64</code> support</li>
+<li><strong>Container Optimized OS:</strong> Bottlerocket and Amazon
+ECS-Optimized AMIs</li>
+<li><strong>BSD Variants:</strong> FreeBSD and NetBSD (via supported
+Arm64 AMIs)</li>
+</ul>
+<h2 id="migrating-windows-workloads-to-aws-graviton">Migrating Windows
+Workloads to AWS Graviton</h2>
+<p>Even though Windows Server itself cannot run on Graviton, many
+applications historically hosted on Windows Server can be refactored to
+run on Linux-based Graviton instances to capture up to <span
+class="math inline">\(40\%\)</span> better price-performance.</p>
+<h3 id="1-replatforming-net-applications">1. Replatforming .NET
+Applications</h3>
+<p>Legacy applications built on the Windows-only .NET Framework
+(versions 1.0 through 4.8) require Windows Server and must remain on x86
+EC2 instances (such as <code>m6i</code>, <code>m7i</code>, or
+<code>m7a</code>). However, applications built on modern cross-platform
+<strong>.NET</strong> (formerly .NET Core, including .NET 6, 7, 8, and
+newer) can be compiled directly for <code>linux-arm64</code> and
+deployed on Graviton instances or AWS Fargate with Graviton.</p>
+<h3 id="2-moving-sql-server-workloads">2. Moving SQL Server
+Workloads</h3>
+<p>Microsoft SQL Server is available on Linux, but Microsoft only
+supports SQL Server on Linux for the x86_64 architecture. To leverage
+Graviton for database workloads, organizations typically migrate from
+SQL Server to Arm-compatible managed database engines such as Amazon
+Aurora (PostgreSQL or MySQL), Amazon RDS for PostgreSQL/MySQL/MariaDB,
+or use Babelfish for Aurora PostgreSQL to understand SQL Server's T-SQL
+protocol without rewriting application queries.</p>
+<h3 id="3-containerizing-applications">3. Containerizing
+Applications</h3>
+<p>Windows Containers require a Windows Server host node and therefore
+must run on x86 EC2 instances. By porting application code to run inside
+Linux containers and building multi-architecture Docker images
+(<code>linux/amd64</code> and <code>linux/arm64</code>), workloads can
+seamlessly run on Graviton-backed Amazon ECS or Amazon EKS clusters.</p>
+<h2 id="choosing-the-right-ec2-instance-for-windows-server">Choosing the
+Right EC2 Instance for Windows Server</h2>
+<p>If your workload depends on Windows-specific technologies—such as
+Active Directory Domain Services, IIS with legacy ASP.NET, Microsoft
+Exchange, or third-party Windows-only binaries—you must select an
+x86-based EC2 instance:</p>
+<ul>
+<li><strong>Intel Xeon Instances:</strong> <code>m7i</code>,
+<code>c7i</code>, <code>r7i</code> (high single-threaded performance and
+broad enterprise compatibility)</li>
+<li><strong>AMD EPYC Instances:</strong> <code>m7a</code>,
+<code>c7a</code>, <code>r7a</code> (often <span
+class="math inline">\(10\%\)</span> to <span
+class="math inline">\(20\%\)</span> lower cost than comparable Intel
+instances while maintaining full Windows Server x86_64
+compatibility)</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-amazon-ec-2-graviton-instances-run-windows-server';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

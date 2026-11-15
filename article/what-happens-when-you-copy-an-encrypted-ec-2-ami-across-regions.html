@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What happens when you copy an encrypted EC2 AMI across Regions? - ec2</title>
+    <meta name="description" content="Copying an encrypted Amazon Elastic Compute Cloud (EC2) Amazon Machine Image (AMI) from one AWS Region to another results in a new, distinct AMI in the destination Region with a unique AMI ID. During this process, AWS automatically copies the underlying A">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-happens-when-you-copy-an-encrypted-ec-2-ami-across-regions">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What happens when you copy an encrypted EC2 AMI across Regions? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-happens-when-you-copy-an-encrypted-ec-2-ami-across-regions" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Copying an encrypted Amazon Elastic Compute Cloud (EC2) Amazon Machine Image (AMI) from one AWS Region to another results in a new, distinct AMI in the destination Region with a unique AMI ID. During this process, AWS automatically copies the underlying A" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-happens-when-you-copy-an-encrypted-ec2-ami-across-regions">What
+happens when you copy an encrypted EC2 AMI across Regions?</h1>
+<p>Copying an encrypted Amazon Elastic Compute Cloud (EC2) Amazon
+Machine Image (AMI) from one AWS Region to another results in a new,
+distinct AMI in the destination Region with a unique AMI ID. During this
+process, AWS automatically copies the underlying Amazon Elastic Block
+Store (EBS) snapshots to the target Region and re-encrypts them using a
+KMS key located in that destination Region. Because AWS Key Management
+Service (KMS) keys are generally regional resources, the copied AMI
+cannot continue using a standard single-Region KMS key from the source
+Region and must instead use either the default AWS-managed EBS key in
+the target Region, a specified customer-managed key in the target
+Region, or a replica of a multi-Region KMS key.</p>
+<h2 id="how-the-cross-region-ami-copy-process-works">How the
+Cross-Region AMI Copy Process Works</h2>
+<p>An Amazon Machine Image consists of metadata regarding the instance
+configuration and pointers to one or more Amazon EBS snapshots that hold
+the actual volume data. When you initiate a copy of an encrypted AMI to
+another Region, AWS performs several operations behind the scenes:</p>
+<ol type="1">
+<li><strong>Snapshot Duplication and Re-encryption:</strong> AWS reads
+the source EBS snapshots—decrypting the data using the source Region's
+KMS key—and securely transfers the snapshot data over the AWS network to
+the destination Region. As the data arrives in the destination Region,
+it is encrypted using a KMS key residing in that destination
+Region.</li>
+<li><strong>New Snapshot Creation:</strong> New EBS snapshots are
+created in the target Region with new Snapshot IDs. If the first
+cross-Region copy is performed, it is always a full copy of the blocks
+in the snapshot rather than an incremental copy, unless there is already
+a previous snapshot of the same volume in the destination Region.</li>
+<li><strong>AMI Registration:</strong> Once the underlying snapshots are
+created and encrypted in the destination Region, AWS registers a new AMI
+in the target Region with its own unique <code>ami-xxxxxxxx</code>
+identifier.</li>
+</ol>
+<h2 id="key-management-service-kms-key-behavior">Key Management Service
+(KMS) Key Behavior</h2>
+<p>Because KMS encryption keys are bound to the Region in which they
+were created, you must consider which KMS key will encrypt the new AMI
+in the destination Region:</p>
+<ul>
+<li><strong>Default Encryption Behavior:</strong> If you copy an
+encrypted AMI and do not explicitly specify a KMS key for the
+destination Region, AWS automatically encrypts the target AMI's
+snapshots using the default AWS-managed KMS key for Amazon EBS
+(<code>aws/ebs</code>) in the destination Region.</li>
+<li><strong>Custom KMS Key Specification:</strong> You can choose to
+specify a customer-managed KMS key (CMK) that exists in the destination
+Region. This is mandatory if you plan to share the copied AMI with other
+AWS accounts later, as AWS does not allow sharing AMIs or snapshots
+encrypted with the default <code>aws/ebs</code> managed key.</li>
+<li><strong>Multi-Region KMS Keys:</strong> If you use AWS KMS
+multi-Region keys, you can create a replica of your primary KMS key in
+the destination Region. While the replica key has the same Key ID and
+key material as the primary key in the source Region, it still has a
+distinct Amazon Resource Name (ARN) specific to the destination Region,
+which you can select during the copy operation.</li>
+</ul>
+<h2 id="iam-and-kms-permissions-required">IAM and KMS Permissions
+Required</h2>
+<p>To successfully copy an encrypted AMI across Regions, the IAM
+principal (user or role) initiating the copy action in the destination
+Region must have permissions in both Regions:</p>
+<h3 id="source-region-permissions">Source Region Permissions</h3>
+<ul>
+<li><strong>EC2 Permissions:</strong> <code>ec2:DescribeImages</code>
+and <code>ec2:DescribeSnapshots</code> to read the source AMI and its
+backing snapshots.</li>
+<li><strong>KMS Permissions:</strong> <code>kms:Decrypt</code> and
+<code>kms:DescribeKey</code> on the KMS key used to encrypt the source
+AMI snapshots so AWS can read and transfer the data.</li>
+</ul>
+<h3 id="destination-region-permissions">Destination Region
+Permissions</h3>
+<ul>
+<li><strong>EC2 Permissions:</strong> <code>ec2:CopyImage</code>,
+<code>ec2:CopySnapshot</code>, <code>ec2:CreateImage</code>, and
+<code>ec2:RegisterImage</code> (along with <code>ec2:CreateTags</code>
+if copying or applying tags).</li>
+<li><strong>KMS Permissions:</strong> <code>kms:Encrypt</code>,
+<code>kms:ReEncrypt*</code>,
+<code>kms:GenerateDataKeyWithoutPlaintext</code>,
+<code>kms:DescribeKey</code>, and <code>kms:CreateGrant</code> on the
+destination Region's KMS key so Amazon EBS can encrypt the newly created
+snapshots.</li>
+</ul>
+<h2 id="what-does-and-does-not-get-copied">What Does and Does Not Get
+Copied</h2>
+<p>When an encrypted AMI is copied across Regions, not all attributes
+associated with the original AMI are carried over to the new AMI:</p>
+<ul>
+<li><strong>AMI ID and Snapshot IDs:</strong> The target AMI and its
+backing snapshots receive completely new IDs. Any infrastructure-as-code
+templates (like AWS CloudFormation or Terraform) must reference the new
+Region-specific AMI ID.</li>
+<li><strong>User-Defined Tags:</strong> Tags attached to the source AMI
+are <strong>not</strong> copied by default. However, you can opt to copy
+user-defined tags by enabling the <code>CopyImageTags</code> parameter
+during the copy request, or by applying new tags during the
+operation.</li>
+<li><strong>Launch Permissions:</strong> Launch permissions (which
+control which AWS accounts can launch instances from the AMI) are not
+copied. The new AMI is private to your account by default in the
+destination Region.</li>
+<li><strong>Billing Product Codes:</strong> Any AWS Marketplace billing
+product codes associated with the source AMI are preserved on the target
+AMI, though certain AWS Marketplace AMIs may restrict cross-Region
+copying entirely.</li>
+<li><strong>Deprecation Time:</strong> Any deprecation settings
+configured on the original AMI are not transferred and must be reapplied
+in the destination Region if desired.</li>
+</ul>
+<h2 id="cost-and-performance-considerations">Cost and Performance
+Considerations</h2>
+<p>Copying an encrypted AMI to another Region incurs standard AWS
+charges and operational considerations:</p>
+<ul>
+<li><strong>Data Transfer Costs:</strong> You are billed for
+cross-Region data transfer out from the source Region to the destination
+Region based on the size of the data transferred.</li>
+<li><strong>EBS Snapshot Storage Costs:</strong> Once the snapshots are
+stored in the destination Region, you incur standard monthly Amazon EBS
+snapshot storage charges for that Region.</li>
+<li><strong>KMS API Costs:</strong> Both the source and destination KMS
+keys will process cryptographic API requests (<code>Decrypt</code>,
+<code>GenerateDataKeyWithoutPlaintext</code>, <code>CreateGrant</code>)
+during the copy process, which count toward your AWS KMS usage.</li>
+<li><strong>Copy Duration:</strong> Because the initial copy of a
+snapshot to a new Region is a full copy rather than an incremental one,
+the time required to complete the AMI copy depends on the total amount
+of data stored in the backing snapshots. Subsequent copies of updated
+AMIs derived from the same base volume to the same destination Region
+will only transfer changed blocks, reducing both transfer time and
+cost.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-happens-when-you-copy-an-encrypted-ec-2-ami-across-regions';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

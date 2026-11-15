@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does EC2 Reserved Instance Size Flexibility Work? - ec2</title>
+    <meta name="description" content="Amazon EC2 Reserved Instance size flexibility automatically applies the discounted rate of a Regional Linux Reserved Instance to any running instance within the same instance family and AWS Region, regardless of its specific size. Every instance size is a">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-ec-2-reserved-instance-size-flexibility-work">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does EC2 Reserved Instance Size Flexibility Work? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-ec-2-reserved-instance-size-flexibility-work" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Reserved Instance size flexibility automatically applies the discounted rate of a Regional Linux Reserved Instance to any running instance within the same instance family and AWS Region, regardless of its specific size. Every instance size is a" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-ec2-reserved-instance-size-flexibility-work">How Does
+EC2 Reserved Instance Size Flexibility Work?</h1>
+<p>Amazon EC2 Reserved Instance size flexibility automatically applies
+the discounted rate of a Regional Linux Reserved Instance to any running
+instance within the same instance family and AWS Region, regardless of
+its specific size. Every instance size is assigned a mathematical
+normalization factor based on its relative resource capacity. When your
+instances run, AWS calculates the total normalized units consumed and
+matches them against the normalized units provided by your Reserved
+Instance commitment. This allows a single Reserved Instance to fully
+cover multiple smaller instances or partially discount a single larger
+instance without requiring manual modifications to your reservation.</p>
+<h2 id="prerequisites-and-eligibility-criteria">Prerequisites and
+Eligibility Criteria</h2>
+<p>Instance size flexibility does not apply to every Reserved Instance
+purchase. For the billing discount to scale automatically across
+different sizes, your reservation and running instances must meet
+specific technical requirements:</p>
+<ul>
+<li><strong>Regional Scope:</strong> The Reserved Instance must be
+configured as a Regional Reserved Instance rather than a Zonal Reserved
+Instance. Zonal reservations reserve capacity in a specific Availability
+Zone and lock the discount to the exact instance size purchased.</li>
+<li><strong>Platform and Operating System:</strong> The instance must
+run on a Linux or Unix platform with default shared tenancy. Operating
+systems that include commercial licensing costs, such as Windows Server,
+Red Hat Enterprise Linux (RHEL), and SUSE Linux Enterprise Server
+(SLES), do not support size flexibility.</li>
+<li><strong>Tenancy:</strong> Only instances with shared
+(<code>default</code>) tenancy qualify. Dedicated Instances and
+Dedicated Hosts are excluded.</li>
+<li><strong>Instance Family:</strong> The running instances must belong
+to the exact same instance family and generation as the Reserved
+Instance. For example, a reservation for the <code>m6i</code> family can
+only apply to other <code>m6i</code> instances; it will not apply to
+<code>m5</code> or <code>c6i</code> instances.</li>
+<li><strong>Amazon RDS Support:</strong> In addition to Amazon EC2, size
+flexibility also applies to Amazon RDS Reserved Instances across
+matching database engines and license-included or bring-your-own-license
+models where eligible.</li>
+</ul>
+<h2 id="understanding-normalization-factors">Understanding Normalization
+Factors</h2>
+<p>To compare and equate different instance sizes within the same
+family, AWS assigns a numerical value called a normalization factor to
+each size. The normalization factor scales linearly with the size of the
+instance. An <code>xlarge</code> instance serves as the baseline unit of
+<span class="math inline">\(8\)</span>.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Size</th>
+<th style="text-align: left;">Normalization Factor (<span
+class="math inline">\(N\)</span>)</th>
+<th style="text-align: left;">Equivalent <code>large</code> Units</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>nano</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.25\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.0625\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>micro</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.5\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.125\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>small</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(1\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.25\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>medium</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(2\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(0.5\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>large</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(4\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(1\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(8\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(2\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>2xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(16\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(4\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>4xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(32\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(8\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>8xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(64\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(16\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>9xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(72\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(18\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>12xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(96\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(24\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>16xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(128\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(32\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>24xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(192\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(48\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>32xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(256\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(64\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>48xlarge</code></td>
+<td style="text-align: left;"><span
+class="math inline">\(384\)</span></td>
+<td style="text-align: left;"><span
+class="math inline">\(96\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>The total discounted capacity of a reservation is calculated by
+multiplying the quantity of Reserved Instances (<span
+class="math inline">\(Q\)</span>) by the normalization factor (<span
+class="math inline">\(N_{\text{RI}}\)</span>) of the purchased size:</p>
+<p><span class="math display">\[U_{\text{RI}} = Q \times
+N_{\text{RI}}\]</span></p>
+<p>For example, purchasing one <code>c6i.2xlarge</code> Regional Linux
+Reserved Instance provides a total of <span class="math inline">\(1
+\times 16 = 16\)</span> normalized units per hour in that region.</p>
+<h2 id="applying-discounts-to-smaller-instances">Applying Discounts to
+Smaller Instances</h2>
+<p>When you run instances that are smaller than your purchased Reserved
+Instance size, a single reservation can simultaneously cover multiple
+running instances until its pool of normalized units is exhausted.</p>
+<p>The number of running instances (<span
+class="math inline">\(C\)</span>) of a smaller target size with
+normalization factor (<span
+class="math inline">\(N_{\text{target}}\)</span>) that a single Reserved
+Instance can cover is determined by:</p>
+<p><span class="math display">\[C =
+\frac{U_{\text{RI}}}{N_{\text{target}}}\]</span></p>
+<p>Suppose you own one <code>t3.large</code> Regional Linux Reserved
+Instance (<span class="math inline">\(N_{\text{RI}} = 4\)</span>).
+Because this reservation provides <span class="math inline">\(4\)</span>
+normalized units per hour, the AWS billing engine can apply the discount
+to any of the following active configurations in the same region:</p>
+<ul>
+<li><strong>Two <code>t3.medium</code> instances:</strong> Each
+<code>medium</code> instance has a normalization factor of <span
+class="math inline">\(2\)</span>, consuming <span
+class="math inline">\(2 \times 2 = 4\)</span> units.</li>
+<li><strong>Four <code>t3.small</code> instances:</strong> Each
+<code>small</code> instance has a normalization factor of <span
+class="math inline">\(1\)</span>, consuming <span
+class="math inline">\(4 \times 1 = 4\)</span> units.</li>
+<li><strong>Eight <code>t3.micro</code> instances:</strong> Each
+<code>micro</code> instance has a normalization factor of <span
+class="math inline">\(0.5\)</span>, consuming <span
+class="math inline">\(8 \times 0.5 = 4\)</span> units.</li>
+<li><strong>Sixteen <code>t3.nano</code> instances:</strong> Each
+<code>nano</code> instance has a normalization factor of <span
+class="math inline">\(0.25\)</span>, consuming <span
+class="math inline">\(16 \times 0.25 = 4\)</span> units.</li>
+<li><strong>Mixed combinations:</strong> One <code>t3.medium</code>
+(<span class="math inline">\(2\)</span> units), one
+<code>t3.small</code> (<span class="math inline">\(1\)</span> unit), and
+two <code>t3.micro</code> instances (<span class="math inline">\(2
+\times 0.5 = 1\)</span> unit), which together total <span
+class="math inline">\(4\)</span> units.</li>
+</ul>
+<p>In all of these scenarios, 100% of the running instances are covered
+by the single <code>t3.large</code> Reserved Instance, and no On-Demand
+charges are incurred for compute usage.</p>
+<h2 id="applying-discounts-to-larger-instances">Applying Discounts to
+Larger Instances</h2>
+<p>Instance size flexibility also works in reverse when you scale up to
+an instance size that is larger than your Reserved Instance. A smaller
+Reserved Instance will partially cover a larger running instance,
+reducing the On-Demand cost proportionally.</p>
+<p>The fraction of the running instance covered by the reservation
+(<span class="math inline">\(F_{\text{covered}}\)</span>) is calculated
+as:</p>
+<p><span class="math display">\[F_{\text{covered}} =
+\frac{U_{\text{RI}}}{N_{\text{running}}}\]</span></p>
+<p>The remaining uncovered portion is billed at the standard On-Demand
+hourly rate (<span class="math inline">\(R_{\text{OD}}\)</span>) for
+that larger instance:</p>
+<p><span class="math display">\[\text{Hourly Cost}_{\text{uncovered}} =
+\left(1 - F_{\text{covered}}\right) \times R_{\text{OD}}\]</span></p>
+<p>For example, suppose you own one <code>m6i.xlarge</code> Reserved
+Instance (<span class="math inline">\(N_{\text{RI}} = 8\)</span>), and
+you decide to scale your workload up to a single
+<code>m6i.2xlarge</code> instance (<span
+class="math inline">\(N_{\text{running}} = 16\)</span>) in the same
+region:</p>
+<ol type="1">
+<li>Your reservation provides <span class="math inline">\(8\)</span>
+normalized units per hour.</li>
+<li>The running <code>m6i.2xlarge</code> requires <span
+class="math inline">\(16\)</span> normalized units per hour.</li>
+<li>The coverage ratio is <span class="math inline">\(\frac{8}{16} =
+0.5\)</span>, meaning 50% of the <code>m6i.2xlarge</code> instance is
+covered by the Reserved Instance.</li>
+<li>You are billed at the On-Demand rate for the remaining 50% of the
+<code>m6i.2xlarge</code> usage (equivalent to paying for <span
+class="math inline">\(8\)</span> uncovered normalized units).</li>
+</ol>
+<p>Alternatively, if you own two <code>m6i.xlarge</code> Reserved
+Instances (<span class="math inline">\(2 \times 8 = 16\)</span> units),
+their normalized units combine automatically to cover 100% of the single
+<code>m6i.2xlarge</code> instance (<span
+class="math inline">\(16\)</span> units).</p>
+<h2 id="how-aws-billing-evaluates-usage">How AWS Billing Evaluates
+Usage</h2>
+<p>The application of instance size flexibility requires no manual
+intervention or configuration changes in the AWS Management Console. The
+AWS billing system evaluates usage on an hourly basis across all
+accounts in an AWS Organization (when consolidated billing and discount
+sharing are enabled) using the following order of operations:</p>
+<ol type="1">
+<li><strong>Account Affinity:</strong> A Reserved Instance is always
+applied first to matching usage within the specific AWS account that
+purchased the reservation.</li>
+<li><strong>Smallest-to-Largest Matching:</strong> Within an instance
+family and region, the billing engine evaluates and applies normalized
+units automatically to maximize coverage across active instances.</li>
+<li><strong>Organization Sharing:</strong> If any normalized units from
+a Regional Reserved Instance remain unused within the purchasing account
+during a given billing hour, those leftover fractional or whole units
+are automatically applied to eligible running instances in other
+accounts within the same AWS Organization.</li>
+</ol>
+<h2 id="monitoring-normalized-unit-utilization">Monitoring Normalized
+Unit Utilization</h2>
+<p>To verify how your Reserved Instances are being applied across
+different sizes, you can inspect your usage in AWS Cost Explorer:</p>
+<ol type="1">
+<li>Open the <strong>AWS Cost Management</strong> console and navigate
+to <strong>Reservations</strong> &gt; <strong>Utilization
+report</strong>.</li>
+<li>Filter the view by <strong>Service</strong> (EC2-Instances) and
+<strong>Instance Family</strong>.</li>
+<li>Examine the <strong>Normalized units</strong> columns, which display
+your <strong>Total normalized units</strong> purchased alongside the
+<strong>Used normalized units</strong> and <strong>Unused normalized
+units</strong>.</li>
+<li>Switch to the <strong>Coverage report</strong> to view the
+percentage of your running normalized units covered by Reserved
+Instances versus those billed at On-Demand rates, allowing you to
+identify if scaling up to larger instance sizes has left an uncovered
+gap.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-ec-2-reserved-instance-size-flexibility-work';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

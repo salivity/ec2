@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which IPv4 Addresses Are Reserved in an AWS Subnet? - ec2</title>
+    <meta name="description" content="Amazon Web Services reserves five specific IPv4 addresses within every Virtual Private Cloud subnet to manage essential networking functions such as routing, domain name resolution, and network broadcasting. Specifically, the first four IP addresses and t">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-i-pv-4-addresses-are-reserved-in-an-aws-subnet">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which IPv4 Addresses Are Reserved in an AWS Subnet? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-i-pv-4-addresses-are-reserved-in-an-aws-subnet" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Web Services reserves five specific IPv4 addresses within every Virtual Private Cloud subnet to manage essential networking functions such as routing, domain name resolution, and network broadcasting. Specifically, the first four IP addresses and t" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="which-ipv4-addresses-are-reserved-in-an-aws-subnet">Which IPv4
+Addresses Are Reserved in an AWS Subnet?</h1>
+<p>Amazon Web Services reserves five specific IPv4 addresses within
+every Virtual Private Cloud subnet to manage essential networking
+functions such as routing, domain name resolution, and network
+broadcasting. Specifically, the first four IP addresses and the very
+last IP address in any subnet CIDR block are locked by AWS and cannot be
+assigned to Amazon EC2 instances or other user resources. Understanding
+how these reserved addresses operate is vital for cloud architects and
+network engineers when calculating available IP capacity and designing
+scalable cloud architectures.</p>
+<h2 id="breakdown-of-the-five-reserved-ipv4-addresses">Breakdown of the
+Five Reserved IPv4 Addresses</h2>
+<p>To illustrate how AWS allocates these five addresses, consider a
+standard subnet created with the CIDR block <code>10.0.0.0/24</code>. In
+this subnet, the total IP address range spans from <code>10.0.0.0</code>
+to <code>10.0.0.255</code>. Out of these addresses, AWS automatically
+reserves the following five locations:</p>
+<ul>
+<li><strong><code>10.0.0.0</code> (First Address - Network
+Address):</strong> This is the base network identifier for the subnet.
+In standard IPv4 networking, the first address in a CIDR block defines
+the network segment itself and cannot be assigned to an individual
+host.</li>
+<li><strong><code>10.0.0.1</code> (Second Address - VPC
+Router):</strong> AWS reserves the second IP address in every subnet for
+the intrinsic VPC router. This virtual router handles all traffic
+routing between different subnets within the VPC, as well as traffic
+heading to internet gateways, NAT gateways, and virtual private
+gateways.</li>
+<li><strong><code>10.0.0.2</code> (Third Address - AWS DNS):</strong>
+The third address is reserved for the Amazon-provided DNS server.
+Although the main VPC DNS resolver is always accessible at the base VPC
+network range plus two, each individual subnet reserves its own
+<code>.2</code> address to facilitate internal domain name
+resolution.</li>
+<li><strong><code>10.0.0.3</code> (Fourth Address - Future
+Use):</strong> AWS sets aside the fourth address in every subnet for
+future networking features and internal service enhancements. It remains
+completely unavailable for customer assignment.</li>
+<li><strong><code>10.0.0.255</code> (Last Address - Network Broadcast
+Address):</strong> The final IP address in the CIDR block is reserved as
+the network broadcast address. Even though Amazon VPC does not support
+broadcast traffic within a virtual network, AWS still reserves this
+address to adhere to standard IPv4 subnetting conventions.</li>
+</ul>
+<h2 id="calculating-usable-ip-addresses-in-an-aws-subnet">Calculating
+Usable IP Addresses in an AWS Subnet</h2>
+<p>In traditional on-premises networking, only two IP addresses per
+subnet are unusable by hosts: the network address and the broadcast
+address. Because AWS claims three additional addresses for its managed
+infrastructure, your capacity calculations must account for five
+unavailable IPs per subnet instead of two.</p>
+<p>For a given subnet with a prefix length of <span
+class="math inline">\(n\)</span> (such as <span
+class="math inline">\(/24\)</span>), the number of host bits is <span
+class="math inline">\(32 - n\)</span>. You can calculate the exact
+number of usable IPv4 addresses available for EC2 instances using the
+following formula:</p>
+<p><span class="math display">\[\text{Usable IPs} = 2^{32 - n} -
+5\]</span></p>
+<p>Using the <code>/24</code> subnet example where <span
+class="math inline">\(n = 24\)</span>, the calculation works out to:</p>
+<p><span class="math display">\[\text{Usable IPs} = 2^{32 - 24} - 5 =
+2^8 - 5 = 256 - 5 = 251\]</span></p>
+<h2 id="usable-capacity-across-common-subnet-sizes">Usable Capacity
+Across Common Subnet Sizes</h2>
+<p>When planning your VPC layout, choosing the right subnet size ensures
+you do not run out of IP addresses as your auto-scaling groups, load
+balancers, and Elastic Network Interfaces expand. The impact of the five
+reserved addresses is much more noticeable in smaller subnets than in
+larger ones:</p>
+<ul>
+<li><strong><code>/28</code> Subnet (Smallest supported by
+AWS):</strong> Contains <span class="math inline">\(2^{32 - 28} =
+16\)</span> total IP addresses. After subtracting the 5 reserved
+addresses, only <strong>11 usable IPs</strong> remain.</li>
+<li><strong><code>/27</code> Subnet:</strong> Contains <span
+class="math inline">\(2^{32 - 27} = 32\)</span> total IP addresses,
+leaving <strong>27 usable IPs</strong>.</li>
+<li><strong><code>/26</code> Subnet:</strong> Contains <span
+class="math inline">\(2^{32 - 26} = 64\)</span> total IP addresses,
+leaving <strong>59 usable IPs</strong>.</li>
+<li><strong><code>/25</code> Subnet:</strong> Contains <span
+class="math inline">\(2^{32 - 25} = 128\)</span> total IP addresses,
+leaving <strong>123 usable IPs</strong>.</li>
+<li><strong><code>/24</code> Subnet:</strong> Contains <span
+class="math inline">\(2^{32 - 24} = 256\)</span> total IP addresses,
+leaving <strong>251 usable IPs</strong>.</li>
+<li><strong><code>/16</code> Subnet (Largest supported by AWS):</strong>
+Contains <span class="math inline">\(2^{32 - 16} = 65,536\)</span> total
+IP addresses, leaving <strong>65,531 usable IPs</strong>.</li>
+</ul>
+<h2 id="considerations-for-non-zero-boundary-subnets">Considerations for
+Non-Zero Boundary Subnets</h2>
+<p>While the <code>10.0.0.0/24</code> example uses convenient numbers
+ending in <code>.0</code>, <code>.1</code>, <code>.2</code>,
+<code>.3</code>, and <code>.255</code>, smaller subnets or subnets split
+on different boundaries follow the exact same positional rule rather
+than the literal ending digits.</p>
+<p>For example, if you provision a <code>/28</code> subnet with the CIDR
+block <code>10.0.0.16/28</code>, the IP range spans from
+<code>10.0.0.16</code> to <code>10.0.0.31</code>. In this specific
+subnet, the five reserved addresses are:</p>
+<ul>
+<li><code>10.0.0.16</code> (Network Address)</li>
+<li><code>10.0.0.17</code> (VPC Router)</li>
+<li><code>10.0.0.18</code> (AWS DNS)</li>
+<li><code>10.0.0.19</code> (Future Use)</li>
+<li><code>10.0.0.31</code> (Network Broadcast Address)</li>
+</ul>
+<p>In this <code>/28</code> block, the first assignable IP address for
+an Amazon EC2 instance is <code>10.0.0.20</code>, and the last
+assignable IP address is <code>10.0.0.30</code>. Always evaluate the
+start and end boundaries of your specific CIDR block to identify which
+exact IP addresses are reserved by AWS.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-i-pv-4-addresses-are-reserved-in-an-aws-subnet';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

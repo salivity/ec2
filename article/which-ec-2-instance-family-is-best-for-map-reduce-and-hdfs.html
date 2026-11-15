@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which EC2 instance family is best for MapReduce and HDFS? - ec2</title>
+    <meta name="description" content="Amazon EC2 D series instances, such as the D2 and D3 families, are the Storage Optimized instances specifically tailored for MapReduce and distributed file systems like the Hadoop Distributed File System. These instances provide dense local hard disk driv">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-ec-2-instance-family-is-best-for-map-reduce-and-hdfs">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which EC2 instance family is best for MapReduce and HDFS? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-ec-2-instance-family-is-best-for-map-reduce-and-hdfs" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 D series instances, such as the D2 and D3 families, are the Storage Optimized instances specifically tailored for MapReduce and distributed file systems like the Hadoop Distributed File System. These instances provide dense local hard disk driv" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="which-ec2-instance-family-is-best-for-mapreduce-and-hdfs">Which
+EC2 instance family is best for MapReduce and HDFS?</h1>
+<p>Amazon EC2 D series instances, such as the D2 and D3 families, are
+the Storage Optimized instances specifically tailored for MapReduce and
+distributed file systems like the Hadoop Distributed File System. These
+instances provide dense local hard disk drive storage, delivering
+massive sequential read and write throughput across large datasets. By
+pairing high-capacity local storage with high network bandwidth, D
+series instances lower the cost per terabyte of disk storage while
+meeting the input and output demands of big data analytics and massively
+parallel processing workloads.</p>
+<h2 id="overview-of-ec2-storage-optimized-instance-families">Overview of
+EC2 Storage Optimized Instance Families</h2>
+<p>Amazon Elastic Compute Cloud (EC2) categorizes instances with high
+local disk throughput and IOPS under the Storage Optimized umbrella.
+While families like the I series (such as I3 and I4i) focus on
+low-latency, high random I/O performance using Non-Volatile Memory
+Express (NVMe) solid-state drives (SSDs) for NoSQL databases, workloads
+like MapReduce and HDFS have a fundamentally different access pattern.
+Distributed file systems and batch data processing pipelines read and
+write large contiguous blocks of data sequentially rather than
+performing small, random lookups.</p>
+<p>To support high-throughput sequential access cost-effectively, AWS
+designed the D series instance families:</p>
+<ul>
+<li><strong>D2 Instances:</strong> Built for dense HDD storage, offering
+up to 48 TB of local HDD-based instance store capacity across 24
+individual 2 TB drives.</li>
+<li><strong>D3 and D3en Instances:</strong> The modern successor to D2,
+built on the AWS Nitro System. D3 instances provide higher compute
+performance, up to 75 Gbps of network bandwidth, and up to 336 TB of
+local HDD storage on D3en configurations.</li>
+</ul>
+<h2 id="why-mapreduce-and-hdfs-require-dense-hdd-storage">Why MapReduce
+and HDFS Require Dense HDD Storage</h2>
+<p>MapReduce and HDFS operate on the principle of data locality: moving
+computation to the nodes where the data resides rather than moving
+massive datasets across the network to separate compute nodes. In a
+typical HDFS cluster, files are split into large blocks, often 128 MB or
+256 MB in size, and replicated across multiple DataNodes.</p>
+<p>Because these blocks are large and stored contiguously, magnetic hard
+disk drives (HDDs) perform exceptionally well. Once the disk read/write
+head seeks to the beginning of an HDFS block, it can stream data
+continuously at high sequential speeds. Using multi-terabyte HDD arrays
+directly attached to the host server satisfies the two primary hardware
+requirements of distributed file systems:</p>
+<ol type="1">
+<li><strong>High Sequential Disk Throughput:</strong> When a MapReduce
+job runs, the Map phase scans vast amounts of input data stored locally,
+while the Shuffle and Reduce phases write intermediate and final outputs
+back to disk.</li>
+<li><strong>Low Cost per Terabyte:</strong> Big data lakes and
+historical log repositories frequently scale into petabytes. Because
+HDFS handles fault tolerance in software by replicating blocks
+(typically with a replication factor of <span class="math inline">\(R =
+3\)</span>), the raw storage required is three times the usable data
+volume. If a dataset has a logical size of <span
+class="math inline">\(S_{\text{logical}}\)</span>, the physical cluster
+storage capacity <span
+class="math inline">\(S_{\text{physical}}\)</span> required is:</li>
+</ol>
+<p><span class="math display">\[S_{\text{physical}} = S_{\text{logical}}
+\times R\]</span></p>
+<p>For example, storing <span class="math inline">\(100\text{
+TB}\)</span> of usable data with standard replication requires <span
+class="math inline">\(300\text{ TB}\)</span> of raw disk space. Local
+HDD storage on D2 or D3 instances provides this capacity at a fraction
+of the cost of SSD-backed instances.</p>
+<h2 id="key-features-of-the-d2-and-d3-instance-families">Key Features of
+the D2 and D3 Instance Families</h2>
+<h3 id="high-sequential-read-and-write-throughput">High Sequential Read
+and Write Throughput</h3>
+<p>D series instances aggregate the performance of multiple physical
+hard drives attached directly to the physical host. On the largest D3en
+instance (<code>d3en.12xlarge</code>), 24 individual 14 TB HDDs work in
+parallel to deliver up to 4.6 GB/s of aggregate sequential disk
+throughput at a 2 MiB block size. If each drive delivers a sequential
+read speed of <span class="math inline">\(T_{\text{drive}}\)</span>, the
+aggregate throughput <span
+class="math inline">\(T_{\text{total}}\)</span> across <span
+class="math inline">\(N\)</span> independent drives scales linearly:</p>
+<p><span class="math display">\[T_{\text{total}} = \sum_{i=1}^{N}
+T_{\text{drive}, i} \approx N \times T_{\text{drive}}\]</span></p>
+<p>In distributed file systems like HDFS or GPFS, each disk is mounted
+as a separate volume (a configuration known as JBOD, or "Just a Bunch of
+Disks"), allowing the distributed file system software to manage block
+placement, parallel I/O, and drive failure recovery directly without
+RAID controller overhead.</p>
+<h3 id="high-network-bandwidth-for-the-shuffle-phase">High Network
+Bandwidth for the Shuffle Phase</h3>
+<p>While the Map phase relies heavily on local disk reads, the Shuffle
+phase of a MapReduce job transfers intermediate key-value pairs across
+all nodes in the cluster. Network bottlenecks during the Shuffle phase
+can stall an entire job. D3 instances offer up to 25 Gbps of network
+bandwidth, while D3en instances provide up to 75 Gbps, ensuring that
+inter-node data transfers keep pace with local disk throughput.</p>
+<h3 id="instance-store-persistence-considerations">Instance Store
+Persistence Considerations</h3>
+<p>The high-density HDDs provided by D2 and D3 instances are ephemeral
+instance store volumes. Data written to these drives persists during
+instance reboots, but it is permanently lost if the underlying hardware
+fails or if the instance is stopped or terminated. In an HDFS
+architecture, this behavior is expected and managed at the application
+layer: if an EC2 instance fails, the HDFS NameNode detects the missing
+DataNode and automatically re-replicates its blocks from healthy nodes
+elsewhere in the cluster.</p>
+<h2 id="common-use-cases-beyond-hadoop">Common Use Cases Beyond
+Hadoop</h2>
+<p>In addition to Apache Hadoop and HDFS, the D2 and D3 Storage
+Optimized instance families are tailored for a variety of distributed
+and data-intensive workloads:</p>
+<ul>
+<li><strong>Massively Parallel Processing (MPP) Data
+Warehouses:</strong> Analytical databases that partition data across
+local disks and execute parallel table scans.</li>
+<li><strong>Distributed File Systems:</strong> Red Hat GlusterFS,
+Lustre, and IBM Spectrum Scale (GPFS) deployments that pool local
+storage across nodes into a unified namespace.</li>
+<li><strong>Log and Data Processing Pipelines:</strong> High-volume
+ingestion and batch processing systems using frameworks like Apache
+Spark, where large datasets are cached and spilled to local disks during
+complex transformations.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-ec-2-instance-family-is-best-for-map-reduce-and-hdfs';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

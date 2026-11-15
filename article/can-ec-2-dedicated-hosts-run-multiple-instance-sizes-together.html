@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can EC2 Dedicated Hosts Run Multiple Instance Sizes Together? - ec2</title>
+    <meta name="description" content="Yes, Amazon EC2 allows multiple different instance sizes from the same instance family to run simultaneously on a single Dedicated Host, provided the instance family supports this configuration and the host is allocated without a fixed instance type restr">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/can-ec-2-dedicated-hosts-run-multiple-instance-sizes-together">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Can EC2 Dedicated Hosts Run Multiple Instance Sizes Together? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/can-ec-2-dedicated-hosts-run-multiple-instance-sizes-together" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Yes, Amazon EC2 allows multiple different instance sizes from the same instance family to run simultaneously on a single Dedicated Host, provided the instance family supports this configuration and the host is allocated without a fixed instance type restr" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="can-ec2-dedicated-hosts-run-multiple-instance-sizes-together">Can
+EC2 Dedicated Hosts Run Multiple Instance Sizes Together?</h1>
+<p>Yes, Amazon EC2 allows multiple different instance sizes from the
+same instance family to run simultaneously on a single Dedicated Host,
+provided the instance family supports this configuration and the host is
+allocated without a fixed instance type restriction. When you allocate
+an Amazon EC2 Dedicated Host by specifying an instance family rather
+than a specific instance type, you unlock the flexibility to mix and
+match various instance sizes up to the total physical hardware capacity
+of that server. This capability helps organizations maximize hardware
+utilization, simplify capacity management, and optimize licensing costs
+on single-tenant physical servers.</p>
+<h2 id="how-multiple-instance-sizes-work-on-dedicated-hosts">How
+Multiple Instance Sizes Work on Dedicated Hosts</h2>
+<p>An Amazon EC2 Dedicated Host is a physical server with EC2 instance
+capacity fully dedicated to your use. Historically, when allocating a
+Dedicated Host, you had to specify an exact instance type, such as
+<code>m5.xlarge</code>. That host could then only run instances of that
+exact size.</p>
+<p>With multiple instance size support, you can allocate a Dedicated
+Host at the instance family level, such as <code>m5</code>,
+<code>c5</code>, or <code>r5</code>. Once allocated for an instance
+family, the physical host pools its total vCPUs and memory, allowing you
+to launch any combination of supported instance sizes within that family
+until the physical resources of the host are exhausted.</p>
+<h2 id="allocating-a-host-for-multiple-instance-sizes">Allocating a Host
+for Multiple Instance Sizes</h2>
+<p>How you configure the Dedicated Host during allocation determines
+whether you can run mixed sizes or a single size:</p>
+<ul>
+<li><strong>Instance Family Configuration:</strong> When you specify an
+<strong>Instance family</strong> (for example, <code>m5</code>) during
+allocation, you can launch multiple different instance sizes from the
+<code>m5</code> family on that same host simultaneously.</li>
+<li><strong>Instance Type Configuration:</strong> When you specify a
+specific <strong>Instance type</strong> (for example,
+<code>m5.2xlarge</code>) during allocation, you are restricted to
+launching only <code>m5.2xlarge</code> instances on that host.</li>
+</ul>
+<p>To allocate a Dedicated Host that supports multiple instance sizes
+using the AWS CLI, use the <code>--instance-family</code> parameter
+instead of <code>--instance-type</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 allocate-hosts <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-family</span> m5 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--availability-zone</span> us-east-1a <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--auto-placement</span> on <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--quantity</span> 1</span></code></pre></div>
+<h2 id="calculating-capacity-and-resource-utilization">Calculating
+Capacity and Resource Utilization</h2>
+<p>Every Dedicated Host has a fixed number of physical cores and total
+vCPUs. For Nitro-based instance families, the total available capacity
+on a Dedicated Host generally equals the capacity of the largest
+virtualized instance size in that family.</p>
+<p>Let <span class="math inline">\(C_{\text{total}}\)</span> represent
+the total vCPU capacity of the Dedicated Host, and let <span
+class="math inline">\(c_i\)</span> represent the vCPU requirement of the
+<span class="math inline">\(i\)</span>-th instance running on the host.
+You can continue launching instances of varying sizes from the same
+family as long as the sum of their vCPUs does not exceed the total vCPU
+capacity of the host:</p>
+<p><span class="math display">\[\sum_{i=1}^{n} c_i \le
+C_{\text{total}}\]</span></p>
+<p>For example, an <code>m5</code> Dedicated Host provides a total
+capacity of <span class="math inline">\(C_{\text{total}} = 96\text{
+vCPUs}\)</span> (equivalent to one <code>m5.24xlarge</code> instance).
+Because each <code>xlarge</code> unit in the <code>m5</code> family
+consumes <span class="math inline">\(4\text{ vCPUs}\)</span>, you can
+simultaneously run a mix of sizes as long as their combined vCPU count
+is <span class="math inline">\(96\)</span> or less.</p>
+<p>A single <code>m5</code> Dedicated Host with <span
+class="math inline">\(96\text{ vCPUs}\)</span> could simultaneously
+run:</p>
+<ul>
+<li>One <code>m5.12xlarge</code> instance (<span
+class="math inline">\(48\text{ vCPUs}\)</span>)</li>
+<li>Two <code>m5.4xlarge</code> instances (<span class="math inline">\(2
+\times 16 = 32\text{ vCPUs}\)</span>)</li>
+<li>Two <code>m5.xlarge</code> instances (<span class="math inline">\(2
+\times 4 = 8\text{ vCPUs}\)</span>)</li>
+<li>Four <code>m5.large</code> instances (<span class="math inline">\(4
+\times 2 = 8\text{ vCPUs}\)</span>)</li>
+</ul>
+<p>Adding those together gives:</p>
+<p><span class="math display">\[48 + 32 + 8 + 8 = 96\text{
+vCPUs}\]</span></p>
+<p>This combination uses <span class="math inline">\(100\%\)</span> of
+the host's capacity while running four distinct instance sizes on the
+same physical server.</p>
+<h2 id="supported-instance-families-and-limitations">Supported Instance
+Families and Limitations</h2>
+<p>While most modern EC2 instance families support running multiple
+instance sizes on the same Dedicated Host, there are several rules and
+limitations to keep in mind:</p>
+<ul>
+<li><strong>Nitro System Requirement:</strong> Multiple instance size
+support is primarily available on instance families built on the AWS
+Nitro System (such as <code>c5</code>, <code>m5</code>, <code>r5</code>,
+<code>c6i</code>, <code>m6i</code>, <code>r6i</code>, and newer
+generations). Older Xen-based instance families (such as
+<code>m4</code>, <code>c4</code>, or <code>r4</code>) require you to
+specify a single instance type during host allocation and do not support
+mixing sizes.</li>
+<li><strong>No Cross-Family Mixing:</strong> You cannot mix instances
+from different instance families on the same Dedicated Host. Even if two
+families share similar hardware generations (such as <code>m5</code> and
+<code>m5d</code>, or <code>m5</code> and <code>c5</code>), a host
+allocated for the <code>m5</code> family can only run <code>m5</code>
+instances.</li>
+<li><strong>Bare Metal Instances:</strong> <code>.metal</code> instance
+sizes consume the entire physical server and cannot share a Dedicated
+Host with any other virtualized instances. Furthermore, if you allocate
+a host specifically for a <code>.metal</code> instance type, it cannot
+run smaller virtualized sizes unless allocated by instance family where
+supported.</li>
+<li><strong>macOS Dedicated Hosts:</strong> EC2 Mac instances
+(<code>mac1</code>, <code>mac2</code>) always consume the entire
+Dedicated Host (1 physical Mac mini per host) and therefore only support
+a single <code>.metal</code> size per host.</li>
+</ul>
+<h2 id="modifying-existing-dedicated-hosts">Modifying Existing Dedicated
+Hosts</h2>
+<p>You cannot directly convert an existing Dedicated Host from a
+single-instance-type configuration to a multi-instance-size (instance
+family) configuration while instances are running on it. However, if you
+have a Dedicated Host allocated for a specific instance type that
+belongs to a supported Nitro family, you can stop or terminate all
+running instances on that host and then modify or reallocate the host
+depending on your capacity reservation and licensing setup. In most
+workflows, the cleanest approach is to allocate a new Dedicated Host
+using the <code>--instance-family</code> parameter, migrate your stopped
+instances to the new host, and release the old single-type host.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/can-ec-2-dedicated-hosts-run-multiple-instance-sizes-together';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which Languages Run on AWS Graviton Without Code Changes? - ec2</title>
+    <meta name="description" content="Migrating applications to Amazon EC2 Graviton instances is often straightforward because interpreted languages and bytecode-based runtimes abstract the underlying processor architecture from your source code. Languages such as Python, Node.js, Ruby, PHP,">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-languages-run-on-aws-graviton-without-code-changes">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which Languages Run on AWS Graviton Without Code Changes? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-languages-run-on-aws-graviton-without-code-changes" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Migrating applications to Amazon EC2 Graviton instances is often straightforward because interpreted languages and bytecode-based runtimes abstract the underlying processor architecture from your source code. Languages such as Python, Node.js, Ruby, PHP," />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="which-languages-run-on-aws-graviton-without-code-changes">Which
+Languages Run on AWS Graviton Without Code Changes?</h1>
+<p>Migrating applications to Amazon EC2 Graviton instances is often
+straightforward because interpreted languages and bytecode-based
+runtimes abstract the underlying processor architecture from your source
+code. Languages such as Python, Node.js, Ruby, PHP, Java, and .NET
+generally require zero code modifications when transitioning from x86 to
+Arm64 processors, provided their third-party dependencies do not rely on
+architecture-specific native extensions or pre-compiled x86 binaries.
+Even compiled languages like Go and Rust typically only require updating
+the build target configuration rather than rewriting application
+logic.</p>
+<h2 id="interpreted-languages">Interpreted Languages</h2>
+<p>Interpreted and dynamically typed languages execute inside a language
+runtime that handles platform-specific machine instructions on behalf of
+your application. Because your codebase stays in plain text until the
+runtime interprets or just-in-time compiles it on the host machine,
+migrating to an Arm64 environment requires only installing the Arm64
+version of the interpreter.</p>
+<ul>
+<li><strong>Python</strong>: Pure Python applications run identically on
+x86 and Arm64. Modern versions of Python (3.8 and newer) offer full
+optimizations for 64-bit Arm architectures. Most popular packages
+containing C or Rust extensions, such as NumPy, Pandas, and
+Cryptography, publish pre-built <code>manylinux</code> aarch64 wheels to
+PyPI, allowing <code>pip</code> to install them without local
+compilation or code changes.</li>
+<li><strong>JavaScript and TypeScript (Node.js, Deno, Bun)</strong>: The
+V8 and JavaScriptCore engines have first-class Arm64 support. Pure
+JavaScript and TypeScript applications require zero source
+modifications. When using packages that rely on native addons via
+<code>node-gyp</code> or pre-built binaries, ensuring you are on current
+package versions guarantees that Arm64 binaries are downloaded
+automatically during installation.</li>
+<li><strong>Ruby</strong>: Standard Ruby (MRI) runs natively on Linux
+Arm64 distributions. Pure Ruby scripts and frameworks like Ruby on Rails
+run unmodified on Graviton. Gems with native C extensions compile
+automatically during <code>bundle install</code> as long as standard
+build tools and development headers are present on the instance.</li>
+<li><strong>PHP</strong>: PHP applications, including those built on
+Laravel, Symfony, or WordPress, execute through the Zend Engine without
+architecture awareness in the userland code. Installing the standard
+Arm64 PHP packages and extensions via your Linux distribution package
+manager allows existing PHP codebases to run immediately.</li>
+<li><strong>Perl and Lua</strong>: Scripts written in Perl or Lua
+without custom inline assembly or x86-specific C bindings run directly
+on Arm64 interpreters without modification.</li>
+</ul>
+<h2 id="managed-bytecode-and-virtual-machine-runtimes">Managed Bytecode
+and Virtual Machine Runtimes</h2>
+<p>Languages that compile to intermediate bytecode rather than
+machine-specific assembly are inherently portable. The virtual machine
+translates the platform-neutral bytecode into native Arm64 instructions
+at runtime.</p>
+<ul>
+<li><strong>Java and JVM Languages (Kotlin, Scala, Groovy,
+Clojure)</strong>: Java bytecode (<code>.class</code> and
+<code>.jar</code> files) follows the write-once, run-anywhere model. You
+can often take the exact same <code>.jar</code> or <code>.war</code>
+artifact built on an x86 build server and run it directly on an Amazon
+Corretto or OpenJDK Arm64 runtime on Graviton. Code changes are only
+necessary if the application uses Java Native Interface (JNI) libraries
+compiled exclusively for x86 without an <code>aarch64</code> counterpart
+bundled in the archive.</li>
+<li><strong>.NET (C#, F#, PowerShell)</strong>: Starting with .NET Core
+3.1 and thoroughly matured in .NET 5, 6, 7, and 8, the .NET runtime
+natively supports Arm64. Framework-dependent deployments built as
+intermediate language (IL) assemblies require zero source code changes
+and run directly on the Arm64 .NET runtime, provided the application
+does not invoke x86-only unmanaged DLLs via P/Invoke.</li>
+<li><strong>Erlang and Elixir (BEAM)</strong>: Applications targeting
+the BEAM virtual machine compile to portable <code>.beam</code> bytecode
+files. Standard Elixir and Erlang applications, unless utilizing custom
+C or Rust Native Implemented Functions (NIFs) with x86-specific
+instructions, transition to Graviton without code edits.</li>
+<li><strong>WebAssembly (Wasm)</strong>: Wasm modules compiled to the
+WebAssembly System Interface (WASI) or executed inside runtimes like
+Wasmtime or WasmEdge are portable binary targets by design and run
+unmodified on Arm64 hosts.</li>
+</ul>
+<h2 id="compiled-languages-requiring-only-build-flag-changes">Compiled
+Languages Requiring Only Build Flag Changes</h2>
+<p>While ahead-of-time (AOT) compiled languages produce
+architecture-specific binaries, modern systems languages usually require
+zero changes to your actual source code—only a change to your
+compilation environment or cross-compilation flags.</p>
+<ul>
+<li><strong>Go</strong>: Go provides built-in cross-compilation. Unless
+your codebase uses <code>cgo</code> with x86-specific C libraries or
+platform-specific assembly files, your Go source code remains untouched.
+You simply compile your binary with the environment variables
+<code>GOOS=linux</code> and <code>GOARCH=arm64</code>.</li>
+<li><strong>Rust</strong>: Standard Rust code that avoids
+architecture-specific intrinsics (such as
+<code>core::arch::x86_64</code>) compiles directly for Graviton by
+targeting <code>aarch64-unknown-linux-gnu</code> or
+<code>aarch64-unknown-linux-musl</code> via Cargo.</li>
+</ul>
+<h2 id="when-are-changes-actually-required">When Are Changes Actually
+Required?</h2>
+<p>Even when using an interpreted or bytecode language, your deployment
+pipeline or dependency tree might require minor adjustments in the
+following scenarios:</p>
+<ol type="1">
+<li><strong>Container Base Images</strong>: While your application code
+stays the same, your <code>Dockerfile</code> must use multi-architecture
+base images (such as <code>python:3.12-slim</code>,
+<code>node:20-alpine</code>, or <code>amazoncorretto:21</code>) rather
+than images hardcoded to <code>amd64</code>.</li>
+<li><strong>Outdated Native Dependencies</strong>: Older versions of
+libraries that wrap C/C++ code might predate widespread Arm64 adoption.
+Upgrading your dependency lockfiles (<code>package-lock.json</code>,
+<code>requirements.txt</code>, <code>Gemfile.lock</code>,
+<code>pom.xml</code>) is typically sufficient to pull in pre-compiled
+Arm64 binaries (such as updated Netty, gRPC, or RocksDB versions in
+Java).</li>
+<li><strong>Architecture-Specific Intrinsics</strong>: Applications
+written in C, C++, or Rust that explicitly call x86 SIMD instructions
+(such as SSE or AVX) require refactoring to use portable SIMD
+abstractions, compiler auto-vectorization, or Arm NEON and SVE
+equivalents.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-languages-run-on-aws-graviton-without-code-changes';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

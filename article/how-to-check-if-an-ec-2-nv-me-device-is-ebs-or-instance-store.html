@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Check if an EC2 NVMe Device is EBS or Instance Store? - ec2</title>
+    <meta name="description" content="You can determine whether an NVMe block device on an Amazon EC2 Linux instance is an Amazon Elastic Block Store volume or an ephemeral instance store volume by inspecting its hardware model name and vendor-specific metadata. Because AWS Nitro-based instan">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-check-if-an-ec-2-nv-me-device-is-ebs-or-instance-store">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Check if an EC2 NVMe Device is EBS or Instance Store? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-check-if-an-ec-2-nv-me-device-is-ebs-or-instance-store" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="You can determine whether an NVMe block device on an Amazon EC2 Linux instance is an Amazon Elastic Block Store volume or an ephemeral instance store volume by inspecting its hardware model name and vendor-specific metadata. Because AWS Nitro-based instan" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-check-if-an-ec2-nvme-device-is-ebs-or-instance-store">How
+to Check if an EC2 NVMe Device is EBS or Instance Store?</h1>
+<p>You can determine whether an NVMe block device on an Amazon EC2 Linux
+instance is an Amazon Elastic Block Store volume or an ephemeral
+instance store volume by inspecting its hardware model name and
+vendor-specific metadata. Because AWS Nitro-based instances expose both
+storage types through the NVMe interface using identical device naming
+conventions like nvme0n1 and nvme1n1, checking the device path alone is
+insufficient. Standard Linux utilities such as lsblk, nvme-cli, and
+Amazon EC2 udev scripts allow administrators to quickly query the
+controller model string and serial number to distinguish persistent EBS
+storage from temporary instance store disks before formatting or
+mounting file systems.</p>
+<h2 id="why-device-names-cannot-identify-storage-type">Why Device Names
+Cannot Identify Storage Type</h2>
+<p>On modern AWS Nitro System instances, both Amazon EBS volumes and
+local EC2 instance store volumes are attached to the guest operating
+system through virtualized Non-Volatile Memory Express
+(<code>NVMe</code>) controllers. During the boot sequence, the Linux
+kernel enumerates NVMe namespaces asynchronously as they respond,
+assigning sequential device node names such as
+<code>/dev/nvme0n1</code>, <code>/dev/nvme1n1</code>, and
+<code>/dev/nvme2n1</code>.</p>
+<p>Because device enumeration order is non-deterministic across reboots,
+<code>/dev/nvme0n1</code> might correspond to your root EBS volume on
+one boot and a local ephemeral NVMe drive on the next. Relying on the
+device node name without verifying the underlying controller attributes
+risks writing persistent data to ephemeral storage that is wiped when
+the instance stops, or misconfiguring RAID arrays and fstab entries.</p>
+<h2 id="method-1-using-lsblk-to-inspect-the-model-string">Method 1:
+Using lsblk to Inspect the Model String</h2>
+<p>The fastest built-in method on almost any Linux distribution is to
+query the block device <code>MODEL</code> attribute using
+<code>lsblk</code>. The AWS Nitro hypervisor populates the NVMe
+controller model field with distinct strings for each storage
+backend:</p>
+<ul>
+<li><strong>Amazon Elastic Block Store</strong> indicates a persistent
+EBS volume.</li>
+<li><strong>Amazon EC2 NVMe Instance Storage</strong> indicates an
+ephemeral local instance store volume.</li>
+</ul>
+<p>Run the following command to list all block devices alongside their
+model and serial numbers:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">lsblk</span> <span class="at">-o</span> NAME,SIZE,TYPE,MOUNTPOINT,MODEL,SERIAL</span></code></pre></div>
+<p>Example output on an instance with both EBS and instance store
+volumes attached:</p>
+<pre class="text"><code>NAME        SIZE TYPE MOUNTPOINT MODEL                            SERIAL
+nvme0n1      20G disk            Amazon Elastic Block Store       vol0123456789abcdef0
+└─nvme0n1p1  20G part /
+nvme1n1     100G disk /data      Amazon Elastic Block Store       vol0fedcba9876543210
+nvme2n1     440G disk            Amazon EC2 NVMe Instance Storage AWS1A2B3C4D5E6F7G8H9</code></pre>
+<p>In this output:</p>
+<ol type="1">
+<li><code>nvme0n1</code> and <code>nvme1n1</code> show the model
+<code>Amazon Elastic Block Store</code> and serial numbers prefixed with
+<code>vol</code> (which directly map to
+<code>vol-0123456789abcdef0</code> and
+<code>vol-0fedcba9876543210</code> in the AWS Console).</li>
+<li><code>nvme2n1</code> displays
+<code>Amazon EC2 NVMe Instance Storage</code> and a serial number
+prefixed with <code>AWS</code>, confirming it is an instance store
+volume.</li>
+</ol>
+<h2 id="method-2-using-the-nvme-cli-utility">Method 2: Using the
+nvme-cli Utility</h2>
+<p>The <code>nvme-cli</code> package queries the NVMe controller
+registers directly. To list all connected NVMe devices and view their
+model strings and serial numbers, execute <code>nvme list</code> with
+root privileges:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> nvme list</span></code></pre></div>
+<p>Example output:</p>
+<pre class="text"><code>Node             SN                   Model                                    Namespace Usage                      Format           FW Rev
+---------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
+/dev/nvme0n1     vol0123456789abcdef0 Amazon Elastic Block Store               1          21.47  GB /  21.47  GB    512   B +  0 B   1.0
+/dev/nvme1n1     vol0fedcba9876543210 Amazon Elastic Block Store               1         107.37  GB / 107.37  GB    512   B +  0 B   1.0
+/dev/nvme2n1     AWS1A2B3C4D5E6F7G8H9 Amazon EC2 NVMe Instance Storage         1         472.44  GB / 472.44  GB    4.00 KiB +  0 B  0</code></pre>
+<p>For deeper inspection of a specific EBS volume—such as discovering
+the legacy block device mapping (like <code>/dev/sdf</code> or
+<code>/dev/xvda</code>) configured in the EC2 block device mapping—you
+can inspect the vendor-specific bytes of the NVMe controller
+identification structure:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> nvme id-ctrl <span class="at">-v</span> /dev/nvme1n1</span></code></pre></div>
+<p>On an EBS volume, the <code>vs</code> (vendor specific) section at
+the bottom of the output decodes the ASCII string of the block device
+name specified during attachment (for example, <code>sdf</code>). On an
+instance store volume, this vendor-specific block device mapping
+metadata is either empty or contains internal instance storage
+identifiers (<code>ephemeral0</code>, <code>ephemeral1</code>,
+etc.).</p>
+<h2 id="method-3-reading-kernel-sysfs-attributes-directly">Method 3:
+Reading Kernel sysfs Attributes Directly</h2>
+<p>If you are working inside a minimal container environment or rescue
+shell where <code>nvme-cli</code> is not installed and
+<code>lsblk</code> flags are limited, you can read the device attributes
+directly from the Linux kernel <code>sysfs</code> virtual filesystem
+under <code>/sys/class/block/</code>:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> dev <span class="kw">in</span> /sys/block/nvme<span class="pp">*</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">name</span><span class="op">=</span><span class="va">$(</span><span class="fu">basename</span> <span class="st">&quot;</span><span class="va">$dev</span><span class="st">&quot;</span><span class="va">)</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">model</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="st">&quot;</span><span class="va">$dev</span><span class="st">/device/model&quot;</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-s</span> <span class="st">&#39; &#39;</span><span class="va">)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">serial</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="st">&quot;</span><span class="va">$dev</span><span class="st">/device/serial&quot;</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-d</span> <span class="st">&#39; &#39;</span><span class="va">)</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">printf</span> <span class="st">&quot;%-10s | %-34s | %s\n&quot;</span> <span class="st">&quot;</span><span class="va">$name</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$model</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$serial</span><span class="st">&quot;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span></code></pre></div>
+<p>Example output:</p>
+<pre class="text"><code>nvme0n1    | Amazon Elastic Block Store         | vol0123456789abcdef0
+nvme1n1    | Amazon Elastic Block Store         | vol0fedcba9876543210
+nvme2n1    | Amazon EC2 NVMe Instance Storage   | AWS1A2B3C4D5E6F7G8H9</code></pre>
+<p>Checking <code>/sys/block/&lt;device&gt;/device/model</code> requires
+no root permissions and works reliably across all modern Linux
+kernels.</p>
+<h2 id="method-4-using-aws-ebsnvme-id-on-amazon-linux-and-ubuntu">Method
+4: Using AWS ebsnvme-id on Amazon Linux and Ubuntu</h2>
+<p>Amazon Linux, Ubuntu AWS images, and RHEL AMIs pre-install the
+<code>amazon-ec2-utils</code> (or <code>ec2-utils</code>) package, which
+includes the <code>/sbin/ebsnvme-id</code> helper tool used by
+<code>udev</code> rules. Running this tool against an NVMe device node
+immediately identifies whether the target device is an EBS volume or an
+instance store volume:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> /sbin/ebsnvme-id /dev/nvme1n1</span></code></pre></div>
+<p>If the device is an <strong>EBS volume</strong>,
+<code>ebsnvme-id</code> outputs the formatted volume ID and the block
+device mapping name:</p>
+<pre class="text"><code>Volume ID: vol-0fedcba9876543210
+sda1</code></pre>
+<p>If the device is an <strong>instance store volume</strong>,
+<code>ebsnvme-id</code> exits with a message indicating it is not an EBS
+device:</p>
+<pre class="text"><code>sudo /sbin/ebsnvme-id /dev/nvme2n1</code></pre>
+<pre class="text"><code>/dev/nvme2n1: Not an EBS device</code></pre>
+<h2 id="comparison-of-ec2-nvme-device-attributes">Comparison of EC2 NVMe
+Device Attributes</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Attribute</th>
+<th style="text-align: left;">Amazon EBS Volume</th>
+<th style="text-align: left;">EC2 Instance Store Volume</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>NVMe Model String</strong></td>
+<td
+style="text-align: left;"><code>Amazon Elastic Block Store</code></td>
+<td
+style="text-align: left;"><code>Amazon EC2 NVMe Instance Storage</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Serial Number Prefix</strong></td>
+<td style="text-align: left;"><code>vol</code> (e.g.,
+<code>vol0123456789abcdef0</code>)</td>
+<td style="text-align: left;"><code>AWS</code> (e.g.,
+<code>AWS1A2B3C4D5E6F7G8H9</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Data Persistence</strong></td>
+<td style="text-align: left;">Persists across instance stops and
+reboots</td>
+<td style="text-align: left;">Ephemeral; persists across reboots, lost
+on stop/termination</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>ebsnvme-id Output</strong></td>
+<td style="text-align: left;">Returns <code>Volume ID: vol-...</code>
+and device name</td>
+<td style="text-align: left;">Returns
+<code>Not an EBS device</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>By-ID Symlink
+Pattern</strong></td>
+<td
+style="text-align: left;"><code>/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol*</code></td>
+<td
+style="text-align: left;"><code>/dev/disk/by-id/nvme-Amazon_EC2_NVMe_Instance_Storage_AWS*</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="best-practice-for-mounting-volumes-in-etcfstab">Best Practice
+for Mounting Volumes in /etc/fstab</h2>
+<p>To avoid mounting the wrong NVMe device after an instance stop/start
+cycle, never reference <code>/dev/nvmeXn1</code> directly in
+<code>/etc/fstab</code> or automation scripts. Instead, mount file
+systems using their file system <code>UUID</code> (retrieved via
+<code>blkid</code>) or use the persistent <code>/dev/disk/by-id/</code>
+symbolic links generated by <code>udev</code>, which incorporate the
+NVMe model name and serial number directly into the path.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-check-if-an-ec-2-nv-me-device-is-ebs-or-instance-store';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

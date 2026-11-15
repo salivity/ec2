@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When to Use Intel AMX vs AVX-512 on Amazon EC2? - ec2</title>
+    <meta name="description" content="Applications running on Amazon EC2 should rely on Intel Advanced Matrix Extensions and AVX-512 instructions when executing compute-intensive workloads that benefit from hardware-level vectorization and tile-based matrix multiplication. While AVX-512 accel">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-to-use-intel-amx-vs-avx-512-on-amazon-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When to Use Intel AMX vs AVX-512 on Amazon EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-to-use-intel-amx-vs-avx-512-on-amazon-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Applications running on Amazon EC2 should rely on Intel Advanced Matrix Extensions and AVX-512 instructions when executing compute-intensive workloads that benefit from hardware-level vectorization and tile-based matrix multiplication. While AVX-512 accel" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="when-to-use-intel-amx-vs-avx-512-on-amazon-ec2">When to Use
+Intel AMX vs AVX-512 on Amazon EC2?</h1>
+<p>Applications running on Amazon EC2 should rely on Intel Advanced
+Matrix Extensions and AVX-512 instructions when executing
+compute-intensive workloads that benefit from hardware-level
+vectorization and tile-based matrix multiplication. While AVX-512
+accelerates general-purpose vector operations, scientific simulations,
+media processing, and high-precision floating-point calculations across
+512-bit registers, Intel AMX is purpose-built for deep learning
+inference and training using lower-precision data types such as BFloat16
+and INT8. Selecting the appropriate instruction set on EC2 depends on
+whether the workload is bottlenecked by vector arithmetic or dense
+matrix multiplication, as well as the specific generation of Intel Xeon
+Scalable processors backing the instance family.</p>
+<h2 id="understanding-avx-512-on-amazon-ec2">Understanding AVX-512 on
+Amazon EC2</h2>
+<p>Intel Advanced Vector Extensions 512 (AVX-512) is a set of Single
+Instruction, Multiple Data (SIMD) instructions that doubles the register
+width of previous AVX2 implementations from 256 bits to 512 bits. With
+32 vector registers (ZMM0 through ZMM31), each capable of holding 512
+bits of data, a single core can process up to 16 single-precision (FP32)
+floating-point numbers, 8 double-precision (FP64) floating-point
+numbers, or 64 8-bit integers (INT8) in a single clock cycle.</p>
+<p>For standard vector operations, the theoretical peak floating-point
+operations per cycle (<span class="math inline">\(FLOPs/cycle\)</span>)
+using two Fused Multiply-Add (FMA) units per core can be expressed
+as:</p>
+<p><span class="math display">\[\text{Peak FP32 Operations per Cycle} =
+2 \times \left(\frac{512}{32}\right) \times 2 = 64 \text{
+FLOPs/cycle}\]</span></p>
+<p>Over subsequent generations of Intel Xeon processors available on
+Amazon EC2, AVX-512 evolved beyond basic arithmetic to include
+specialized subsets:</p>
+<ul>
+<li><strong>AVX-512 VNNI (Vector Neural Network Instructions):</strong>
+Introduced on 2nd Generation Intel Xeon Scalable processors (Cascade
+Lake), VNNI combines three separate instructions into one to accelerate
+INT8 dot products for convolutional and deep neural networks.</li>
+<li><strong>AVX-512 BF16:</strong> Introduced in 3rd Generation Xeon
+processors (Cooper Lake and Ice Lake), adding support for BFloat16 dot
+products to reduce memory bandwidth requirements without sacrificing the
+dynamic range of FP32.</li>
+<li><strong>AVX-512 FP16:</strong> Introduced on 4th Generation Intel
+Xeon Scalable processors (Sapphire Rapids), providing native
+half-precision floating-point arithmetic.</li>
+</ul>
+<h2 id="understanding-intel-amx-on-amazon-ec2">Understanding Intel AMX
+on Amazon EC2</h2>
+<p>Intel Advanced Matrix Extensions (AMX), introduced with 4th
+Generation Intel Xeon Scalable processors (Sapphire Rapids), represents
+an architectural shift from 1D vector registers to 2D matrix tiles.
+Instead of processing linear arrays of data in ZMM registers, AMX
+introduces an architecture composed of two primary components:</p>
+<ol type="1">
+<li><strong>Tile Matrix Multiply (TMUL) Unit:</strong> A dedicated
+hardware accelerator block attached to each CPU core that executes
+matrix multiplication instructions on tile registers.</li>
+<li><strong>Tile Registers (TMM0–TMM7):</strong> Eight two-dimensional
+registers per core, where each tile can hold up to 1 kilobyte of data
+(structured up to 16 rows by 64 bytes).</li>
+</ol>
+<p>When performing matrix multiplication of the form:</p>
+<p><span class="math display">\[C_{m \times n} = A_{m \times k} \times
+B_{k \times n} + C_{m \times n}\]</span></p>
+<p>AVX-512 VNNI can perform 256 INT8 operations per clock cycle per
+core, whereas Intel AMX can execute up to 2,048 INT8 operations or 1,024
+BF16 operations per clock cycle per core. That represents an <span
+class="math inline">\(8\times\)</span> throughput increase per cycle
+over AVX-512 for lower-precision matrix math. In 5th Generation (Emerald
+Rapids) and 6th Generation (Granite Rapids) Intel Xeon processors, AMX
+further expands to include native FP16 (AMX-FP16) and complex matrix
+operations.</p>
+<h2
+id="mapping-instruction-sets-to-amazon-ec2-instance-families">Mapping
+Instruction Sets to Amazon EC2 Instance Families</h2>
+<p>Choosing between AVX-512 and AMX requires matching application
+requirements to the right EC2 instance generation:</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">EC2 Instance Families</th>
+<th style="text-align: left;">Intel Xeon Generation</th>
+<th style="text-align: left;">AVX-512 Support</th>
+<th style="text-align: left;">AVX-512 VNNI</th>
+<th style="text-align: left;">Intel AMX Support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>C5, M5, R5</strong> (Skylake)</td>
+<td style="text-align: left;">1st Gen Xeon Scalable</td>
+<td style="text-align: left;">Base AVX-512</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C5n, M5zn, C5d, M5n, R5n</strong>
+(Cascade Lake)</td>
+<td style="text-align: left;">2nd Gen Xeon Scalable</td>
+<td style="text-align: left;">Base AVX-512</td>
+<td style="text-align: left;">Yes (INT8)</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C6i, M6i, R6i, I4i</strong> (Ice
+Lake)</td>
+<td style="text-align: left;">3rd Gen Xeon Scalable</td>
+<td style="text-align: left;">Expanded AVX-512</td>
+<td style="text-align: left;">Yes (INT8)</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C7i, M7i, R7i</strong> (Sapphire
+Rapids / Emerald Rapids)</td>
+<td style="text-align: left;">4th / 5th Gen Xeon Scalable</td>
+<td style="text-align: left;">Full + FP16 / BF16</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes (BF16, INT8)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C8i, M8i, R8i</strong> (Granite
+Rapids)</td>
+<td style="text-align: left;">6th Gen Xeon Scalable</td>
+<td style="text-align: left;">Full + FP16 / BF16</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes (BF16, INT8, FP16)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="when-an-application-should-rely-on-intel-amx">When an
+Application Should Rely on Intel AMX</h2>
+<p>An application should prioritize Intel AMX on EC2 (specifically
+7th-generation <code>C7i</code>, <code>M7i</code>, <code>R7i</code> or
+newer instances) when its primary computational bottleneck is dense
+two-dimensional matrix multiplication (<code>GEMM</code>) utilizing
+16-bit or 8-bit data types.</p>
+<h3 id="1-large-language-model-llm-inference-and-fine-tuning">1. Large
+Language Model (LLM) Inference and Fine-Tuning</h3>
+<p>Transformer architectures rely heavily on self-attention mechanisms
+and feed-forward networks dominated by matrix multiplications:</p>
+<p><span class="math display">\[\text{Attention}(Q, K, V) =
+\text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V\]</span></p>
+<p>For small-to-medium LLMs (such as 1B to 13B parameter models) or
+mixture-of-experts (MoE) architectures where GPU instances
+(<code>G5</code>, <code>G6</code>, <code>P4d</code>, <code>P5</code>)
+are either underutilized, cost-prohibitive, or capacity-constrained,
+running quantized INT8 or native BF16 inference on <code>C7i</code> or
+<code>R7i</code> instances with AMX delivers substantial token
+throughput and low first-token latency.</p>
+<h3
+id="2-high-throughput-deep-learning-inference-computer-vision-and-nlp">2.
+High-Throughput Deep Learning Inference (Computer Vision and NLP)</h3>
+<p>Workloads utilizing Convolutional Neural Networks (ResNet, YOLO),
+recommendation models (DLRM), or BERT-based classification pipelines for
+real-time traffic benefit immediately from AMX. When models are
+quantized to INT8 using tools like Intel Neural Compressor or PyTorch
+2.0 quantization, the TMUL unit computes the convolutional and linear
+layers in a fraction of the cycles required by AVX-512 VNNI.</p>
+<h3 id="3-vector-databases-and-high-dimensional-similarity-search">3.
+Vector Databases and High-Dimensional Similarity Search</h3>
+<p>Modern retrieval-augmented generation (RAG) pipelines and semantic
+search engines rely on computing distances (inner product, cosine
+similarity, or Euclidean distance) across millions of embeddings:</p>
+<p><span class="math display">\[\text{Cosine Similarity}(A, B) = \frac{A
+\cdot B}{\|A\| \|B\|}\]</span></p>
+<p>When batching query vectors against indexed shards stored in BF16 or
+INT8 formats, vector databases such as Milvus, OpenSearch, and Qdrant
+can leverage AMX to turn vector-to-vector comparisons into batched
+matrix multiplications, significantly boosting queries per second (QPS)
+on memory-optimized <code>R7i</code> instances.</p>
+<h2 id="when-an-application-should-rely-on-avx-512">When an Application
+Should Rely on AVX-512</h2>
+<p>Even on 7th-generation EC2 instances that support AMX, AVX-512
+remains essential—and is often the sole accelerator—for workloads that
+do not fit into low-precision 2D matrix tiles.</p>
+<h3
+id="1-high-performance-computing-hpc-requiring-fp32-or-fp64-precision">1.
+High-Performance Computing (HPC) Requiring FP32 or FP64 Precision</h3>
+<p>Intel AMX does not execute single-precision (FP32) or
+double-precision (FP64) floating-point arithmetic. Scientific
+simulations, computational fluid dynamics (CFD), finite element analysis
+(FEA), molecular dynamics (GROMACS), weather forecasting (WRF), and
+quantitative financial modeling require strict numerical accuracy. These
+workloads must rely on 512-bit ZMM registers via AVX-512 to achieve
+maximum floating-point throughput.</p>
+<h3 id="2-cryptography-compression-and-hashing">2. Cryptography,
+Compression, and Hashing</h3>
+<p>Wait-free data processing pipelines—such as TLS termination, IPsec
+VPN gateways, Zstandard/Gzip compression, and erasure coding in
+distributed storage—rely on integer bit manipulation, Galois Field New
+Instructions (<code>GFNI</code>), and vectorized AES (<code>VAES</code>)
+extensions built into the AVX-512 instruction set (introduced on Ice
+Lake <code>C6i</code>/<code>M6i</code>/<code>I4i</code> instances).
+These algorithms perform 1D permutations, XORs, and table lookups rather
+than 2D matrix dot products.</p>
+<h3 id="3-media-transcoding-and-image-processing">3. Media Transcoding
+and Image Processing</h3>
+<p>Video encoding and decoding pipelines (FFmpeg, x264, x265, SVT-AV1)
+and image manipulation libraries (libjpeg-turbo, OpenCV) depend on SIMD
+instructions for discrete cosine transforms (DCT), motion estimation,
+and pixel color-space conversions. Because these operations use small,
+strided, or irregular blocks of 8-bit and 16-bit integers alongside
+complex branching logic, AVX-512 provides the exact register flexibility
+required.</p>
+<h3 id="4-vectorized-database-analytics-and-columnar-processing">4.
+Vectorized Database Analytics and Columnar Processing</h3>
+<p>In-memory analytical databases (ClickHouse, Apache Spark with
+Gluten/Velox, DuckDB, PostgreSQL) and data processing libraries (Apache
+Arrow, Polars) use SIMD instructions to scan, filter, sort, and
+aggregate columnar data. Filtering an array of 64-bit timestamps or
+summing a column of 32-bit integers relies heavily on AVX-512 mask
+registers (<code>k0</code>–<code>k7</code>) and vector gather/scatter
+instructions, which have no equivalent in the AMX tile architecture.</p>
+<h3 id="5-non-matrix-operators-inside-ai-workloads">5. Non-Matrix
+Operators Inside AI Workloads</h3>
+<p>Even within an AMX-accelerated deep learning model, operations such
+as Softmax, Layer Normalization, RoPE (Rotary Position Embedding),
+GELU/SiLU activation functions, and element-wise tensor additions cannot
+run on the TMUL unit. The CPU seamlessly shifts between AMX for the
+<code>GEMM</code> layers and AVX-512 for the activation and
+normalization layers.</p>
+<h2 id="architectural-and-performance-trade-offs-on-ec2">Architectural
+and Performance Trade-Offs on EC2</h2>
+<p>When deciding how to configure compilers, libraries, and EC2 instance
+types, engineers must account for several hardware characteristics:</p>
+<h3 id="frequency-scaling-and-thermal-throttling">Frequency Scaling and
+Thermal Throttling</h3>
+<p>On older 1st and 2nd Generation Intel Xeon processors
+(<code>C5</code>, <code>M5</code>, <code>R5</code>), executing heavy
+512-bit instructions caused significant core frequency downclocking
+(often divided into "AVX-512 light" and "AVX-512 heavy" license levels)
+to keep the processor within its thermal and power envelope. If an
+application used AVX-512 only sporadically, the frequency drop slowed
+down the scalar code running alongside it, sometimes resulting in a net
+performance regression. Starting with 3rd Generation Xeon
+(<code>C6i</code>/<code>M6i</code>/<code>R6i</code>) and continuing into
+4th/5th Generation (<code>C7i</code>/<code>M7i</code>/<code>R7i</code>),
+Intel largely eliminated this penalty, allowing both AVX-512 and AMX
+workloads to run at or near the standard all-core turbo frequency.</p>
+<h3 id="register-state-and-context-switching-overhead">Register State
+and Context Switching Overhead</h3>
+<p>Because AMX introduces eight 1 KB tile registers (8 KB of
+architectural state per thread), the operating system kernel must
+support extended state management
+(<code>XSAVE</code>/<code>XRSTOR</code>) to save and restore tile data
+during thread context switches. To run Intel AMX on EC2, the guest AMI
+must run a Linux kernel version of <strong>5.16 or newer</strong> (such
+as Amazon Linux 2023, Ubuntu 22.04+, or RHEL 8.6+/9.0+). AVX-512 works
+on much older kernels (Linux 4.x+).</p>
+<h3 id="memory-bandwidth-saturation">Memory Bandwidth Saturation</h3>
+<p>Intel AMX is so computationally fast that workloads frequently
+transition from being compute-bound to memory-bandwidth-bound. For
+instance, during single-batch autoregressive token generation in LLMs,
+the time spent loading model weights from system RAM into the CPU caches
+exceeds the time the TMUL unit spends multiplying them. Fortunately,
+7th-generation EC2 instances (<code>C7i</code>, <code>M7i</code>,
+<code>R7i</code>) pair AMX with DDR5 memory, delivering up to double the
+memory bandwidth per vCPU compared to DDR4-based <code>M6i</code>
+instances.</p>
+<h2 id="software-stack-verification-on-amazon-ec2">Software Stack
+Verification on Amazon EC2</h2>
+<p>Most applications do not require handwritten assembly intrinsics
+(<code>_tile_dpbf16ps</code> or <code>_mm512_fmadd_ps</code>) to
+leverage these instructions. Instead, they rely on Intel oneAPI Deep
+Neural Network Library (<strong>oneDNN</strong>), Intel Math Kernel
+Library (<strong>oneMKL</strong>), <strong>OpenBLAS</strong>, or
+<strong>ONNX Runtime</strong>, which automatically dispatch the optimal
+instruction set at runtime.</p>
+<p>To verify which instruction sets an EC2 instance supports, inspect
+the CPU flags via <code>/proc/cpuinfo</code> or <code>lscpu</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check for AVX-512 capabilities</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-o</span> <span class="st">&#39;avx512[^ ]*&#39;</span> /proc/cpuinfo <span class="kw">|</span> <span class="fu">sort</span> <span class="at">-u</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Check for Intel AMX capabilities (requires C7i, M7i, R7i or newer)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-o</span> <span class="st">&#39;amx[^ ]*&#39;</span> /proc/cpuinfo <span class="kw">|</span> <span class="fu">sort</span> <span class="at">-u</span></span></code></pre></div>
+<p>On a 7th-generation Intel EC2 instance (<code>m7i.xlarge</code>), the
+AMX check will output flags confirming hardware readiness:</p>
+<ul>
+<li><code>amx_tile</code>: Core tile architecture support</li>
+<li><code>amx_bf16</code>: BFloat16 matrix multiplication support</li>
+<li><code>amx_int8</code>: 8-bit integer matrix multiplication
+support</li>
+</ul>
+<p>In frameworks like PyTorch or TensorFlow powered by oneDNN, you can
+explicitly verify or restrict the instruction set dispatcher at runtime
+using the <code>ONEDNN_MAX_CPU_ISA</code> environment variable:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force oneDNN to use AVX-512 (useful for benchmarking against AMX)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">ONEDNN_MAX_CPU_ISA</span><span class="op">=</span>AVX512_CORE_BF16</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Allow oneDNN to use Intel AMX (default on supported hardware)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">ONEDNN_MAX_CPU_ISA</span><span class="op">=</span>AVX512_CORE_AMX</span></code></pre></div>
+<h2 id="decision-summary">Decision Summary</h2>
+<ol type="1">
+<li><strong>Choose Intel AMX (<code>C7i</code>, <code>M7i</code>,
+<code>R7i</code>, <code>C8i</code>, <code>M8i</code>,
+<code>R8i</code>)</strong> when your workload is dominated by deep
+learning inference, fine-tuning, embedding generation, or batched vector
+similarity search using <strong>BF16, FP16, or INT8</strong> data types,
+and you want to maximize throughput on CPU instances without
+provisioning dedicated GPUs.</li>
+<li><strong>Choose AVX-512
+(<code>C6i</code>/<code>M6i</code>/<code>R6i</code> or
+<code>C7i</code>/<code>M7i</code>/<code>R7i</code>)</strong> when your
+workload requires <strong>FP32 or FP64</strong> precision for scientific
+computing, relies on <strong>1D vectorization</strong> for columnar
+database analytics, executes media transcoding, or performs
+high-throughput cryptographic and compression routines.</li>
+<li><strong>Avoid AVX-512 on 1st/2nd Gen Xeon
+(<code>C5</code>/<code>M5</code>/<code>R5</code>)</strong> if the
+workload only executes sparse vector instructions mixed with heavy
+scalar logic, as turbo frequency downclocking on older architectures can
+outweigh the SIMD speedup; migrate those workloads to <code>C6i</code>
+or <code>C7i</code> where frequency penalties are minimized.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-to-use-intel-amx-vs-avx-512-on-amazon-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

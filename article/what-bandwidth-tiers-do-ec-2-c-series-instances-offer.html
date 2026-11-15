@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Bandwidth Tiers Do EC2 C-Series Instances Offer? - ec2</title>
+    <meta name="description" content="Amazon EC2 compute-optimized C-series bare metal and high-end virtual instances provide dedicated networking bandwidth tiers ranging from twenty-five gigabits per second on standard large instances up to two hundred gigabits per second on network-optimize">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-bandwidth-tiers-do-ec-2-c-series-instances-offer">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Bandwidth Tiers Do EC2 C-Series Instances Offer? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-bandwidth-tiers-do-ec-2-c-series-instances-offer" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 compute-optimized C-series bare metal and high-end virtual instances provide dedicated networking bandwidth tiers ranging from twenty-five gigabits per second on standard large instances up to two hundred gigabits per second on network-optimize" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-bandwidth-tiers-do-ec2-c-series-instances-offer">What
+Bandwidth Tiers Do EC2 C-Series Instances Offer?</h1>
+<p>Amazon EC2 compute-optimized C-series bare metal and high-end virtual
+instances provide dedicated networking bandwidth tiers ranging from
+twenty-five gigabits per second on standard large instances up to two
+hundred gigabits per second on network-optimized fifth, sixth, seventh,
+and eighth generation servers. This guide covers the exact network
+throughput tiers across C5, C6i, C6gn, C7g, C7i, and C8g instance
+families, how AWS Nitro cards allocate network capacity, the role of
+Elastic Fabric Adapter in high-performance computing, and the
+mathematical formulas used to calculate packet throughput and data
+transfer performance.</p>
+<h2 id="overview-of-ec2-c-series-networking-architecture">Overview of
+EC2 C-Series Networking Architecture</h2>
+<p>Amazon EC2 C-series instances are engineered for compute-intensive
+workloads such as high-performance computing (HPC), batch processing,
+distributed analytics, media transcoding, and high-throughput network
+appliances. In modern EC2 generations built on the AWS Nitro System,
+networking functions are offloaded to dedicated hardware cards, freeing
+host CPU cores exclusively for application processing.</p>
+<p>Networking performance on EC2 C-series instances is governed by two
+primary factors:</p>
+<ol type="1">
+<li><strong>Instance Size:</strong> Network bandwidth scales
+proportionally with the number of virtual CPUs (vCPUs) allocated to an
+instance. Smaller instances receive baseline bandwidth with burst
+capabilities via network I/O credit mechanisms, whereas high-end
+<code>.8xlarge</code>, <code>.12xlarge</code>, <code>.16xlarge</code>,
+<code>.24xlarge</code>, <code>.48xlarge</code>, and <code>.metal</code>
+sizes receive guaranteed sustained bandwidth.</li>
+<li><strong>Network-Optimized Variants (<code>n</code> suffix):</strong>
+Instances denoted with an <code>n</code> suffix (such as
+<code>c5n</code>, <code>c6in</code>, and <code>c6gn</code>) integrate
+higher-capacity Nitro controllers to deliver elevated bandwidth and
+packet-per-second (PPS) performance at every vCPU tier compared to
+standard counterparts.</li>
+</ol>
+<h2 id="networking-bandwidth-tiers-by-c-series-generation">Networking
+Bandwidth Tiers by C-Series Generation</h2>
+<p>High-end virtual instances and bare metal instances within the
+C-series family fall into distinct sustained bandwidth tiers ranging
+from <span class="math inline">\(25\text{ Gbps}\)</span> to <span
+class="math inline">\(200\text{ Gbps}\)</span>. The table below details
+the sustained bandwidth tiers across major high-end and bare metal
+C-series offerings.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Family</th>
+<th style="text-align: left;">High-End / Metal Sizes</th>
+<th style="text-align: left;">Sustained Bandwidth Tier</th>
+<th style="text-align: left;">ENA Express Support</th>
+<th style="text-align: left;">EFA Support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>C5</strong></td>
+<td style="text-align: left;"><code>c5.12xlarge</code> /
+<code>c5.24xlarge</code>, <code>c5.metal</code></td>
+<td style="text-align: left;"><span class="math inline">\(12\text{
+Gbps}\)</span> / <span class="math inline">\(25\text{
+Gbps}\)</span></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C5n</strong></td>
+<td style="text-align: left;"><code>c5n.9xlarge</code> /
+<code>c5n.18xlarge</code>, <code>c5n.metal</code></td>
+<td style="text-align: left;"><span class="math inline">\(50\text{
+Gbps}\)</span> / <span class="math inline">\(100\text{
+Gbps}\)</span></td>
+<td style="text-align: left;">Yes (<code>18xlarge</code>,
+<code>metal</code>)</td>
+<td style="text-align: left;">Yes (<code>18xlarge</code>,
+<code>metal</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C6i / C6a</strong></td>
+<td style="text-align: left;"><code>16xlarge</code> /
+<code>24xlarge</code> / <code>32xlarge</code>, <code>metal</code></td>
+<td style="text-align: left;"><span class="math inline">\(25\text{
+Gbps}\)</span> / <span class="math inline">\(37.5\text{ Gbps}\)</span> /
+<span class="math inline">\(50\text{ Gbps}\)</span></td>
+<td style="text-align: left;">Yes (<code>32xlarge</code>,
+<code>metal</code>)</td>
+<td style="text-align: left;">Yes (<code>32xlarge</code>,
+<code>metal</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C6in</strong></td>
+<td style="text-align: left;"><code>c6in.16xlarge</code> /
+<code>c6in.24xlarge</code> / <code>c6in.32xlarge</code>,
+<code>c6in.metal</code></td>
+<td style="text-align: left;"><span class="math inline">\(100\text{
+Gbps}\)</span> / <span class="math inline">\(150\text{ Gbps}\)</span> /
+<span class="math inline">\(200\text{ Gbps}\)</span></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes (<code>32xlarge</code>,
+<code>metal</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C6gn</strong></td>
+<td style="text-align: left;"><code>c6gn.12xlarge</code> /
+<code>c6gn.16xlarge</code></td>
+<td style="text-align: left;"><span class="math inline">\(75\text{
+Gbps}\)</span> / <span class="math inline">\(100\text{
+Gbps}\)</span></td>
+<td style="text-align: left;">Yes (<code>16xlarge</code>)</td>
+<td style="text-align: left;">Yes (<code>16xlarge</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C7g</strong></td>
+<td style="text-align: left;"><code>c7g.12xlarge</code> /
+<code>c7g.16xlarge</code>, <code>c7g.metal</code></td>
+<td style="text-align: left;"><span class="math inline">\(22.5\text{
+Gbps}\)</span> / <span class="math inline">\(30\text{
+Gbps}\)</span></td>
+<td style="text-align: left;">Yes (<code>16xlarge</code>,
+<code>metal</code>)</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C7gn</strong></td>
+<td style="text-align: left;"><code>c7gn.12xlarge</code> /
+<code>c7gn.16xlarge</code>, <code>c7gn.metal</code></td>
+<td style="text-align: left;"><span class="math inline">\(150\text{
+Gbps}\)</span> / <span class="math inline">\(200\text{
+Gbps}\)</span></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes (<code>16xlarge</code>,
+<code>metal</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C7i</strong></td>
+<td style="text-align: left;"><code>c7i.16xlarge</code> /
+<code>c7i.24xlarge</code> / <code>c7i.48xlarge</code>,
+<code>c7i.metal-24xl</code>, <code>c7i.metal-48xl</code></td>
+<td style="text-align: left;"><span class="math inline">\(25\text{
+Gbps}\)</span> / <span class="math inline">\(37.5\text{ Gbps}\)</span> /
+<span class="math inline">\(50\text{ Gbps}\)</span></td>
+<td style="text-align: left;">Yes (<code>24xlarge+</code>,
+<code>metal</code>)</td>
+<td style="text-align: left;">Yes (<code>48xlarge</code>,
+<code>metal-48xl</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C7a</strong></td>
+<td style="text-align: left;"><code>c7a.24xlarge</code> /
+<code>c7a.32xlarge</code> / <code>c7a.48xlarge</code>,
+<code>c7a.metal-48xl</code></td>
+<td style="text-align: left;"><span class="math inline">\(25\text{
+Gbps}\)</span> / <span class="math inline">\(33.33\text{ Gbps}\)</span>
+/ <span class="math inline">\(50\text{ Gbps}\)</span></td>
+<td style="text-align: left;">Yes (<code>48xlarge</code>,
+<code>metal</code>)</td>
+<td style="text-align: left;">Yes (<code>48xlarge</code>,
+<code>metal</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>C8g</strong></td>
+<td style="text-align: left;"><code>c8g.24xlarge</code> /
+<code>c8g.48xlarge</code>, <code>c8g.metal-24xl</code>,
+<code>c8g.metal-48xl</code></td>
+<td style="text-align: left;"><span class="math inline">\(37.5\text{
+Gbps}\)</span> / <span class="math inline">\(75\text{
+Gbps}\)</span></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-25-gbps-to-30-gbps-tier-baseline-high-end-compute">The 25
+Gbps to 30 Gbps Tier (Baseline High-End Compute)</h3>
+<p>In fifth-generation (<code>c5.24xlarge</code>, <code>c5.metal</code>)
+and seventh-generation Arm-based Graviton3 instances
+(<code>c7g.16xlarge</code>, <code>c7g.metal</code>), the top-level
+sustained networking tier sits between <span
+class="math inline">\(25\text{ Gbps}\)</span> and <span
+class="math inline">\(30\text{ Gbps}\)</span>. These instances are
+designed for compute-bound workloads where inter-node communication is
+moderate, such as web application servers, video encoding farms, and
+independent simulation nodes.</p>
+<h3
+id="the-50-gbps-to-75-gbps-tier-modern-standard-high-end-and-metal">The
+50 Gbps to 75 Gbps Tier (Modern Standard High-End and Metal)</h3>
+<p>Sixth- and seventh-generation x86 instances
+(<code>c6i.32xlarge</code>, <code>c6i.metal</code>,
+<code>c6a.48xlarge</code>, <code>c6a.metal</code>,
+<code>c7i.48xlarge</code>, <code>c7i.metal-48xl</code>,
+<code>c7a.48xlarge</code>, <code>c7a.metal-48xl</code>) elevate the
+standard non-<code>n</code> maximum network bandwidth to <span
+class="math inline">\(50\text{ Gbps}\)</span>. With the introduction of
+Graviton4-powered <code>c8g.48xlarge</code> and
+<code>c8g.metal-48xl</code> instances, AWS increased the baseline
+maximum tier for standard compute instances to <span
+class="math inline">\(75\text{ Gbps}\)</span>, alongside <span
+class="math inline">\(60\text{ Gbps}\)</span> of dedicated Amazon EBS
+bandwidth.</p>
+<h3 id="the-100-gbps-tier-first-wave-network-optimized-compute">The 100
+Gbps Tier (First-Wave Network-Optimized Compute)</h3>
+<p>For workloads requiring high data ingestion rates or tightly coupled
+MPI (Message Passing Interface) communications,
+<code>c5n.18xlarge</code>, <code>c5n.metal</code>, and Graviton2-based
+<code>c6gn.16xlarge</code> provide <span class="math inline">\(100\text{
+Gbps}\)</span> of sustained network throughput. This tier also appears
+on mid-sized sixth- and seventh-generation network-optimized instances
+such as <code>c6in.16xlarge</code> and <code>c7gn.8xlarge</code>.</p>
+<h3 id="the-150-gbps-to-200-gbps-tier-ultra-high-throughput-compute">The
+150 Gbps to 200 Gbps Tier (Ultra-High Throughput Compute)</h3>
+<p>The highest networking tiers on general C-series instances are
+delivered by <code>c6in</code> (Intel Xeon Scalable) and
+<code>c7gn</code> (AWS Graviton3E) families:</p>
+<ul>
+<li><strong><span class="math inline">\(150\text{ Gbps}\)</span>
+Tier:</strong> Available on <code>c6in.24xlarge</code> and
+<code>c7gn.12xlarge</code> instances.</li>
+<li><strong><span class="math inline">\(200\text{ Gbps}\)</span>
+Tier:</strong> Available on <code>c6in.32xlarge</code>,
+<code>c6in.metal</code>, <code>c7gn.16xlarge</code>, and
+<code>c7gn.metal</code>. These instances utilize multiple AWS Nitro
+cards (or dual-card configurations) to double the collective throughput
+and achieve up to <span class="math inline">\(2\times\)</span> higher
+packet-processing performance per vCPU for network virtual appliances
+(firewalls, routers, load balancers) and distributed data
+analytics.</li>
+</ul>
+<h2
+id="single-flow-bandwidth-vs-aggregate-multi-flow-bandwidth">Single-Flow
+Bandwidth vs. Aggregate Multi-Flow Bandwidth</h2>
+<p>Achieving the full advertised bandwidth tier (<span
+class="math inline">\(50\text{ Gbps}\)</span>, <span
+class="math inline">\(100\text{ Gbps}\)</span>, or <span
+class="math inline">\(200\text{ Gbps}\)</span>) requires understanding
+how EC2 enforces traffic limits per network flow.</p>
+<p>By default, a single TCP or UDP flow between two instances within the
+same Availability Zone or across a Virtual Private Cloud (VPC) is capped
+at <span class="math inline">\(5\text{ Gbps}\)</span> (or up to <span
+class="math inline">\(10\text{ Gbps}\)</span> when placed in a cluster
+placement group). Therefore, to saturate an aggregate bandwidth tier
+<span class="math inline">\(B_{\text{total}}\)</span>, an application
+must distribute traffic across <span class="math inline">\(N\)</span>
+parallel 5-tuple network flows:</p>
+<p><span class="math display">\[N_{\text{flows}} \ge \left\lceil
+\frac{B_{\text{total}}}{B_{\text{flow}}} \right\rceil\]</span></p>
+<p>For example, saturating a <span class="math inline">\(100\text{
+Gbps}\)</span> <code>c5n.metal</code> instance using standard <span
+class="math inline">\(5\text{ Gbps}\)</span> flows requires at
+least:</p>
+<p><span class="math display">\[N_{\text{flows}} = \frac{100\text{
+Gbps}}{5\text{ Gbps}} = 20\text{ parallel flows}\]</span></p>
+<h3 id="increasing-single-flow-bandwidth-with-ena-express">Increasing
+Single-Flow Bandwidth with ENA Express</h3>
+<p>High-end and metal C-series instances supporting <strong>ENA
+Express</strong> (which uses the AWS Scalable Reliable Datagram, or SRD,
+protocol directly on the Nitro hardware) raise the maximum single-flow
+bandwidth limit from <span class="math inline">\(5\text{ Gbps}\)</span>
+to <span class="math inline">\(25\text{ Gbps}\)</span>. When ENA Express
+is enabled between two compatible instances in the same Availability
+Zone, the number of flows required to saturate a <span
+class="math inline">\(200\text{ Gbps}\)</span> <code>c6in.metal</code>
+instance drops significantly:</p>
+<p><span class="math display">\[N_{\text{flows, ENA Express}} =
+\frac{200\text{ Gbps}}{25\text{ Gbps}} = 8\text{ parallel
+flows}\]</span></p>
+<p>ENA Express also reduces tail latency (<span
+class="math inline">\(P_{99}\)</span> and <span
+class="math inline">\(P_{99.9}\)</span>) by dynamically routing packets
+across multiple equal-cost paths in the AWS data center fabric and
+recovering from packet drops directly on the Nitro card rather than
+waiting for OS TCP retransmissions.</p>
+<h2 id="elastic-fabric-adapter-efa-and-os-bypass-networking">Elastic
+Fabric Adapter (EFA) and OS-Bypass Networking</h2>
+<p>On the largest virtual sizes and <code>.metal</code> tiers of
+<code>c5n</code>, <code>c6i</code>, <code>c6in</code>,
+<code>c6gn</code>, <code>c7g</code>, <code>c7gn</code>,
+<code>c7i</code>, and <code>c7a</code>, AWS offers support for
+<strong>Elastic Fabric Adapter (EFA)</strong>. EFA is a network
+interface designed for applications requiring high levels of inter-node
+communications at scale, such as computational fluid dynamics (CFD),
+weather modeling, and distributed machine learning training.</p>
+<p>Key technical characteristics of EFA on high-end C-series instances
+include:</p>
+<ul>
+<li><strong>OS-Bypass:</strong> EFA allows applications using Libfabric
+(via OpenMPI, Intel MPI, or NCCL) to communicate directly with the Nitro
+network hardware without traversing the operating system kernel TCP/IP
+stack.</li>
+<li><strong>SRD Transport Protocol:</strong> Instead of traditional
+InfiniBand RDMA over Converged Ethernet (RoCE), EFA uses AWS SRD to
+spray packets across hundreds of network paths simultaneously, avoiding
+head-of-line blocking and network congestion hot spots.</li>
+<li><strong>Multi-Card Scaling:</strong> On <span
+class="math inline">\(200\text{ Gbps}\)</span> instances such as
+<code>c6in.metal</code> and <code>c7gn.metal</code>, users can attach up
+to two ENA/EFA interfaces associated with separate Nitro cards to
+achieve maximum line-rate RDMA-like throughput.</li>
+</ul>
+<h2
+id="calculating-throughput-and-packet-per-second-pps-limits">Calculating
+Throughput and Packet-Per-Second (PPS) Limits</h2>
+<p>Network performance on EC2 C-series instances is constrained by both
+bit-rate bandwidth (<span class="math inline">\(B\)</span>) and
+packet-per-second (<span class="math inline">\(R_{\text{PPS}}\)</span>)
+hardware limits on the Nitro card.</p>
+<p>To convert a sustained bandwidth tier <span
+class="math inline">\(B\)</span> (in <span
+class="math inline">\(\text{Gbps}\)</span>) into theoretical maximum
+byte throughput <span class="math inline">\(T\)</span> (in <span
+class="math inline">\(\text{GB/s}\)</span>, where <span
+class="math inline">\(1\text{ Byte} = 8\text{ bits}\)</span>):</p>
+<p><span class="math display">\[T = \frac{B}{8}\]</span></p>
+<p>For a <span class="math inline">\(200\text{ Gbps}\)</span> instance
+(<code>c6in.metal</code> or <code>c7gn.metal</code>):</p>
+<p><span class="math display">\[T = \frac{200\text{ Gbps}}{8} = 25\text{
+GB/s}\]</span></p>
+<p>When accounting for Ethernet frame overhead, IPv4 headers (<span
+class="math inline">\(20\text{ bytes}\)</span>), and TCP headers (<span
+class="math inline">\(20\text{ bytes}\)</span>), the effective payload
+throughput <span class="math inline">\(T_{\text{eff}}\)</span> for a
+given Maximum Transmission Unit (<span
+class="math inline">\(\text{MTU}\)</span>) is expressed as:</p>
+<p><span class="math display">\[T_{\text{eff}} = \frac{B}{8} \times
+\left( \frac{\text{MTU} - 40}{\text{MTU} + 38} \right)\]</span></p>
+<p>Within an Amazon VPC, high-end C-series instances support
+<strong>Jumbo Frames</strong> (<span class="math inline">\(\text{MTU} =
+9001\text{ bytes}\)</span>) for intra-VPC traffic. Comparing standard
+Ethernet frames (<span class="math inline">\(\text{MTU} = 1500\text{
+bytes}\)</span>) against Jumbo Frames (<span
+class="math inline">\(\text{MTU} = 9001\text{ bytes}\)</span>) at <span
+class="math inline">\(100\text{ Gbps}\)</span>:</p>
+<ol type="1">
+<li><p><strong>With <span class="math inline">\(\text{MTU} = 1500\text{
+bytes}\)</span>:</strong> <span class="math display">\[R_{\text{PPS}} =
+\frac{100 \times 10^9\text{ bits/s}}{(1500 + 38) \times 8\text{ bits}}
+\approx 8.13 \times 10^6\text{ PPS}\]</span></p></li>
+<li><p><strong>With <span class="math inline">\(\text{MTU} = 9001\text{
+bytes}\)</span>:</strong> <span class="math display">\[R_{\text{PPS}} =
+\frac{100 \times 10^9\text{ bits/s}}{(9001 + 38) \times 8\text{ bits}}
+\approx 1.38 \times 10^6\text{ PPS}\]</span></p></li>
+</ol>
+<p>Using <span class="math inline">\(\text{MTU} = 9001\)</span> reduces
+the packet-per-second processing burden by nearly <span
+class="math inline">\(83\%\)</span>, allowing high-end and bare metal
+C-series instances to reach their full <span
+class="math inline">\(100\text{ Gbps}\)</span> or <span
+class="math inline">\(200\text{ Gbps}\)</span> bandwidth ceiling without
+hitting PPS throttling limits. For workloads that specifically process
+small packets (such as VoIP, DNS servers, or packet inspection
+appliances), <code>c7gn</code> and <code>c6in</code> metal instances
+provide specialized multi-Nitro-card architectures capable of handling
+tens of millions of packets per second.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-bandwidth-tiers-do-ec-2-c-series-instances-offer';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

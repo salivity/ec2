@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Are EC2 Savings Plans More Flexible Than Reserved Instances? - ec2</title>
+    <meta name="description" content="Amazon EC2 Savings Plans offer significant flexibility advantages over legacy Reserved Instances by decoupling commitment discounts from rigid hardware configurations. Instead of locking into specific instance types, operating systems, or availability zon">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/are-ec-2-savings-plans-more-flexible-than-reserved-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Are EC2 Savings Plans More Flexible Than Reserved Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/are-ec-2-savings-plans-more-flexible-than-reserved-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 Savings Plans offer significant flexibility advantages over legacy Reserved Instances by decoupling commitment discounts from rigid hardware configurations. Instead of locking into specific instance types, operating systems, or availability zon" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="are-ec2-savings-plans-more-flexible-than-reserved-instances">Are
+EC2 Savings Plans More Flexible Than Reserved Instances?</h1>
+<p>Amazon EC2 Savings Plans offer significant flexibility advantages
+over legacy Reserved Instances by decoupling commitment discounts from
+rigid hardware configurations. Instead of locking into specific instance
+types, operating systems, or availability zones, organizations commit to
+a consistent hourly spend measured in US dollars for a one-year or
+three-year term. Compute Savings Plans automatically apply discounts
+across any EC2 instance family, size, operating system, tenancy, and AWS
+Region, while also covering AWS Fargate and AWS Lambda usage. Even the
+more restricted EC2 Instance Savings Plans eliminate manual modification
+overhead by automatically adjusting discounts across instance sizes,
+operating systems, and tenancies within a chosen family and region.</p>
+<h2 id="commitment-models-spend-vs-capacity-attributes">Commitment
+Models: Spend vs. Capacity Attributes</h2>
+<p>The primary structural difference between Reserved Instances (RIs)
+and Savings Plans lies in how the commitment is defined and tracked.
+Legacy Reserved Instances require you to commit to specific instance
+attributes:</p>
+<ul>
+<li><strong>Instance Family and Size:</strong> Such as
+<code>m5.xlarge</code> or <code>c6i.2xlarge</code>.</li>
+<li><strong>Platform (Operating System):</strong> Such as Linux/UNIX,
+Red Hat Enterprise Linux, or Windows Server.</li>
+<li><strong>Tenancy:</strong> Default (Shared) or Dedicated.</li>
+<li><strong>Scope:</strong> Regional or Zonal (tied to a specific
+Availability Zone).</li>
+</ul>
+<p>In contrast, Savings Plans replace hardware-attribute commitments
+with a monetary commitment. You agree to spend a fixed hourly amount,
+denoted as <span class="math inline">\(C_{\text{hourly}}\)</span>, for
+the duration of the term (either <span class="math inline">\(8,760\text{
+hours}\)</span> for one year or <span class="math inline">\(26,280\text{
+hours}\)</span> for three years). During every billing hour, AWS
+evaluates your eligible usage and applies the discounted Savings Plan
+rates up to <span class="math inline">\(C_{\text{hourly}}\)</span> in
+descending order of the discount percentage.</p>
+<p>If your hourly discounted usage is <span
+class="math inline">\(U_{\text{discounted}}\)</span> and the equivalent
+On-Demand spend is <span class="math inline">\(U_{\text{OD}}\)</span>,
+the effective hourly cost <span
+class="math inline">\(E_{\text{cost}}\)</span> before excess On-Demand
+charges is governed by:</p>
+<p><span class="math display">\[E_{\text{cost}} =
+\max(C_{\text{hourly}}, U_{\text{discounted}})\]</span></p>
+<p>Any usage exceeding your hourly commitment (<span
+class="math inline">\(U_{\text{discounted}} &gt;
+C_{\text{hourly}}\)</span>) is billed at standard On-Demand rates.</p>
+<h2 id="two-tiers-of-savings-plans-vs-standard-and-convertible-ris">Two
+Tiers of Savings Plans vs. Standard and Convertible RIs</h2>
+<p>AWS offers two distinct types of Savings Plans that parallel the
+pricing tiers of Standard and Convertible Reserved Instances while
+providing substantially greater operational freedom.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Standard RI</th>
+<th style="text-align: left;">Convertible RI</th>
+<th style="text-align: left;">EC2 Instance Savings Plans</th>
+<th style="text-align: left;">Compute Savings Plans</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Max Discount (vs.
+On-Demand)</strong></td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(72\%\)</span></td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(66\%\)</span></td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(72\%\)</span></td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(66\%\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Family
+Mobility</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Manual exchange only</td>
+<td style="text-align: left;">No (locked to one family)</td>
+<td style="text-align: left;">Automatic across all families</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Size
+Flexibility</strong></td>
+<td style="text-align: left;">Linux/Default tenancy only</td>
+<td style="text-align: left;">Manual exchange (if non-Linux)</td>
+<td style="text-align: left;">Automatic across all sizes</td>
+<td style="text-align: left;">Automatic across all sizes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>OS / Platform
+Mobility</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Manual exchange only</td>
+<td style="text-align: left;">Automatic across all OS types</td>
+<td style="text-align: left;">Automatic across all OS types</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Tenancy Mobility</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Manual exchange only</td>
+<td style="text-align: left;">Automatic (Shared to Dedicated)</td>
+<td style="text-align: left;">Automatic (Shared to Dedicated)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Regional Mobility</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No (locked to one Region)</td>
+<td style="text-align: left;">Automatic across all Regions</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Serverless &amp; Container
+Coverage</strong></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Automatic for Fargate &amp; Lambda</td>
+</tr>
+</tbody>
+</table>
+<h2 id="automatic-application-vs-manual-exchanges">Automatic Application
+vs. Manual Exchanges</h2>
+<p>With Convertible Reserved Instances, changing your instance family,
+operating system, or tenancy requires a manual exchange process via the
+AWS Management Console or API. Furthermore, Convertible RI exchanges are
+subject to strict financial constraints: the total value of the new
+Reserved Instances must be equal to or greater than the remaining value
+of the exchanged RIs, which can gradually force upward commitment creep
+when migrating to differently priced instance families.</p>
+<p>Compute Savings Plans eliminate manual exchanges entirely. If an
+engineering team migrates a workload from <code>c5.2xlarge</code> in
+<code>us-east-1</code> to Graviton-based <code>c7g.xlarge</code> in
+<code>eu-west-1</code>, the Compute Savings Plan automatically shifts
+the billing discount to the new instances in the next hourly billing
+cycle without any administrative action.</p>
+<h2 id="operating-system-and-tenancy-freedom">Operating System and
+Tenancy Freedom</h2>
+<p>A major limitation of Standard Reserved Instances is how instance
+size flexibility is enforced through normalization factors. Each
+instance size within a family is assigned a normalization factor <span
+class="math inline">\(N_{\text{size}}\)</span> (for example,
+<code>nano</code> <span class="math inline">\(= 0.25\)</span>,
+<code>large</code> <span class="math inline">\(= 4\)</span>,
+<code>xlarge</code> <span class="math inline">\(= 8\)</span>,
+<code>2xlarge</code> <span class="math inline">\(= 16\)</span>). Under a
+Regional Standard RI, a commitment to one <code>c5.2xlarge</code> (<span
+class="math inline">\(N_{\text{size}} = 16\)</span>) can cover two
+<code>c5.xlarge</code> instances (<span class="math inline">\(2 \times 8
+= 16\)</span>) or four <code>c5.large</code> instances (<span
+class="math inline">\(4 \times 4 = 16\)</span>), <strong>only
+if</strong> the instances run on Linux/UNIX with shared tenancy and
+contain no licensed software (such as SQL Server).</p>
+<p>If you run Windows Server, RHEL, or SUSE Linux on Standard RIs,
+instance size flexibility is disabled completely. Scaling a Windows
+workload from <code>m5.xlarge</code> to <code>m5.2xlarge</code> causes
+the existing Standard RI to go unutilized while the new instance incurs
+full On-Demand charges.</p>
+<p>Both EC2 Instance Savings Plans and Compute Savings Plans remove this
+barrier:</p>
+<ul>
+<li><strong>Full OS Portability:</strong> Discounts apply automatically
+even if you switch an instance from Linux to Windows Server or
+RHEL.</li>
+<li><strong>Size Flexibility on All Platforms:</strong> Scaling a
+Windows or RHEL instance up or down within the same family remains
+covered by both EC2 Instance Savings Plans and Compute Savings Plans
+without manual intervention.</li>
+<li><strong>Tenancy Transitions:</strong> Workloads moving between
+default (shared) tenancy and dedicated instances or dedicated hosts
+remain automatically covered up to the hourly dollar commitment.</li>
+</ul>
+<h2
+id="multi-service-modernization-ec2-fargate-and-lambda">Multi-Service
+Modernization: EC2, Fargate, and Lambda</h2>
+<p>Legacy Reserved Instances are strictly bound to Amazon EC2 virtual
+machines. When organizations modernize architectures by moving workloads
+from EC2 instances into serverless containers (AWS Fargate) or
+event-driven functions (AWS Lambda), existing EC2 Reserved Instances
+become stranded financial commitments until their one-year or three-year
+terms expire.</p>
+<p>Compute Savings Plans bridge this architectural transition by pooling
+compute usage across three services:</p>
+<ol type="1">
+<li><strong>Amazon EC2:</strong> Any instance family, size, OS, tenancy,
+or region.</li>
+<li><strong>AWS Fargate:</strong> Coverage for both Amazon ECS and
+Amazon EKS tasks running on Fargate (applied to vCPU and memory
+consumption).</li>
+<li><strong>AWS Lambda:</strong> Coverage for function duration and
+provisioned concurrency charges.</li>
+</ol>
+<p>If your total hourly commitment is <span
+class="math inline">\(C_{\text{hourly}}\)</span>, the billing engine
+satisfies that commitment across services dynamically:</p>
+<p><span class="math display">\[U_{\text{total}} = U_{\text{EC2}} +
+U_{\text{Fargate}} + U_{\text{Lambda}}\]</span></p>
+<p>As EC2 instances are decommissioned and replaced by Fargate
+containers or Lambda functions, the same Compute Savings Plan continues
+to amortize and discount the new serverless compute resources
+seamlessly.</p>
+<h2 id="capacity-reservations-decoupled-from-billing">Capacity
+Reservations Decoupled from Billing</h2>
+<p>One scenario where Zonal Reserved Instances historically combined two
+features was providing both a billing discount and an Availability Zone
+capacity reservation. Savings Plans decouple financial discounts from
+physical capacity guarantees.</p>
+<p>If you require guaranteed capacity in a specific Availability Zone
+while using Savings Plans, you can create <strong>On-Demand Capacity
+Reservations (ODCRs)</strong>. ODCRs can be provisioned and canceled at
+any time without a one-year or three-year term lock-in, and any active
+Savings Plan automatically applies its discounted rate to the ODCR just
+as it would to a running instance. This separation allows infrastructure
+teams to adjust zonal capacity reservations dynamically without altering
+long-term financial commitments.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/are-ec-2-savings-plans-more-flexible-than-reserved-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

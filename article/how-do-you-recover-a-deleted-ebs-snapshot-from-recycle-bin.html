@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do You Recover a Deleted EBS Snapshot from Recycle Bin? - ec2</title>
+    <meta name="description" content="Recovering an accidentally deleted Amazon Elastic Block Store snapshot is straightforward if you have configured retention rules in the AWS Recycle Bin prior to deletion. This article explains how the Recycle Bin protects your Amazon EC2 backup data, the">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-you-recover-a-deleted-ebs-snapshot-from-recycle-bin">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do You Recover a Deleted EBS Snapshot from Recycle Bin? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-you-recover-a-deleted-ebs-snapshot-from-recycle-bin" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Recovering an accidentally deleted Amazon Elastic Block Store snapshot is straightforward if you have configured retention rules in the AWS Recycle Bin prior to deletion. This article explains how the Recycle Bin protects your Amazon EC2 backup data, the" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-you-recover-a-deleted-ebs-snapshot-from-recycle-bin">How
+Do You Recover a Deleted EBS Snapshot from Recycle Bin?</h1>
+<p>Recovering an accidentally deleted Amazon Elastic Block Store
+snapshot is straightforward if you have configured retention rules in
+the AWS Recycle Bin prior to deletion. This article explains how the
+Recycle Bin protects your Amazon EC2 backup data, the prerequisites
+required for snapshot retention, and the step-by-step methods to restore
+deleted snapshots using either the AWS Management Console or the AWS
+Command Line Interface. Once restored, the snapshot returns to your
+active inventory and can immediately be used to create new EBS
+volumes.</p>
+<h2 id="understanding-aws-recycle-bin-for-ebs-snapshots">Understanding
+AWS Recycle Bin for EBS Snapshots</h2>
+<p>Recycle Bin is a data recovery feature that enables you to restore
+accidentally deleted Amazon EBS snapshots and EBS-backed Amazon Machine
+Images (AMIs). When you delete a snapshot that matches an active
+retention rule, it bypasses immediate permanent deletion and moves to
+the Recycle Bin for a specified time period.</p>
+<p>For a deleted snapshot to appear in the Recycle Bin, at least one
+retention rule must already be active in the same AWS Region before the
+deletion occurs. Retention rules can be configured in two ways:</p>
+<ul>
+<li><strong>Tag-level retention rules:</strong> Apply only to snapshots
+that have specific resource tags assigned to them.</li>
+<li><strong>Region-level retention rules:</strong> Apply to all deleted
+snapshots within that specific AWS Region, regardless of tags.</li>
+</ul>
+<p>The retention period <span
+class="math inline">\(T_{\text{retention}}\)</span> is defined in days,
+where <span class="math inline">\(1 \le T_{\text{retention}} \le
+365\)</span>. If a snapshot is restored at time <span
+class="math inline">\(t &lt; T_{\text{retention}}\)</span>, it becomes
+immediately available for creating EBS volumes. If <span
+class="math inline">\(t \ge T_{\text{retention}}\)</span> passes without
+manual recovery, the snapshot is permanently purged and cannot be
+recovered.</p>
+<h2 id="required-iam-permissions">Required IAM Permissions</h2>
+<p>Before attempting to view or restore a snapshot from the Recycle Bin,
+ensure your AWS Identity and Access Management (IAM) user or role has
+the necessary permissions. You need permissions to list snapshots in the
+Recycle Bin and to execute the restore action:</p>
+<ul>
+<li><code>ec2:ListSnapshotsInRecycleBin</code></li>
+<li><code>ec2:RestoreSnapshotFromRecycleBin</code></li>
+</ul>
+<p>Here is an example IAM policy granting these permissions:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;2012-10-17&quot;</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Statement&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;ec2:ListSnapshotsInRecycleBin&quot;</span><span class="ot">,</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;ec2:RestoreSnapshotFromRecycleBin&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;*&quot;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2
+id="recovering-a-snapshot-using-the-aws-management-console">Recovering a
+Snapshot Using the AWS Management Console</h2>
+<p>You can restore your deleted snapshot directly through the Amazon EC2
+console by following these steps:</p>
+<ol type="1">
+<li>Sign in to the AWS Management Console and open the <strong>Amazon
+EC2</strong> console.</li>
+<li>Verify that you are in the correct AWS Region where the snapshot was
+originally located.</li>
+<li>In the left navigation pane, under <strong>Elastic Block
+Store</strong>, select <strong>Snapshots</strong>.</li>
+<li>In the top-right corner or within the view filter dropdown menu,
+switch from <strong>Owned by me</strong> to <strong>Recycle Bin</strong>
+(or open the dedicated <strong>Recycle Bin</strong> console at
+<code>https://console.aws.amazon.com/rbin/</code> and select
+<strong>Resources</strong>).</li>
+<li>Locate and select the checkbox next to the deleted snapshot you wish
+to recover. You can verify the <strong>Snapshot ID</strong>,
+<strong>Volume ID</strong>, and <strong>Bin exit time</strong> to
+confirm it is the right backup.</li>
+<li>Click <strong>Actions</strong> (or <strong>Recover</strong>) at the
+top of the table and select <strong>Recover snapshot from Recycle
+Bin</strong>.</li>
+<li>When prompted in the confirmation dialog box, click
+<strong>Recover</strong> to finalize the restoration.</li>
+</ol>
+<p>Once recovered, the snapshot disappears from the Recycle Bin view and
+immediately reappears in your standard Amazon EC2
+<strong>Snapshots</strong> list with a status of
+<code>completed</code>.</p>
+<h2 id="recovering-a-snapshot-using-the-aws-cli">Recovering a Snapshot
+Using the AWS CLI</h2>
+<p>If you prefer automating recovery or working from the terminal, you
+can list and restore snapshots in the Recycle Bin using the AWS CLI.</p>
+<h3 id="step-1-list-deleted-snapshots-in-the-recycle-bin">Step 1: List
+Deleted Snapshots in the Recycle Bin</h3>
+<p>Run the <code>list-snapshots-in-recycle-bin</code> command to find
+the Snapshot ID of the deleted resource:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 list-snapshots-in-recycle-bin <span class="at">--region</span> us-east-1</span></code></pre></div>
+<p>If you know the specific Snapshot ID or want to check multiple
+snapshots, you can pass the <code>--snapshot-ids</code> parameter:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 list-snapshots-in-recycle-bin <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--snapshot-ids</span> snap-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--region</span> us-east-1</span></code></pre></div>
+<p>The output displays metadata about the deleted snapshot, including
+when it entered the Recycle Bin and when it is scheduled for permanent
+deletion:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Snapshots&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;SnapshotId&quot;</span><span class="fu">:</span> <span class="st">&quot;snap-0123456789abcdef0&quot;</span><span class="fu">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;RecycleBinEnterTime&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-11-14T08:30:00.000Z&quot;</span><span class="fu">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;RecycleBinExitTime&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-11-21T08:30:00.000Z&quot;</span><span class="fu">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;Description&quot;</span><span class="fu">:</span> <span class="st">&quot;Production DB Volume Backup&quot;</span><span class="fu">,</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;VolumeId&quot;</span><span class="fu">:</span> <span class="st">&quot;vol-0987654321fedcba0&quot;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="step-2-restore-the-snapshot">Step 2: Restore the Snapshot</h3>
+<p>Once you have confirmed the <code>SnapshotId</code>, run the
+<code>restore-snapshot-from-recycle-bin</code> command:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 restore-snapshot-from-recycle-bin <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--snapshot-id</span> snap-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--region</span> us-east-1</span></code></pre></div>
+<p>The command returns details about the restored snapshot:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;SnapshotId&quot;</span><span class="fu">:</span> <span class="st">&quot;snap-0123456789abcdef0&quot;</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;OutpostArn&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Description&quot;</span><span class="fu">:</span> <span class="st">&quot;Production DB Volume Backup&quot;</span><span class="fu">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Encrypted&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;OwnerId&quot;</span><span class="fu">:</span> <span class="st">&quot;123456789012&quot;</span><span class="fu">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Progress&quot;</span><span class="fu">:</span> <span class="st">&quot;100%&quot;</span><span class="fu">,</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;StartTime&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-11-01T12:00:00.000Z&quot;</span><span class="fu">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;State&quot;</span><span class="fu">:</span> <span class="st">&quot;completed&quot;</span><span class="fu">,</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;VolumeId&quot;</span><span class="fu">:</span> <span class="st">&quot;vol-0987654321fedcba0&quot;</span><span class="fu">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;VolumeSize&quot;</span><span class="fu">:</span> <span class="dv">100</span><span class="fu">,</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;SseType&quot;</span><span class="fu">:</span> <span class="st">&quot;kms&quot;</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="using-the-recovered-snapshot-for-an-ec2-instance">Using the
+Recovered Snapshot for an EC2 Instance</h2>
+<p>While a snapshot resides in the Recycle Bin, you cannot view its
+tags, modify its permissions, share it with other AWS accounts, or
+create Amazon EBS volumes from it. After restoring the snapshot from the
+Recycle Bin, all original tags and sharing permissions are automatically
+reinstated.</p>
+<p>To restore the data to your Amazon EC2 instance after recovering the
+snapshot:</p>
+<ol type="1">
+<li>Navigate to <strong>Elastic Block Store</strong> &gt;
+<strong>Snapshots</strong> in the EC2 console.</li>
+<li>Select your newly restored snapshot and choose
+<strong>Actions</strong> &gt; <strong>Create volume from
+snapshot</strong>.</li>
+<li>Select the exact same <strong>Availability Zone</strong> as the
+target EC2 instance.</li>
+<li>Once the new EBS volume state changes to <code>available</code>,
+select the volume, choose <strong>Actions</strong> &gt; <strong>Attach
+volume</strong>, and attach it to your EC2 instance.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-you-recover-a-deleted-ebs-snapshot-from-recycle-bin';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

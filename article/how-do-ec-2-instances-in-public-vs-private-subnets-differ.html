@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How do EC2 instances in public vs private subnets differ? - ec2</title>
+    <meta name="description" content="Placing an Amazon EC2 instance in a public subnet versus a private subnet primarily determines how the instance communicates with the external internet. An instance in a public subnet has a direct route to an Internet Gateway, allowing it to send and rece">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-ec-2-instances-in-public-vs-private-subnets-differ">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How do EC2 instances in public vs private subnets differ? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-ec-2-instances-in-public-vs-private-subnets-differ" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Placing an Amazon EC2 instance in a public subnet versus a private subnet primarily determines how the instance communicates with the external internet. An instance in a public subnet has a direct route to an Internet Gateway, allowing it to send and rece" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-ec2-instances-in-public-vs-private-subnets-differ">How do
+EC2 instances in public vs private subnets differ?</h1>
+<p>Placing an Amazon EC2 instance in a public subnet versus a private
+subnet primarily determines how the instance communicates with the
+external internet. An instance in a public subnet has a direct route to
+an Internet Gateway, allowing it to send and receive inbound and
+outbound internet traffic directly when assigned a public IP address.
+Conversely, an instance in a private subnet lacks a direct route to an
+Internet Gateway, shielding it from unsolicited inbound internet
+connections while requiring a NAT Gateway or NAT Instance for outbound
+internet access. Understanding these architectural differences is
+essential for designing secure, scalable, and cost-effective cloud
+networks in Amazon Virtual Private Cloud.</p>
+<h2 id="what-defines-a-public-subnet-in-aws">What Defines a Public
+Subnet in AWS?</h2>
+<p>A subnet within an Amazon Virtual Private Cloud (VPC) is classified
+as public based on its routing configuration rather than any inherent
+toggle setting. Specifically, a public subnet is associated with a
+custom or main route table that includes a default route
+(<code>0.0.0.0/0</code> for IPv4 or <code>::/0</code> for IPv6) pointing
+directly to an attached Internet Gateway (IGW).</p>
+<p>When you launch an EC2 instance into a public subnet, several
+characteristics apply:</p>
+<ul>
+<li><strong>Direct Internet Reachability:</strong> If the EC2 instance
+is assigned a public IPv4 address, an Elastic IP address, or a globally
+unique IPv6 address, external users and systems on the internet can
+initiate connections directly to the instance, provided Security Groups
+and Network Access Control Lists (NACLs) permit the traffic.</li>
+<li><strong>Bidirectional Traffic Flow:</strong> The Internet Gateway
+performs one-to-one Network Address Translation (NAT) between the
+instance's private IPv4 address and its public IPv4 address for outbound
+and inbound traffic.</li>
+<li><strong>Common Use Cases:</strong> Public subnets are designed for
+resources that must be directly accessible from the public internet,
+such as public-facing web servers, bastion hosts, reverse proxies, and
+Application Load Balancers (ALBs).</li>
+</ul>
+<h2 id="what-defines-a-private-subnet-in-aws">What Defines a Private
+Subnet in AWS?</h2>
+<p>A private subnet is associated with a route table that does not
+contain a route to an Internet Gateway. By default, its route table only
+contains a local route (such as <code>10.0.0.0/16</code> pointing to
+<code>local</code>), which enables internal communication within the
+VPC.</p>
+<p>When an EC2 instance is placed in a private subnet, its networking
+behavior changes significantly:</p>
+<ul>
+<li><strong>No Direct Inbound Internet Traffic:</strong> Even if you
+mistakenly assign a public IP address to an EC2 instance in a private
+subnet, the instance cannot be reached from the internet because there
+is no route to an Internet Gateway to handle the return or incoming
+traffic.</li>
+<li><strong>Controlled Outbound Internet Access:</strong> To allow
+instances in a private subnet to download software patches, access
+external APIs, or communicate with third-party services without exposing
+them to inbound requests, architects route <code>0.0.0.0/0</code>
+traffic to a NAT Gateway (or NAT Instance) residing in a public
+subnet.</li>
+<li><strong>Private AWS Service Access:</strong> Instances in private
+subnets often use VPC Endpoints ( powered by AWS PrivateLink) or Gateway
+Endpoints (for Amazon S3 and DynamoDB) to communicate with AWS services
+privately without traversing the public internet.</li>
+<li><strong>Common Use Cases:</strong> Private subnets are ideal for
+backend application servers, relational databases (such as Amazon RDS),
+caching layers, internal microservices, and sensitive data processing
+workloads.</li>
+</ul>
+<h2
+id="key-differences-between-public-and-private-subnet-ec2-instances">Key
+Differences Between Public and Private Subnet EC2 Instances</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">EC2 in a Public Subnet</th>
+<th style="text-align: left;">EC2 in a Private Subnet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Default Route
+(<code>0.0.0.0/0</code>)</strong></td>
+<td style="text-align: left;">Points to an Internet Gateway
+(<code>igw-xxxxxxxx</code>)</td>
+<td style="text-align: left;">Points to a NAT Gateway
+(<code>nat-xxxxxxxx</code>) or omitted</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Public IP
+Requirement</strong></td>
+<td style="text-align: left;">Required for internet communication</td>
+<td style="text-align: left;">Not needed; uses private IP addresses
+only</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Inbound Internet
+Traffic</strong></td>
+<td style="text-align: left;">Allowed (governed by Security Groups and
+NACLs)</td>
+<td style="text-align: left;">Blocked at the routing level</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Outbound Internet
+Traffic</strong></td>
+<td style="text-align: left;">Direct via Internet Gateway</td>
+<td style="text-align: left;">Indirect via NAT Gateway in a public
+subnet</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Attack Surface</strong></td>
+<td style="text-align: left;">Higher; exposed to external network
+scans</td>
+<td style="text-align: left;">Lower; isolated from direct external
+access</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Data Transfer Cost</strong></td>
+<td style="text-align: left;">Standard EC2 data transfer rates
+apply</td>
+<td style="text-align: left;">Additional hourly and per-GB NAT Gateway
+charges apply</td>
+</tr>
+</tbody>
+</table>
+<h2 id="routing-and-network-address-translation-mechanics">Routing and
+Network Address Translation Mechanics</h2>
+<p>To understand how packet flow differs, consider a VPC with a CIDR
+block of <code>10.0.0.0/16</code>, where the total number of available
+IPv4 addresses in a given subnet with prefix length <span
+class="math inline">\(n\)</span> is calculated by subtracting the 5
+AWS-reserved IP addresses:</p>
+<p><span class="math display">\[\text{Available IPs} = 2^{(32 - n)} -
+5\]</span></p>
+<h3 id="public-subnet-packet-flow">Public Subnet Packet Flow</h3>
+<ol type="1">
+<li>An EC2 instance (<code>10.0.1.25</code>) in a public subnet
+(<code>10.0.1.0/24</code>) initiates a request to an external IP
+(<code>203.0.113.50</code>).</li>
+<li>The subnet route table evaluates the destination against its rules,
+matches <code>0.0.0.0/0</code>, and forwards the packet to the Internet
+Gateway.</li>
+<li>The Internet Gateway replaces the source IP (<code>10.0.1.25</code>)
+with the instance's associated public IP (e.g.,
+<code>54.210.10.5</code>) and sends it to the internet.</li>
+<li>Return traffic arrives at <code>54.210.10.5</code>, and the Internet
+Gateway translates the destination back to <code>10.0.1.25</code>.</li>
+</ol>
+<h3 id="private-subnet-packet-flow">Private Subnet Packet Flow</h3>
+<ol type="1">
+<li>An EC2 instance (<code>10.0.2.40</code>) in a private subnet
+(<code>10.0.2.0/24</code>) initiates an outbound request to
+<code>203.0.113.50</code> to download an OS update.</li>
+<li>The private subnet route table matches <code>0.0.0.0/0</code> and
+forwards the packet to the NAT Gateway (<code>10.0.1.100</code>), which
+lives inside the public subnet.</li>
+<li>The NAT Gateway rewrites the source IP to its own Elastic IP address
+and forwards the packet to the Internet Gateway using the public
+subnet's route table.</li>
+<li>When the response returns to the NAT Gateway's Elastic IP, the NAT
+Gateway checks its state table and forwards the packet back to
+<code>10.0.2.40</code>. Unsolicited inbound connections to the NAT
+Gateway's Elastic IP are dropped immediately.</li>
+</ol>
+<h2 id="security-and-operational-implications">Security and Operational
+Implications</h2>
+<h3 id="defense-in-depth">Defense in Depth</h3>
+<p>Placing backend EC2 instances in private subnets is a foundational
+principle of defense in depth. If a security engineer misconfigures a
+Security Group on an instance in a public subnet by accidentally opening
+port 22 (<code>0.0.0.0/0</code>), that instance is immediately
+vulnerable to brute-force attacks from the internet. If the same
+misconfiguration occurs on an instance in a private subnet, external
+attackers still cannot reach the instance directly because the VPC
+routing layer provides an additional barrier.</p>
+<h3 id="administrative-access">Administrative Access</h3>
+<p>Because you cannot SSH or RDP directly into an EC2 instance in a
+private subnet over the public internet, administrators use secure
+intermediaries:</p>
+<ul>
+<li><strong>AWS Systems Manager Session Manager:</strong> Allows
+browser-based or CLI shell access using IAM policies without opening
+inbound ports or managing SSH keys (requires outbound HTTPS access to
+SSM endpoints via NAT or VPC Interface Endpoints).</li>
+<li><strong>EC2 Instance Connect Endpoint:</strong> Enables private SSH
+and RDP connections to instances in private subnets without requiring a
+public IP address or bastion host.</li>
+<li><strong>Bastion Hosts (Jump Boxes):</strong> Hardened EC2 instances
+placed in a public subnet that forward authenticated SSH/RDP sessions to
+private instances.</li>
+</ul>
+<h3 id="cost-considerations">Cost Considerations</h3>
+<p>Running EC2 instances in a public subnet incurs no hourly fee for the
+Internet Gateway itself, though standard outbound data transfer rates
+apply. In contrast, providing internet access to EC2 instances in a
+private subnet via a NAT Gateway incurs an hourly availability charge
+per NAT Gateway (typically deployed once per Availability Zone for high
+availability) plus a per-gigabyte data processing charge. To optimize
+costs for high-throughput workloads in private subnets, architects
+frequently deploy Gateway VPC Endpoints for Amazon S3 and DynamoDB,
+which route traffic directly to those services at no additional hourly
+or per-GB endpoint charge.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-ec-2-instances-in-public-vs-private-subnets-differ';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

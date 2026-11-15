@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do EC2 P-Series GPUs Speed Up LLM Training? - ec2</title>
+    <meta name="description" content="Amazon EC2 P-series instances accelerate large language model training by combining high-density NVIDIA GPUs, massive high-bandwidth memory, ultra-fast NVLink interconnects, and Elastic Fabric Adapter networking. These hardware components work together to">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-ec-2-p-series-gp-us-speed-up-llm-training">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do EC2 P-Series GPUs Speed Up LLM Training? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-ec-2-p-series-gp-us-speed-up-llm-training" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 P-series instances accelerate large language model training by combining high-density NVIDIA GPUs, massive high-bandwidth memory, ultra-fast NVLink interconnects, and Elastic Fabric Adapter networking. These hardware components work together to" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-ec2-p-series-gpus-speed-up-llm-training">How Do EC2
+P-Series GPUs Speed Up LLM Training?</h1>
+<p>Amazon EC2 P-series instances accelerate large language model
+training by combining high-density NVIDIA GPUs, massive high-bandwidth
+memory, ultra-fast NVLink interconnects, and Elastic Fabric Adapter
+networking. These hardware components work together to execute billions
+of matrix operations in parallel, eliminate data bottlenecks between
+processors, and scale distributed training across thousands of
+accelerators with minimal latency. This article explores the
+architectural mechanisms, mathematical optimizations, and networking
+technologies that enable EC2 P4 and P5 instances to cut training times
+from months to days.</p>
+<h2 id="parallel-matrix-multiplication-and-tensor-cores">Parallel Matrix
+Multiplication and Tensor Cores</h2>
+<p>At the heart of every large language model (LLM) is the Transformer
+architecture, which relies heavily on dense matrix multiplications
+during both the forward and backward passes of training. A single
+attention layer computes scaled dot-product attention using query, key,
+and value matrices:</p>
+<p><span class="math display">\[\text{Attention}(Q, K, V) =
+\text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V\]</span></p>
+<p>While traditional CPUs execute instructions sequentially across a few
+dozen cores, the GPUs inside Amazon EC2 P-series instances—such as
+NVIDIA A100 Tensor Core GPUs in P4d instances and NVIDIA H100 Tensor
+Core GPUs in P5 instances—contain thousands of specialized cores
+designed to process matrix blocks simultaneously.</p>
+<p>Tensor Cores perform fused multiply-add operations on entire matrices
+in a single clock cycle:</p>
+<p><span class="math display">\[D = A \times B + C\]</span></p>
+<p>On EC2 P5 instances equipped with NVIDIA H100 GPUs, the
+fourth-generation Tensor Cores introduce a Transformer Engine that
+dynamically adjusts numerical precision between 8-bit floating point
+(FP8) and 16-bit floating point (FP16 or BF16). By halving the bit width
+of weights, activations, and gradients where high precision is
+unnecessary, the GPU doubles computational throughput and reduces memory
+footprint without degrading model convergence.</p>
+<h2
+id="overcoming-the-memory-wall-with-high-bandwidth-memory">Overcoming
+the Memory Wall with High-Bandwidth Memory</h2>
+<p>Training models with tens or hundreds of billions of parameters is
+often bottlenecked not by raw compute speed, but by how fast weights and
+activations can be moved from memory into the compute registers. For a
+model with <span class="math inline">\(\Phi\)</span> parameters trained
+using mixed precision and the Adam optimizer, the static memory required
+per parameter is approximately 16 bytes (comprising FP16 parameters,
+FP16 gradients, and FP32 optimizer momentum and variance states):</p>
+<p><span class="math display">\[M_{\text{static}} \approx 16 \times \Phi
+\text{ bytes}\]</span></p>
+<p>EC2 P-series instances address this memory wall by pairing each GPU
+with stacked High-Bandwidth Memory (HBM):</p>
+<ul>
+<li><strong>EC2 P4d / P4de Instances:</strong> Equipped with 8x NVIDIA
+A100 GPUs, providing 320 GB (HBM2) or 640 GB (HBM2e) of total GPU memory
+and up to 2 TB/s of memory bandwidth per GPU.</li>
+<li><strong>EC2 P5 Instances:</strong> Equipped with 8x NVIDIA H100
+GPUs, offering 640 GB of HBM3 memory and delivering over 3.35 TB/s of
+memory bandwidth per GPU.</li>
+<li><strong>EC2 P5e / P5en Instances:</strong> Equipped with 8x NVIDIA
+H200 GPUs, expanding capacity to 1,128 GB of HBM3e memory at 4.8 TB/s
+per GPU.</li>
+</ul>
+<p>This massive memory bandwidth ensures the Tensor Cores remain
+continuously fed with training batches, preventing processor idle cycles
+and allowing engineers to use larger micro-batch sizes before resorting
+to activation recomputation.</p>
+<h2
+id="high-speed-intra-node-interconnects-nvlink-and-nvswitch">High-Speed
+Intra-Node Interconnects: NVLink and NVSwitch</h2>
+<p>Even with vast HBM capacity, modern LLMs exceed the memory of a
+single GPU. Engineers must partition the model across all eight GPUs
+within an EC2 P-series instance using <strong>Tensor
+Parallelism</strong> (splitting individual weight matrices across GPUs)
+and <strong>Pipeline Parallelism</strong> (splitting sequential layers
+across GPUs).</p>
+<p>Standard PCIe Gen4 or Gen5 buses become severe bottlenecks during
+tensor parallelism because GPUs must synchronize partial sums after
+every single attention and feed-forward layer. EC2 P-series instances
+bypass PCIe bottlenecks for GPU-to-GPU traffic by utilizing
+<strong>NVIDIA NVLink</strong> and <strong>NVSwitch</strong>:</p>
+<ul>
+<li>On P4d instances, third-generation NVLink provides 600 GB/s of
+bidirectional bandwidth per GPU.</li>
+<li>On P5 instances, fourth-generation NVLink and NVSwitch provide 900
+GB/s of bidirectional all-to-all bandwidth per GPU, totaling 7.2 TB/s of
+aggregate intra-node fabric bandwidth.</li>
+</ul>
+<p>With NVSwitch, all eight GPUs in a P5 node act as a single unified
+accelerator pool. Collective operations like <code>All-Reduce</code> and
+<code>All-Gather</code> occur at memory-like speeds, keeping the
+overhead of splitting layers across GPUs negligible.</p>
+<h2 id="scaling-across-nodes-with-elastic-fabric-adapter-efa">Scaling
+Across Nodes with Elastic Fabric Adapter (EFA)</h2>
+<p>To train foundation models on trillions of tokens in a reasonable
+timeframe, workloads must scale beyond a single EC2 instance across
+hundreds or thousands of P-series nodes arranged in <strong>EC2
+UltraClusters</strong>. In distributed <strong>Data Parallelism</strong>
+and <strong>Fully Sharded Data Parallel (FSDP)</strong> setups, every
+node computes gradients on a slice of the dataset and must synchronize
+those gradients across the entire cluster at the end of each training
+step.</p>
+<p>The total time for a single training iteration can be modeled as:</p>
+<p><span class="math display">\[T_{\text{step}} = T_{\text{compute}} +
+T_{\text{communication}} - T_{\text{overlap}}\]</span></p>
+<p>To maximize <span class="math inline">\(T_{\text{overlap}}\)</span>
+and minimize <span
+class="math inline">\(T_{\text{communication}}\)</span>, EC2 P-series
+instances integrate <strong>AWS Elastic Fabric Adapter (EFA)</strong>.
+EFA provides up to 400 Gbps of network bandwidth on P4d instances and up
+to 3,200 Gbps (3.2 Tbps) on P5 and P5en instances. EFA accelerates
+multi-node training through three primary mechanisms:</p>
+<ol type="1">
+<li><strong>OS-Bypass and GPUDirect RDMA:</strong> Using NVIDIA
+Collective Communications Library (NCCL) over EFA, GPUs on one EC2
+instance can read and write memory directly to GPUs on another instance
+without involving the host CPU or copying data through system RAM.</li>
+<li><strong>Scalable Reliable Datagram (SRD) Protocol:</strong>
+Traditional TCP/IP struggles in large GPU clusters due to head-of-line
+blocking and ECMP hash collisions when a single network path becomes
+congested. AWS's custom SRD protocol sprays packets across multiple
+network paths simultaneously and handles out-of-order delivery in
+hardware, drastically cutting tail latency during massive
+<code>All-Reduce</code> synchronizations.</li>
+<li><strong>Non-Blocking Petabit-Scale Fabric:</strong> EC2
+UltraClusters co-locate thousands of P-series instances within a
+non-blocking, low-latency spine-and-leaf network topology, ensuring
+linear scaling efficiency above 90% even across thousands of GPUs.</li>
+</ol>
+<h2 id="storage-throughput-and-host-offloading">Storage Throughput and
+Host Offloading</h2>
+<p>Feeding thousands of GPUs with tokenized text datasets and writing
+multi-terabyte model checkpoints requires matching storage I/O. EC2
+P-series instances include up to 30 TB of local NVMe SSD storage
+(Instance Store) directly attached to the host PCIe bus.</p>
+<p>This local NVMe storage acts as an ultra-fast staging cache alongside
+distributed file systems like <strong>Amazon FSx for Lustre</strong>.
+Using <strong>NVIDIA GPUDirect Storage</strong>, data streams directly
+from NVMe drives or FSx for Lustre into GPU HBM memory, avoiding
+redundant bounce buffers in CPU memory. Furthermore, when training
+faults occur or periodic checkpoints are saved, dumping optimizer states
+to local NVMe arrays takes seconds rather than tens of minutes,
+maximizing the cluster's Goodput (the percentage of time spent making
+productive training progress).</p>
+<h2 id="summary-of-ec2-p-series-capabilities-for-llm-training">Summary
+of EC2 P-Series Capabilities for LLM Training</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">EC2 P4d (24xlarge)</th>
+<th style="text-align: left;">EC2 P5 (48xlarge)</th>
+<th style="text-align: left;">EC2 P5en (48xlarge)</th>
+<th style="text-align: left;">Impact on LLM Training</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>GPUs</strong></td>
+<td style="text-align: left;">8x NVIDIA A100</td>
+<td style="text-align: left;">8x NVIDIA H100</td>
+<td style="text-align: left;">8x NVIDIA H200</td>
+<td style="text-align: left;">Massive parallel matrix math</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total GPU Memory</strong></td>
+<td style="text-align: left;">320 GB HBM2</td>
+<td style="text-align: left;">640 GB HBM3</td>
+<td style="text-align: left;">1,128 GB HBM3e</td>
+<td style="text-align: left;">Fits larger models and batch sizes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Memory Bandwidth</strong></td>
+<td style="text-align: left;">1.55 TB/s per GPU</td>
+<td style="text-align: left;">3.35 TB/s per GPU</td>
+<td style="text-align: left;">4.8 TB/s per GPU</td>
+<td style="text-align: left;">Eliminates compute starvation</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Intra-Node
+Interconnect</strong></td>
+<td style="text-align: left;">600 GB/s NVLink</td>
+<td style="text-align: left;">900 GB/s NVLink</td>
+<td style="text-align: left;">900 GB/s NVLink</td>
+<td style="text-align: left;">Accelerates Tensor Parallelism</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>EFA Network
+Bandwidth</strong></td>
+<td style="text-align: left;">400 Gbps</td>
+<td style="text-align: left;">3,200 Gbps</td>
+<td style="text-align: left;">3,200 Gbps</td>
+<td style="text-align: left;">Near-linear multi-node FSDP scaling</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Precision Support</strong></td>
+<td style="text-align: left;">TF32, FP16, BF16</td>
+<td style="text-align: left;">FP8, TF32, FP16, BF16</td>
+<td style="text-align: left;">FP8, TF32, FP16, BF16</td>
+<td style="text-align: left;">Up to 4x faster Transformer
+throughput</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-ec-2-p-series-gp-us-speed-up-llm-training';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

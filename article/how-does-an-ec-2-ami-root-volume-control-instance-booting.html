@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Does an EC2 AMI Root Volume Control Instance Booting? - ec2</title>
+    <meta name="description" content="The root device volume of an Amazon Elastic Compute Cloud machine image dictates the entire startup mechanism, persistence model, and lifecycle capabilities of a virtual server. Depending on whether the image uses an Amazon Elastic Block Store snapshot or">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-does-an-ec-2-ami-root-volume-control-instance-booting">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Does an EC2 AMI Root Volume Control Instance Booting? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-does-an-ec-2-ami-root-volume-control-instance-booting" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The root device volume of an Amazon Elastic Compute Cloud machine image dictates the entire startup mechanism, persistence model, and lifecycle capabilities of a virtual server. Depending on whether the image uses an Amazon Elastic Block Store snapshot or" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-does-an-ec2-ami-root-volume-control-instance-booting">How
+Does an EC2 AMI Root Volume Control Instance Booting?</h1>
+<p>The root device volume of an Amazon Elastic Compute Cloud machine
+image dictates the entire startup mechanism, persistence model, and
+lifecycle capabilities of a virtual server. Depending on whether the
+image uses an Amazon Elastic Block Store snapshot or an Amazon Simple
+Storage Service bundle, the underlying hypervisor provisions storage
+through completely different network or local pathways. This
+architectural choice directly affects boot times, data durability across
+stops and starts, and how the operating system mounts its initial file
+system.</p>
+<h2 id="understanding-the-root-device-volume">Understanding the Root
+Device Volume</h2>
+<p>Every Amazon Machine Image (AMI) includes a block device mapping that
+specifies the storage volumes to attach to an instance when it launches.
+One of these volumes is designated as the root device, which contains
+the operating system kernel, initial ramdisk, system libraries, and boot
+loader required to start the machine.</p>
+<p>When an EC2 instance launches, the AWS Nitro System or Xen hypervisor
+reads the AMI metadata to determine two primary attributes regarding the
+root volume:</p>
+<ul>
+<li><strong>Root Device Name</strong>: The logical device identifier
+exposed to the operating system, such as <code>/dev/sda1</code> or
+<code>/dev/xvda</code>.</li>
+<li><strong>Root Device Type</strong>: The backing storage technology,
+which is categorized as either <code>ebs</code> (Amazon EBS-backed) or
+<code>instance-store</code> (Amazon S3-backed).</li>
+</ul>
+<h2 id="boot-process-for-amazon-ebs-backed-amis">Boot Process for Amazon
+EBS-Backed AMIs</h2>
+<p>Most modern EC2 deployments rely on EBS-backed AMIs. In this
+configuration, the root device is a network-attached block storage
+volume created from an Amazon EBS snapshot.</p>
+<h3 id="step-by-step-ebs-boot-sequence">Step-by-Step EBS Boot
+Sequence</h3>
+<ol type="1">
+<li><strong>API Request and Volume Creation</strong>: When you issue a
+<code>RunInstances</code> call, the EC2 control plane allocates an EBS
+volume in the target Availability Zone using the snapshot ID registered
+in the AMI block device mapping.</li>
+<li><strong>Instant Attachment</strong>: The newly created EBS volume is
+attached to the physical host running the instance and mapped to the
+specified root device path (for example, <code>/dev/xvda</code>).</li>
+<li><strong>BIOS/UEFI Initialization</strong>: The instance firmware
+initializes and reads the Master Boot Record (MBR) or GUID Partition
+Table (GPT) directly from the attached EBS volume.</li>
+<li><strong>Lazy Loading of Data Blocks</strong>: An EBS volume created
+from a snapshot does not need to download the entire dataset before
+booting. Instead, the boot loader (such as GRUB2) requests specific disk
+blocks over the network fabric. Only the blocks required to load the
+kernel and <code>initramfs</code> are fetched immediately, while
+remaining blocks are pulled asynchronously in the background.</li>
+</ol>
+<p>If <span class="math inline">\(B_{\text{boot}}\)</span> represents
+the number of bytes required for the initial operating system boot phase
+and <span class="math inline">\(R_{\text{network}}\)</span> represents
+the dedicated EBS throughput, the minimum storage transfer time <span
+class="math inline">\(T_{\text{init}}\)</span> required to begin kernel
+execution is expressed as:</p>
+<p><span class="math display">\[T_{\text{init}} =
+\frac{B_{\text{boot}}}{R_{\text{network}}}\]</span></p>
+<p>Because <span class="math inline">\(B_{\text{boot}}\)</span> is only
+a tiny fraction of the total volume size <span
+class="math inline">\(B_{\text{total}}\)</span>, EBS-backed instances
+normally enter the running state within seconds. For latency-sensitive
+workloads where first-access read penalties on uninitialized blocks must
+be avoided, AWS offers Fast Snapshot Restore (FSR) to pre-warm the
+entire volume.</p>
+<h2 id="boot-process-for-instance-store-backed-amis">Boot Process for
+Instance Store-Backed AMIs</h2>
+<p>An instance store-backed AMI uses ephemeral storage physically
+attached to the host computer (such as NVMe SSDs). The template for the
+root volume resides in Amazon S3 as a collection of compressed,
+encrypted image parts along with an XML manifest file.</p>
+<h3 id="step-by-step-instance-store-boot-sequence">Step-by-Step Instance
+Store Boot Sequence</h3>
+<ol type="1">
+<li><strong>Host Allocation</strong>: The EC2 control plane selects a
+physical host that includes local instance store hardware.</li>
+<li><strong>Bundle Retrieval</strong>: Before the virtual machine can
+execute its boot loader, the host hypervisor must download all bundled
+image parts from Amazon S3 based on the AMI manifest.</li>
+<li><strong>Decryption and Extraction</strong>: The host decrypts and
+decompresses the image segments, reconstructing the raw block file
+system directly onto the local physical disk partition.</li>
+<li><strong>Local Firmware Boot</strong>: Once the complete root image
+is written to local storage, the virtual firmware boots the operating
+system directly from the local NVMe or SATA controller.</li>
+</ol>
+<p>If <span class="math inline">\(B_{\text{bundle}}\)</span> is the
+total size of the compressed image in Amazon S3, <span
+class="math inline">\(R_{\text{s3}}\)</span> is the download rate, and
+<span class="math inline">\(T_{\text{extract}}\)</span> is the time
+needed to decrypt and write the image to local disk, the pre-boot
+provisioning delay <span
+class="math inline">\(T_{\text{provision}}\)</span> is modeled by:</p>
+<p><span class="math display">\[T_{\text{provision}} =
+\frac{B_{\text{bundle}}}{R_{\text{s3}}} +
+T_{\text{extract}}\]</span></p>
+<p>Because the entire root image must be transferred and reconstructed
+prior to firmware handoff, instance store-backed AMIs typically take
+longer to transition from the <code>pending</code> state to the
+<code>running</code> state than EBS-backed AMIs. However, once booted,
+local NVMe root volumes deliver ultra-low latency and high random I/O
+performance without consuming network bandwidth.</p>
+<h2 id="how-the-root-volume-controls-instance-lifecycle-states">How the
+Root Volume Controls Instance Lifecycle States</h2>
+<p>Beyond the initial launch mechanics, the root device volume dictates
+which lifecycle transitions an instance is permitted to make.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature or Action</th>
+<th style="text-align: left;">EBS-Backed Root Volume</th>
+<th style="text-align: left;">Instance Store-Backed Root Volume</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Storage Location</strong></td>
+<td style="text-align: left;">Network-attached Amazon EBS volume</td>
+<td style="text-align: left;">Physical disk on the host server</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>AMI Source</strong></td>
+<td style="text-align: left;">Amazon EBS Snapshot</td>
+<td style="text-align: left;">Amazon S3 Bundle and Manifest</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Boot Initialization</strong></td>
+<td style="text-align: left;">Streams required blocks on demand</td>
+<td style="text-align: left;">Downloads full bundle before booting</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Stop and Start
+Support</strong></td>
+<td style="text-align: left;">Supported (<code>stopped</code> state
+available)</td>
+<td style="text-align: left;">Not supported (can only reboot or
+terminate)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Host Migration on
+Failure</strong></td>
+<td style="text-align: left;">Instance can be stopped and started on a
+new host</td>
+<td style="text-align: left;">Instance and root data are lost if host
+fails</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Type
+Modification</strong></td>
+<td style="text-align: left;">Supported while instance is stopped</td>
+<td style="text-align: left;">Not supported</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Data Persistence on
+Termination</strong></td>
+<td style="text-align: left;">Controlled by
+<code>DeleteOnTermination</code> flag</td>
+<td style="text-align: left;">Always erased upon termination</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-stop-and-start-mechanism">The Stop and Start Mechanism</h3>
+<p>The most significant operational difference controlled by the root
+device is the ability to stop an instance:</p>
+<ul>
+<li><strong>EBS-Backed Instances</strong>: Because the root volume
+exists independently of the compute host on the EBS storage network,
+stopping an instance gracefully shuts down the OS, detaches the virtual
+compute resources, and preserves the root volume state. When started
+again, EC2 provisions a new host, reattaches the same root EBS volume,
+and boots from the exact state left on disk.</li>
+<li><strong>Instance Store-Backed Instances</strong>: Because the root
+file system lives on the physical drives wired into the host
+motherboard, releasing the compute capacity means losing access to the
+local drives. Consequently, the AWS API blocks the
+<code>StopInstances</code> action for instance store-backed
+instances.</li>
+</ul>
+<h2 id="firmware-and-partitioning-requirements">Firmware and
+Partitioning Requirements</h2>
+<p>The contents and layout of the root volume inside the AMI also govern
+how the hypervisor hands off control to the guest operating system.</p>
+<h3 id="boot-modes-legacy-bios-vs-uefi">Boot Modes: Legacy BIOS vs.
+UEFI</h3>
+<p>An AMI specifies a <code>BootMode</code> parameter
+(<code>legacy-bios</code>, <code>uefi</code>, or
+<code>uefi-preferred</code>) that must match the partition layout of the
+root volume:</p>
+<ul>
+<li><strong>Legacy BIOS</strong>: Requires the root volume to contain a
+Master Boot Record (MBR) or a GPT with a BIOS boot partition in the
+first sector. The hypervisor loads the 512-byte boot sector into memory
+and executes the stage-1 bootloader.</li>
+<li><strong>UEFI</strong>: Requires the root volume to be partitioned
+using GPT and include an EFI System Partition (ESP) formatted with
+FAT32. The hypervisor firmware locates the <code>.efi</code> binary
+(such as <code>shimx64.efi</code> or <code>grubx64.efi</code>) inside
+the ESP to initiate the boot chain, enabling features like UEFI Secure
+Boot and NitroTPM.</li>
+</ul>
+<h3 id="device-naming-and-mounting-via-uuid">Device Naming and Mounting
+via UUID</h3>
+<p>During the final stage of booting, the Linux kernel mounts the root
+file system defined in <code>/etc/fstab</code> and the bootloader
+configuration (<code>grub.cfg</code>). Because modern Nitro-based
+instances expose EBS volumes as NVMe block devices (such as
+<code>/dev/nvme0n1</code>), an AMI registered with
+<code>/dev/sda1</code> may see its underlying device node renamed by the
+kernel driver. To ensure reliable booting across different instance
+families, the root volume inside an AMI should always reference
+partitions by their Universally Unique Identifier (<code>UUID</code>) or
+file system <code>LABEL</code> rather than hardcoded device paths.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-does-an-ec-2-ami-root-volume-control-instance-booting';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

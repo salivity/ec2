@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Does Amazon EC2 Charge Extra for Instance Store Volumes? - ec2</title>
+    <meta name="description" content="No, Amazon EC2 does not charge extra per gigabyte or per IOPS for using the local instance store volumes included with an eligible instance type. The cost of the physical local storage and all input/output operations performed against those drives is comp">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/does-amazon-ec-2-charge-extra-for-instance-store-volumes">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Does Amazon EC2 Charge Extra for Instance Store Volumes? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/does-amazon-ec-2-charge-extra-for-instance-store-volumes" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="No, Amazon EC2 does not charge extra per gigabyte or per IOPS for using the local instance store volumes included with an eligible instance type. The cost of the physical local storage and all input/output operations performed against those drives is comp" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="does-amazon-ec2-charge-extra-for-instance-store-volumes">Does
+Amazon EC2 Charge Extra for Instance Store Volumes?</h1>
+<p>No, Amazon EC2 does not charge extra per gigabyte or per IOPS for
+using the local instance store volumes included with an eligible
+instance type. The cost of the physical local storage and all
+input/output operations performed against those drives is completely
+bundled into the standard hourly or per-second compute price of the EC2
+instance itself. When you launch an instance that features ephemeral
+local storage, you can utilize the entire capacity and push the storage
+hardware to its maximum throughput and IOPS limits without incurring any
+separate storage or provisioning fees on your AWS bill.</p>
+<h2 id="how-instance-store-pricing-works">How Instance Store Pricing
+Works</h2>
+<p>An Amazon EC2 instance store provides temporary, block-level storage
+for your instance. Unlike Amazon Elastic Block Store (EBS), which
+operates over the network and is billed independently based on
+provisioned gigabytes, volume type, and sometimes provisioned IOPS or
+throughput, instance store volumes are physically attached to the host
+computer where the EC2 instance runs.</p>
+<p>Because these drives—typically high-performance NVMe SSDs or
+SATA-based solid-state drives—are dedicated hardware components inside
+the underlying server, AWS includes their cost in the base rate of the
+instance. The total storage cost can be represented simply as:</p>
+<p><span class="math display">\[\text{Total Instance Store Cost} =
+\$0.00 \text{ per GB} + \$0.00 \text{ per IOPS}\]</span></p>
+<p>When comparing an instance family without local storage (such as the
+<code>m6i</code> family) to its counterpart that includes local NVMe
+storage (such as the <code>m6id</code> family), you will notice a
+slightly higher hourly compute rate for the <code>d</code> variant. That
+rate difference reflects the built-in cost of the physical SSDs attached
+to the host. Once the instance is running, whether you write zero bytes
+to the local disks or saturate them with millions of IOPS continuously,
+your hourly charge remains identical.</p>
+<h2 id="instance-store-vs-amazon-ebs-billing">Instance Store vs. Amazon
+EBS Billing</h2>
+<p>Understanding the financial and architectural distinction between
+instance store volumes and Amazon EBS is essential for optimizing cloud
+storage costs.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Storage Feature</th>
+<th style="text-align: left;">Amazon EC2 Instance Store</th>
+<th style="text-align: left;">Amazon EBS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Per-GB Storage Fee</strong></td>
+<td style="text-align: left;">Included in instance price ($0 extra)</td>
+<td style="text-align: left;">Charged per provisioned GB per month</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>IOPS / Throughput
+Fee</strong></td>
+<td style="text-align: left;">Included in instance price ($0 extra)</td>
+<td style="text-align: left;">Charged on specific volume types
+(<code>io1</code>, <code>io2</code>, <code>gp3</code> above
+baseline)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Data Persistence</strong></td>
+<td style="text-align: left;">Ephemeral (lost on stop, hibernate, or
+termination)</td>
+<td style="text-align: left;">Persistent (survives instance stops and
+termination)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Physical Location</strong></td>
+<td style="text-align: left;">Physically attached to the host
+server</td>
+<td style="text-align: left;">Network-attached block storage</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Snapshot Support</strong></td>
+<td style="text-align: left;">No native snapshot capability</td>
+<td style="text-align: left;">Supports incremental point-in-time
+snapshots to S3</td>
+</tr>
+</tbody>
+</table>
+<h2 id="data-persistence-and-lifecycle-considerations">Data Persistence
+and Lifecycle Considerations</h2>
+<p>While instance store volumes offer exceptional performance at no
+additional per-GB or per-IOPS cost, they are strictly ephemeral. Data
+written to an instance store volume persists only during the lifecycle
+of the single running instance.</p>
+<ul>
+<li><strong>Instance Reboot:</strong> Data on the instance store volume
+survives a standard guest operating system reboot or an
+<code>ec2:RebootInstances</code> API call.</li>
+<li><strong>Instance Stop or Hibernation:</strong> Data is permanently
+erased when the instance is stopped or hibernated, because stopping an
+instance deallocates it from the physical host hardware.</li>
+<li><strong>Instance Termination:</strong> Data is permanently erased
+when the instance is terminated.</li>
+<li><strong>Hardware Failure:</strong> If the underlying physical drive
+or host server fails, the data on the instance store cannot be
+recovered.</li>
+</ul>
+<p>Because of this ephemeral nature, instance store volumes are best
+suited for temporary data that changes frequently, such as buffers,
+caches, scratch data, swap space, and temporary database transaction
+logs, or for data that is replicated across a fleet of instances, such
+as load-balanced web caches or distributed file systems.</p>
+<h2 id="hidden-costs-to-keep-in-mind">Hidden Costs to Keep in Mind</h2>
+<p>Although the storage capacity and disk I/O operations on instance
+store volumes are free of extra charges, certain operational patterns
+involving that data can still generate standard AWS charges
+elsewhere:</p>
+<ol type="1">
+<li><strong>Root Volume Requirements:</strong> Most modern EC2 instances
+with instance store volumes still require an Amazon EBS volume to act as
+the root boot device. You will pay standard EBS storage rates for that
+root volume.</li>
+<li><strong>Data Transfer and Replication:</strong> If you replicate
+data from an instance store volume to another EC2 instance located in a
+different Availability Zone for high availability, standard cross-AZ
+data transfer fees apply.</li>
+<li><strong>Backups to Amazon S3:</strong> Because instance store
+volumes do not support native EBS snapshots, backing up important
+intermediate data requires manually copying files to Amazon S3 or
+another persistent store, which incurs standard S3 storage and request
+pricing.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/does-amazon-ec-2-charge-extra-for-instance-store-volumes';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

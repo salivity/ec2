@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Use Amazon FSx for Lustre with EC2 ML Clusters? - ec2</title>
+    <meta name="description" content="A high-performance machine learning cluster attaches Amazon FSx for Lustre to its Amazon EC2 compute nodes to eliminate data input and output bottlenecks during distributed training. By providing sub-millisecond latencies, hundreds of gigabytes per second">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/why-use-amazon-f-sx-for-lustre-with-ec-2-ml-clusters">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Why Use Amazon FSx for Lustre with EC2 ML Clusters? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/why-use-amazon-f-sx-for-lustre-with-ec-2-ml-clusters" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="A high-performance machine learning cluster attaches Amazon FSx for Lustre to its Amazon EC2 compute nodes to eliminate data input and output bottlenecks during distributed training. By providing sub-millisecond latencies, hundreds of gigabytes per second" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="why-use-amazon-fsx-for-lustre-with-ec2-ml-clusters">Why Use
+Amazon FSx for Lustre with EC2 ML Clusters?</h1>
+<p>A high-performance machine learning cluster attaches Amazon FSx for
+Lustre to its Amazon EC2 compute nodes to eliminate data input and
+output bottlenecks during distributed training. By providing
+sub-millisecond latencies, hundreds of gigabytes per second of
+throughput, and millions of IOPS, FSx for Lustre ensures that expensive
+GPU and accelerator instances remain fully saturated with training data
+rather than idling while waiting for storage reads. Furthermore, its
+native integration with Amazon S3 allows clusters to seamlessly hydrate
+datasets on demand and persist model checkpoints back to durable object
+storage through a POSIX-compliant shared file system.</p>
+<h2 id="eliminating-gpu-starvation-in-distributed-training">Eliminating
+GPU Starvation in Distributed Training</h2>
+<p>Modern deep learning workloads rely on clusters of high-performance
+Amazon EC2 instances, such as P4d, P5, or Trn1 nodes, working in
+parallel across terabytes or petabytes of training data. While the
+compute capacity of GPUs and custom ML accelerators has scaled rapidly,
+storage throughput often lags behind, creating a condition known as GPU
+starvation. When compute nodes process mini-batches faster than the
+underlying storage system can deliver them, expensive accelerators sit
+idle waiting on I/O operations.</p>
+<p>In a distributed data-parallel training job across <span
+class="math inline">\(N\)</span> compute nodes, each node <span
+class="math inline">\(i\)</span> with batch processing rate <span
+class="math inline">\(R_i\)</span> (measured in samples per second) and
+average sample size <span class="math inline">\(S\)</span> (in bytes)
+generates an aggregate read bandwidth demand <span
+class="math inline">\(B_{\text{total}}\)</span> defined as:</p>
+<p><span class="math display">\[B_{\text{total}} = \sum_{i=1}^{N} R_i
+\cdot S\]</span></p>
+<p>If the storage layer provides a maximum throughput <span
+class="math inline">\(B_{\text{storage}} &lt; B_{\text{total}}\)</span>,
+the overall training step time is bounded by I/O latency rather than
+compute efficiency. Amazon FSx for Lustre resolves this bottleneck by
+striping file data across multiple Object Storage Targets (OSTs),
+enabling parallel access across the entire EC2 cluster. Throughput
+scales linearly with storage capacity, reaching hundreds of gigabytes
+per second and millions of IOPS with consistent sub-millisecond
+latencies.</p>
+<h2 id="native-amazon-s3-data-repository-integration">Native Amazon S3
+Data Repository Integration</h2>
+<p>Machine learning pipelines typically store raw training datasets,
+feature sets, and historical checkpoints in Amazon S3 due to its
+durability, low cost, and integration with data lakes. However,
+accessing millions of small files (such as individual images, audio
+clips, or tokenized shards) directly from S3 over HTTP REST APIs during
+every training epoch introduces significant request latency and API
+overhead.</p>
+<p>Amazon FSx for Lustre bridges the gap between object storage and
+high-performance compute by linking directly to Amazon S3 buckets as
+Data Repository Associations (DRAs). When linked to an S3 bucket, FSx
+for Lustre operates as a high-speed, transparent caching layer:</p>
+<ol type="1">
+<li><strong>Lazy Loading of Metadata and Data:</strong> Upon creation or
+synchronization, FSx for Lustre imports object metadata from S3 into its
+Metadata Targets (MDTs) without immediately copying the entire dataset.
+Compute nodes see the complete directory structure immediately.</li>
+<li><strong>First-Read Hydration:</strong> When an EC2 compute node
+requests a file for the first time during epoch one, FSx for Lustre
+automatically fetches the object from S3 in parallel and caches it on
+fast NVMe SSD storage.</li>
+<li><strong>Sub-Millisecond Subsequent Epochs:</strong> During
+subsequent training epochs, all read requests are served directly from
+the low-latency Lustre file system, bypassing S3 network overhead
+entirely.</li>
+<li><strong>Data Export:</strong> As training progresses, model weights,
+logs, and checkpoints written to the Lustre file system by EC2 nodes can
+be asynchronously or manually exported back to the linked S3 bucket for
+long-term retention.</li>
+</ol>
+<h2 id="shared-posix-compliance-across-compute-nodes">Shared POSIX
+Compliance Across Compute Nodes</h2>
+<p>Distributed machine learning frameworks like PyTorch, TensorFlow,
+DeepSpeed, and Horovod expect standard POSIX file system semantics for
+reading datasets and coordinating checkpoints across worker nodes.
+Rewriting training scripts to use custom object-storage SDKs or managing
+local NVMe instance store synchronization across dozens of nodes adds
+operational complexity and brittle boilerplate code.</p>
+<p>Because Amazon FSx for Lustre is fully POSIX-compliant, multiple EC2
+instances can mount the exact same file system concurrently under a
+unified namespace (such as <code>/fsx</code>). This shared architecture
+provides several operational advantages:</p>
+<ul>
+<li><strong>Zero Code Modification:</strong> Existing training scripts
+that use standard file I/O libraries (<code>open()</code>,
+<code>os.listdir()</code>, <code>torch.load()</code>) work immediately
+without modification.</li>
+<li><strong>Elimination of Data Duplication:</strong> Instead of copying
+a 10 TB dataset onto the local EBS volumes or NVMe drives of 64 separate
+EC2 instances—which wastes 640 TB of storage and delays cluster
+startup—every node reads from a single shared dataset.</li>
+<li><strong>Unified Checkpointing:</strong> During large language model
+(LLM) training, worker nodes must periodically save distributed state
+shards. A shared POSIX mount allows all ranks to write their respective
+shards to a single shared directory simultaneously and allows any
+replacement node to immediately resume from the latest checkpoint if an
+EC2 instance fails.</li>
+</ul>
+<h2
+id="high-throughput-networking-with-efa-and-gpudirect-storage">High-Throughput
+Networking with EFA and GPUDirect Storage</h2>
+<p>To maximize the performance between Amazon EC2 compute nodes and the
+storage cluster, Amazon FSx for Lustre supports Elastic Fabric Adapter
+(EFA) and NVIDIA GPUDirect Storage (GDS) on supported instance
+types.</p>
+<p>In traditional storage architectures, reading data from a network
+file system requires copying buffers through the host CPU and system
+memory (DRAM) before transferring them over the PCIe bus into GPU memory
+(VRAM). By combining EFA with GPUDirect Storage, FSx for Lustre enables
+a direct Direct Memory Access (DMA) data path between the network
+interface card and the GPU memory. This bypasses the host CPU bounce
+buffer, lowers CPU utilization on the EC2 nodes, reduces I/O latency,
+and maximizes effective PCIe bandwidth for gradient synchronization and
+tensor computation.</p>
+<h2 id="flexible-deployment-options-for-ml-lifecycles">Flexible
+Deployment Options for ML Lifecycles</h2>
+<p>Machine learning workloads vary between short-lived burst training
+runs and long-running research clusters. Amazon FSx for Lustre provides
+two primary deployment types to optimize cost and performance for EC2
+clusters:</p>
+<ul>
+<li><strong>Scratch File Systems:</strong> Designed for temporary
+storage and short-term processing of data. Scratch file systems do not
+replicate data across servers, allowing them to deliver the highest
+burst throughput per terabyte at the lowest cost. Because the
+authoritative dataset lives in Amazon S3, a scratch file system can be
+spun up when an EC2 training cluster launches, hydrated from S3, and
+torn down immediately after training completes and checkpoints are
+exported.</li>
+<li><strong>Persistent File Systems:</strong> Designed for long-term
+storage and continuous multi-day or multi-week training workloads. In
+persistent deployments, data is replicated within the Availability Zone,
+and failed storage servers are replaced automatically and transparently
+within minutes, ensuring that long-running foundational model training
+jobs do not fail due to storage hardware interruptions.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/why-use-amazon-f-sx-for-lustre-with-ec-2-ml-clusters';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

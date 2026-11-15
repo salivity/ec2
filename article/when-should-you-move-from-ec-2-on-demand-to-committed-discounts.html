@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Should You Move From EC2 On-Demand to Committed Discounts? - ec2</title>
+    <meta name="description" content="Transitioning a workload from Amazon EC2 On-Demand pricing to committed discount models like Savings Plans or Reserved Instances is best done once your resource utilization stabilizes and demonstrates a predictable baseline for at least thirty to ninety d">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-should-you-move-from-ec-2-on-demand-to-committed-discounts">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When Should You Move From EC2 On-Demand to Committed Discounts? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-should-you-move-from-ec-2-on-demand-to-committed-discounts" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Transitioning a workload from Amazon EC2 On-Demand pricing to committed discount models like Savings Plans or Reserved Instances is best done once your resource utilization stabilizes and demonstrates a predictable baseline for at least thirty to ninety d" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="when-should-you-move-from-ec2-on-demand-to-committed-discounts">When
+Should You Move From EC2 On-Demand to Committed Discounts?</h1>
+<p>Transitioning a workload from Amazon EC2 On-Demand pricing to
+committed discount models like Savings Plans or Reserved Instances is
+best done once your resource utilization stabilizes and demonstrates a
+predictable baseline for at least thirty to ninety days. While On-Demand
+instances offer essential flexibility for new, spiky, or short-lived
+applications, committing to a one-year or three-year term can reduce
+compute costs by up to seventy-two percent once your architecture
+matures and steady-state capacity requirements are established. This
+article explores the key indicators, utilization metrics, and break-even
+calculations needed to determine the exact moment to shift away from
+On-Demand pricing.</p>
+<h2 id="understanding-the-role-of-ec2-on-demand-pricing">Understanding
+the Role of EC2 On-Demand Pricing</h2>
+<p>Amazon EC2 On-Demand pricing allows you to pay for compute capacity
+by the second or hour with no long-term commitments or upfront payments.
+It serves as the default starting point for most cloud deployments
+because it eliminates the risk of over-provisioning or getting locked
+into the wrong instance types.</p>
+<p>Workloads should remain on On-Demand pricing under the following
+conditions:</p>
+<ul>
+<li>Early-stage development and testing where traffic patterns are
+unknown.</li>
+<li>Short-term projects, proofs of concept, or temporary
+environments.</li>
+<li>Highly unpredictable or spiky workloads that cannot tolerate
+interruption (where Spot Instances are unsuitable).</li>
+<li>Applications undergoing active architectural changes, such as
+migrating from monoliths to microservices or shifting to serverless
+containers.</li>
+</ul>
+<h2 id="key-indicators-that-it-is-time-to-transition">Key Indicators
+That It Is Time to Transition</h2>
+<p>Moving to committed discounts too early can result in paying for
+unused capacity, while waiting too long leaves substantial cost savings
+on the table. Look for several operational and financial signals before
+making a commitment.</p>
+<h3 id="1-stable-baseline-utilization">1. Stable Baseline
+Utilization</h3>
+<p>The primary indicator is a consistent usage floor. By reviewing AWS
+Cost Explorer or CloudWatch metrics over a 30-to-90-day lookback period,
+you can identify the minimum amount of compute capacity running 24/7.
+Even if your workload experiences daily peaks and valleys, the
+continuous baseline sitting beneath those fluctuations is a prime
+candidate for a commitment.</p>
+<h3 id="2-right-sizing-and-modernization-are-complete">2. Right-Sizing
+and Modernization Are Complete</h3>
+<p>Before locking in a commitment, engineering teams should finalize
+right-sizing exercises. If an application is running on oversized
+instances, committing to that spend locks in waste. Additionally, if you
+plan to transition from x86 processors to AWS Graviton processors, or
+from EC2 to AWS Fargate or AWS Lambda, you should either complete those
+migrations first or ensure you select a flexible commitment model like
+Compute Savings Plans.</p>
+<h3 id="3-predictable-business-continuity">3. Predictable Business
+Continuity</h3>
+<p>Committed discount models require a one-year or three-year agreement.
+Before transitioning, confirm with product and business stakeholders
+that the workload will remain active and strategically relevant for at
+least the duration of the commitment term.</p>
+<h2 id="evaluating-the-break-even-point">Evaluating the Break-Even
+Point</h2>
+<p>You do not need 100% utilization for a committed discount to be
+cheaper than On-Demand pricing. Because committed models offer
+significant discounts, they reach a financial break-even point well
+below full utilization.</p>
+<p>Let <span class="math inline">\(R_{\text{OD}}\)</span> be the hourly
+On-Demand rate, and <span class="math inline">\(R_{\text{CD}}\)</span>
+be the effective hourly committed discount rate. If the discount
+percentage is <span class="math inline">\(d\)</span>, then:</p>
+<p><span class="math display">\[R_{\text{CD}} = R_{\text{OD}} \times (1
+- d)\]</span></p>
+<p>In a given period of <span class="math inline">\(T\)</span> total
+hours, a commitment costs <span class="math inline">\(T \times
+R_{\text{CD}}\)</span> regardless of whether the instance is used. An
+On-Demand workload running for <span class="math inline">\(h\)</span>
+hours costs <span class="math inline">\(h \times R_{\text{OD}}\)</span>.
+The break-even utilization ratio <span
+class="math inline">\(U_{\text{BE}}\)</span> is the fraction of time
+<span class="math inline">\(\frac{h}{T}\)</span> where both options cost
+the same:</p>
+<p><span class="math display">\[h \times R_{\text{OD}} = T \times
+R_{\text{OD}} \times (1 - d)\]</span></p>
+<p><span class="math display">\[U_{\text{BE}} = \frac{h}{T} = 1 -
+d\]</span></p>
+<p>For example, if a one-year No Upfront Savings Plan offers a 35%
+discount (<span class="math inline">\(d = 0.35\)</span>) over On-Demand
+pricing:</p>
+<p><span class="math display">\[U_{\text{BE}} = 1 - 0.35 =
+0.65\]</span></p>
+<p>This means that if a workload runs for more than 65% of the hours in
+a year (roughly 15.6 hours per day or 238 days per year), committing to
+that capacity is more cost-effective than leaving it on On-Demand
+pricing, even though the commitment sits idle for the remaining 35% of
+the time.</p>
+<h2 id="choosing-the-right-committed-discount-model">Choosing the Right
+Committed Discount Model</h2>
+<p>When your workload meets the criteria to transition away from
+On-Demand pricing, AWS provides two main categories of committed
+discounts: Savings Plans and Reserved Instances (RIs).</p>
+<h3 id="compute-savings-plans">Compute Savings Plans</h3>
+<p>Compute Savings Plans offer the highest flexibility and discounts up
+to 66%. You commit to a consistent dollar amount per hour (for example,
+$10/hour), and the discount automatically applies across any EC2
+instance family, size, operating system, tenancy, or AWS Region, as well
+as AWS Fargate and AWS Lambda.</p>
+<p>Transition to Compute Savings Plans when:</p>
+<ul>
+<li>You have a consistent dollar spend across compute services, even if
+specific instance types or regions change.</li>
+<li>You are actively modernizing applications from EC2 to containers
+(Fargate) or serverless (Lambda).</li>
+<li>You want to minimize management overhead while capturing immediate
+savings.</li>
+</ul>
+<h3 id="ec2-instance-savings-plans">EC2 Instance Savings Plans</h3>
+<p>EC2 Instance Savings Plans offer slightly deeper discounts (up to
+72%) in exchange for committing to a specific instance family within a
+chosen AWS Region (for example, <code>m6i</code> instances in
+<code>us-east-1</code>). You can still change the instance size,
+operating system, and tenancy within that family.</p>
+<p>Transition to EC2 Instance Savings Plans when:</p>
+<ul>
+<li>Your architecture is mature and locked into specific instance
+families and regions.</li>
+<li>You have no plans to migrate the workload to serverless or different
+processor architectures during the commitment term.</li>
+</ul>
+<h3 id="reserved-instances-standard-and-convertible">Reserved Instances
+(Standard and Convertible)</h3>
+<p>While Savings Plans have largely replaced Reserved Instances for
+general cost optimization, Standard and Convertible RIs remain relevant
+in one specific scenario: capacity reservations. Zonal Reserved
+Instances provide both a billing discount and a capacity reservation in
+a specific Availability Zone, whereas Savings Plans only provide a
+billing discount.</p>
+<h2 id="a-phased-transition-strategy">A Phased Transition Strategy</h2>
+<p>Rather than moving 100% of your On-Demand usage to committed
+discounts all at once, adopt a layered purchasing approach:</p>
+<ol type="1">
+<li><strong>Eliminate idle resources:</strong> Terminate unused
+instances and right-size over-provisioned workloads.</li>
+<li><strong>Cover the rock-solid floor:</strong> Purchase commitments to
+cover 50% to 70% of your minimum hourly baseline using Compute Savings
+Plans.</li>
+<li><strong>Monitor coverage and utilization:</strong> Use AWS Cost
+Explorer to verify that your commitment utilization stays near 100%,
+meaning no committed dollars are wasted.</li>
+<li><strong>Layer additional commitments:</strong> Gradually increase
+coverage in increments as your confidence in the workload's long-term
+stability grows, leaving variable peaks on On-Demand or Spot
+Instances.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-should-you-move-from-ec-2-on-demand-to-committed-discounts';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

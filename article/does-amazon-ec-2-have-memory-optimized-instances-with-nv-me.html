@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Does Amazon EC2 Have Memory Optimized Instances with NVMe? - ec2</title>
+    <meta name="description" content="Amazon EC2 provides several Memory Optimized instance families equipped with physically attached local NVMe SSD volumes. These instances combine high memory-to-vCPU ratios with ultra-low latency block storage, making them ideal for high-performance databa">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/does-amazon-ec-2-have-memory-optimized-instances-with-nv-me">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Does Amazon EC2 Have Memory Optimized Instances with NVMe? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/does-amazon-ec-2-have-memory-optimized-instances-with-nv-me" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 provides several Memory Optimized instance families equipped with physically attached local NVMe SSD volumes. These instances combine high memory-to-vCPU ratios with ultra-low latency block storage, making them ideal for high-performance databa" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="does-amazon-ec2-have-memory-optimized-instances-with-nvme">Does
+Amazon EC2 Have Memory Optimized Instances with NVMe?</h1>
+<p>Amazon EC2 provides several Memory Optimized instance families
+equipped with physically attached local NVMe SSD volumes. These
+instances combine high memory-to-vCPU ratios with ultra-low latency
+block storage, making them ideal for high-performance databases,
+real-time analytics, and applications requiring rapid temporary cache or
+swap space. This article explores the specific EC2 instance families
+that offer this configuration, how their instance store volumes operate,
+and best practices for managing ephemeral storage.</p>
+<h2 id="memory-optimized-instance-families-with-local-nvme">Memory
+Optimized Instance Families with Local NVMe</h2>
+<p>In the Amazon EC2 naming convention, the inclusion of the letter d in
+the instance family name indicates the presence of physically attached
+NVMe SSD instance store volumes. Within the Memory Optimized category,
+AWS offers multiple options across Intel, AMD, and AWS Graviton
+processors.</p>
+<h3 id="r-series-r5d-r6id-r6gd-r7gd-r8gd">R-Series (R5d, R6id, R6gd,
+R7gd, R8gd)</h3>
+<p>The R-series is the foundational Memory Optimized family designed for
+memory-intensive applications such as relational and NoSQL databases,
+distributed web scale in-memory caches, and real-time big data
+analytics.</p>
+<ul>
+<li>R5d and R6id: Powered by Intel Xeon Scalable processors, these
+instances pair 8 GiB of memory per vCPU with local NVMe SSD storage.
+R6id instances offer up to 7.6 TB of local NVMe storage with enhanced
+memory bandwidth and network performance compared to R5d.</li>
+<li>R6gd, R7gd, and R8gd: Powered by AWS Graviton2, Graviton3, and
+Graviton4 processors respectively, these Arm-based instances provide
+substantial price-performance benefits alongside local NVMe SSDs for
+workloads compatible with the Arm64 architecture.</li>
+</ul>
+<h3 id="x-series-x1e-x2gd-x2idn-x2iedn">X-Series (X1e, X2gd, X2idn,
+X2iedn)</h3>
+<p>The X-series targets enterprise-class, large-scale in-memory
+applications, such as SAP Hana, Apache Spark, and Presto, which require
+higher memory-to-compute ratios than the R-series.</p>
+<ul>
+<li>X2gd: Powered by AWS Graviton2 processors, delivering 16 GiB of
+memory per vCPU alongside local NVMe SSD volumes.</li>
+<li>X2idn and X2iedn: Powered by Intel Xeon Scalable processors,
+offering 16 GiB and 32 GiB of memory per vCPU respectively. Both include
+local NVMe storage and up to 100 Gbps of networking throughput.</li>
+</ul>
+<h3 id="high-frequency-instances-z1d">High-Frequency Instances
+(z1d)</h3>
+<p>The z1d instance family delivers both high compute capacity and a
+high memory footprint. It features an all-core sustained turbo frequency
+of up to 4.0 GHz paired with up to 1.8 TB of local NVMe instance store
+capacity. It is frequently chosen for electronic design automation (EDA)
+and relational database workloads with high per-core licensing
+costs.</p>
+<h2 id="why-use-local-nvme-ssds-for-swap-and-cache-storage">Why Use
+Local NVMe SSDs for Swap and Cache Storage?</h2>
+<p>Unlike Amazon Elastic Block Store (EBS), which is network-attached
+storage, EC2 instance store volumes are physically attached to the host
+server. This architectural difference yields several operational
+advantages for swap and caching workloads:</p>
+<ol type="1">
+<li>Ultra-Low Latency and High IOPS: Because data does not traverse the
+network to reach the storage media, local NVMe drives deliver random
+read IOPS in the hundreds of thousands and sub-millisecond latency.</li>
+<li>Cost Efficiency: The cost of the local NVMe storage is included in
+the hourly or per-second price of the EC2 instance. You do not pay
+separate storage provisioning fees or per-IO charges.</li>
+<li>Dedicated Bandwidth: Utilizing local NVMe for heavy temporary
+read/write operations preserves your instance's network and EBS
+bandwidth for persistent data transfers and client traffic.</li>
+</ol>
+<p>When calculating total memory capacity alongside swap space, the
+effective addressable memory <span
+class="math inline">\(M_{\text{total}}\)</span> can be modeled as:</p>
+<p><span class="math display">\[M_{\text{total}} = M_{\text{RAM}} +
+S_{\text{NVMe}}\]</span></p>
+<p>While NVMe SSDs are orders of magnitude faster than traditional
+spinning disks, their access latency <span
+class="math inline">\(L_{\text{NVMe}}\)</span> is still higher than
+system RAM latency <span
+class="math inline">\(L_{\text{RAM}}\)</span>:</p>
+<p><span class="math display">\[L_{\text{RAM}} \ll L_{\text{NVMe}} &lt;
+L_{\text{EBS}}\]</span></p>
+<p>Therefore, local NVMe volumes are best used as an overflow safety net
+for swap or as a high-speed secondary tier (L2 cache) behind system
+memory.</p>
+<h2 id="understanding-ephemeral-storage-lifecycle">Understanding
+Ephemeral Storage Lifecycle</h2>
+<p>Before configuring swap or cache directories on local NVMe volumes,
+it is critical to understand that EC2 instance store volumes are
+ephemeral. Data written to these volumes persists only during the
+lifecycle of the associated instance.</p>
+<p>Data on local NVMe volumes remains intact when:</p>
+<ul>
+<li>The operating system is rebooted (via the OS or the
+<code>RebootInstances</code> API).</li>
+</ul>
+<p>Data on local NVMe volumes is permanently lost when:</p>
+<ul>
+<li>The instance is stopped or hibernated.</li>
+<li>The instance is terminated.</li>
+<li>The underlying physical host drive experiences a hardware
+failure.</li>
+</ul>
+<p>Because of this behavior, you should never store primary,
+un-replicated persistent data on instance store volumes. They should
+strictly be used for temporary storage, such as swap space, buffer
+pools, scratch data, or caches that can be reconstructed or tolerated if
+lost.</p>
+<h2 id="configuring-local-nvme-volumes-for-swap-or-cache">Configuring
+Local NVMe Volumes for Swap or Cache</h2>
+<p>When an instance with local NVMe storage launches, the volumes are
+exposed to the operating system as block devices (typically
+<code>/dev/nvme1n1</code>, <code>/dev/nvme2n1</code>, etc.), though they
+are not formatted or mounted by default on most standard AMIs.</p>
+<p>To automate the setup of swap and cache across instance stop/start
+cycles, you should place configuration scripts in your EC2 User Data or
+systemd startup units.</p>
+<h3 id="setting-up-a-local-nvme-volume-as-swap">Setting Up a Local NVMe
+Volume as Swap</h3>
+<p>To configure <code>/dev/nvme1n1</code> as swap space on a Linux
+instance:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the swap area on the NVMe device</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkswap /dev/nvme1n1</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable the swap device</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> swapon /dev/nvme1n1</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify that the swap space is active</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ex">swapon</span> <span class="at">--show</span></span></code></pre></div>
+<p>You can also tune the kernel <code>vm.swappiness</code> parameter to
+control how aggressively the operating system moves memory pages to the
+NVMe swap volume:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set swappiness to a low value (e.g., 10) to prefer RAM over swap</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> sysctl vm.swappiness=10</span></code></pre></div>
+<h3 id="setting-up-a-local-nvme-volume-as-a-cache-directory">Setting Up
+a Local NVMe Volume as a Cache Directory</h3>
+<p>To format and mount an NVMe volume for application caching:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Format the device with the XFS or ext4 filesystem</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkfs.xfs /dev/nvme1n1</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the mount point</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkdir <span class="at">-p</span> /mnt/nvme-cache</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Mount the volume with noatime to reduce unnecessary metadata writes</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount <span class="at">-o</span> defaults,noatime /dev/nvme1n1 /mnt/nvme-cache</span></code></pre></div>
+<p>If your chosen instance size includes multiple NVMe drives (such as
+an <code>r6id.16xlarge</code>, which includes two 1900 GB NVMe SSDs),
+you can combine them into a RAID 0 array using <code>mdadm</code> to
+aggregate capacity and maximize throughput:</p>
+<p><span class="math display">\[\text{Throughput}_{\text{RAID0}} \approx
+N \times \text{Throughput}_{\text{Single Drive}}\]</span></p>
+<p>where <span class="math inline">\(N\)</span> is the number of striped
+NVMe volumes.</p>
+<h2 id="hardware-encryption-on-instance-store-volumes">Hardware
+Encryption on Instance Store Volumes</h2>
+<p>For security compliance, modern AWS Nitro-based Memory Optimized
+instances (such as R5d, R6id, R6gd, R7gd, and X2 series) automatically
+encrypt all data written to local NVMe instance store volumes using an
+XTS-AES-256 block cipher implemented in a hardware module on the Nitro
+card. The encryption keys are generated uniquely for each volume and are
+destroyed when the instance stops or terminates, ensuring zero
+performance overhead and complete cryptographic erasure between
+lifecycles.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/does-amazon-ec-2-have-memory-optimized-instances-with-nv-me';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Allocate, Share, and Release an EC2 Dedicated Host? - ec2</title>
+    <meta name="description" content="Managing an Amazon EC2 Dedicated Host across multiple AWS accounts involves allocating a physical server in an owner account, sharing it through AWS Resource Access Manager, and releasing it once all running instances are terminated. This approach helps o">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-allocate-share-and-release-an-ec-2-dedicated-host">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Allocate, Share, and Release an EC2 Dedicated Host? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-allocate-share-and-release-an-ec-2-dedicated-host" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Managing an Amazon EC2 Dedicated Host across multiple AWS accounts involves allocating a physical server in an owner account, sharing it through AWS Resource Access Manager, and releasing it once all running instances are terminated. This approach helps o" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-allocate-share-and-release-an-ec2-dedicated-host">How to
+Allocate, Share, and Release an EC2 Dedicated Host?</h1>
+<p>Managing an Amazon EC2 Dedicated Host across multiple AWS accounts
+involves allocating a physical server in an owner account, sharing it
+through AWS Resource Access Manager, and releasing it once all running
+instances are terminated. This approach helps organizations satisfy
+strict software licensing requirements, maintain physical hardware
+isolation, and optimize compute utilization across separate AWS accounts
+or an entire AWS Organization.</p>
+<h2 id="prerequisites-and-limitations">Prerequisites and
+Limitations</h2>
+<p>Before allocating and sharing an Amazon EC2 Dedicated Host, verify
+that your AWS environment meets the following conditions:</p>
+<ul>
+<li><strong>AWS Account Structure:</strong> You need an owner account to
+allocate the Dedicated Host and one or more consumer accounts to launch
+instances onto the host. If sharing across an AWS Organization, trusted
+access for AWS Resource Access Manager (AWS RAM) must be enabled in the
+management account.</li>
+<li><strong>IAM Permissions:</strong> The IAM principal in the owner
+account requires <code>ec2:AllocateHosts</code>,
+<code>ec2:ReleaseHosts</code>, and <code>ram:CreateResourceShare</code>
+permissions. Consumer accounts require permissions to accept resource
+shares (if outside an AWS Organization) and
+<code>ec2:RunInstances</code> to deploy workloads.</li>
+<li><strong>Instance Configuration:</strong> Dedicated Hosts can be
+configured either to support a single specific instance type (such as
+<code>m5.xlarge</code>) or multiple instance types within the same
+instance family (such as the <code>m5</code> family).</li>
+<li><strong>Sharing Constraints:</strong> Consumers can launch, stop,
+start, and terminate their own instances on a shared Dedicated Host, and
+they can view only the instances they own. Only the host owner account
+can see all instances running on the host (as opaque instance IDs for
+consumer-owned instances), modify host settings, or release the
+Dedicated Host.</li>
+</ul>
+<h2 id="allocating-an-amazon-ec2-dedicated-host">Allocating an Amazon
+EC2 Dedicated Host</h2>
+<p>Allocating a Dedicated Host reserves a physical server in a specific
+Availability Zone for your account. Billing begins immediately upon
+allocation, regardless of whether you launch instances onto the
+server.</p>
+<h3 id="using-the-aws-cli">Using the AWS CLI</h3>
+<p>You can allocate a Dedicated Host configured for a specific instance
+family or a single instance type.</p>
+<p>To allocate a Dedicated Host that supports multiple instance sizes
+within the <code>m5</code> instance family:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 allocate-hosts <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--availability-zone</span> us-east-1a <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-family</span> m5 <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--auto-placement</span> off <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--host-recovery</span> on <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--quantity</span> 1 <span class="dt">\</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--tag-specifications</span> <span class="st">&#39;ResourceType=dedicated-host,Tags=[{Key=Name,Value=Shared-M5-Host}]&#39;</span></span></code></pre></div>
+<p>To allocate a Dedicated Host locked to a single instance type (for
+example, <code>c5.2xlarge</code>):</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 allocate-hosts <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--availability-zone</span> us-east-1a <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> c5.2xlarge <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--auto-placement</span> on <span class="dt">\</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--host-recovery</span> on <span class="dt">\</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--quantity</span> 1</span></code></pre></div>
+<p>Key allocation parameters include:</p>
+<ul>
+<li><code>--auto-placement</code>: Set to <code>on</code> to allow
+untargeted instances with <code>host</code> tenancy to automatically
+land on this host, or <code>off</code> to require explicit targeting by
+Host ID. When sharing a host, setting this to <code>off</code> prevents
+accidental placement before sharing configurations are finalized.</li>
+<li><code>--host-recovery</code>: Set to <code>on</code> to
+automatically restart your instances on a new replacement Dedicated Host
+if the underlying physical hardware experiences an unexpected
+failure.</li>
+<li><code>--outpost-arn</code>: Optional parameter if you are allocating
+the Dedicated Host on an AWS Outpost.</li>
+</ul>
+<p>The command returns the <code>HostIds</code> value (for example,
+<code>h-0123456789abcdef0</code>), which you will use to share or
+release the host.</p>
+<h3 id="calculating-host-capacity">Calculating Host Capacity</h3>
+<p>When you allocate a host by instance family, the physical server
+provides a total number of vCPUs and sockets, which can be divided among
+different instance sizes of that family. If <span
+class="math inline">\(C_{\text{total}}\)</span> represents the total
+available vCPU capacity on the Dedicated Host and <span
+class="math inline">\(n_i\)</span> represents the number of running
+instances of size <span class="math inline">\(i\)</span> requiring <span
+class="math inline">\(c_i\)</span> vCPUs each, the remaining available
+vCPU capacity <span class="math inline">\(C_{\text{rem}}\)</span> is
+determined by:</p>
+<p><span class="math display">\[C_{\text{rem}} = C_{\text{total}} -
+\sum_{i=1}^{k} n_i c_i\]</span></p>
+<p>You can inspect the current capacity and socket layout of your
+Dedicated Host at any time using:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-hosts <span class="at">--host-ids</span> h-0123456789abcdef0</span></code></pre></div>
+<h2 id="sharing-the-dedicated-host-using-aws-ram">Sharing the Dedicated
+Host Using AWS RAM</h2>
+<p>Once the Dedicated Host is allocated in the owner account, you can
+share it with specific AWS accounts, Organizational Units (OUs), or an
+entire AWS Organization using AWS Resource Access Manager.</p>
+<h3 id="step-1-enable-organization-sharing-optional">Step 1: Enable
+Organization Sharing (Optional)</h3>
+<p>If you are sharing the Dedicated Host with an AWS Organization or an
+OU rather than individual external account IDs, run the following
+command from your AWS Organizations management account to enable
+sharing:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ram enable-sharing-with-aws-organization</span></code></pre></div>
+<h3 id="step-2-obtain-the-dedicated-host-arn">Step 2: Obtain the
+Dedicated Host ARN</h3>
+<p>AWS RAM requires the full Amazon Resource Name (ARN) of the Dedicated
+Host. Construct the ARN using your region, owner account ID, and Host
+ID:</p>
+<pre class="text"><code>arn:aws:ec2:&lt;region&gt;:&lt;owner-account-id&gt;:dedicated-host/&lt;host-id&gt;</code></pre>
+<h3 id="step-3-create-the-resource-share">Step 3: Create the Resource
+Share</h3>
+<p>From the owner account, create a resource share in AWS RAM that
+associates the Dedicated Host ARN with your target principals (an
+12-digit AWS account ID, an Organization ARN, or an OU ARN):</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ram create-resource-share <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--name</span> <span class="st">&quot;Shared-EC2-Dedicated-Hosts&quot;</span> <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--resource-arns</span> arn:aws:ec2:us-east-1:111122223333:dedicated-host/h-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--principals</span> 444455556666 <span class="dt">\</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--allow-external-principals</span></span></code></pre></div>
+<p>If you are sharing only within your AWS Organization, set
+<code>--no-allow-external-principals</code> and pass the Organization
+ARN or OU ARN to <code>--principals</code>.</p>
+<h3 id="step-4-accept-the-resource-share-external-accounts-only">Step 4:
+Accept the Resource Share (External Accounts Only)</h3>
+<p>If the Dedicated Host is shared within an AWS Organization with
+trusted access enabled, consumer accounts gain access automatically
+without an invitation. If shared with an account outside your
+organization, the consumer account must accept the invitation.</p>
+<p>In the consumer account (<code>444455556666</code>), list the pending
+invitations:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ram get-resource-share-invitations</span></code></pre></div>
+<p>Accept the invitation using the
+<code>resourceShareInvitationArn</code> returned from the previous
+command:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ram accept-resource-share-invitation <span class="dt">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--resource-share-invitation-arn</span> arn:aws:ram:us-east-1:111122223333:resource-share-invitation/abcd1234-5678-90ef-ghij-klmnopqrstuv</span></code></pre></div>
+<h3 id="step-5-launch-instances-in-the-consumer-account">Step 5: Launch
+Instances in the Consumer Account</h3>
+<p>Once shared, users in the consumer account can verify visibility of
+the shared host:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-hosts</span></code></pre></div>
+<p>To launch an instance onto the shared Dedicated Host from the
+consumer account, specify <code>Tenancy=host</code> and either target
+the <code>HostId</code> directly or rely on auto-placement:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> m5.xlarge <span class="dt">\</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--placement</span> Tenancy=host,HostId=h-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--subnet-id</span> subnet-0123456789abcdef0</span></code></pre></div>
+<p>Note that the <code>--subnet-id</code> must reside in the same
+Availability Zone (<code>us-east-1a</code> in this example) where the
+Dedicated Host was allocated, matched by the underlying Availability
+Zone ID (<code>use1-az1</code>) across accounts.</p>
+<h2 id="releasing-an-amazon-ec2-dedicated-host">Releasing an Amazon EC2
+Dedicated Host</h2>
+<p>To stop billing for an on-demand Dedicated Host, you must explicitly
+release it from the owner account. AWS does not allow you to release a
+Dedicated Host while any instances are still running or stopped on
+it.</p>
+<h3 id="step-1-stop-sharing-the-host-recommended">Step 1: Stop Sharing
+the Host (Recommended)</h3>
+<p>Before releasing the host, remove it from the AWS RAM resource share
+so consumer accounts cannot launch new instances onto it during
+decommissioning:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ram disassociate-resource-share <span class="dt">\</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--resource-share-arn</span> arn:aws:ram:us-east-1:111122223333:resource-share/12345678-abcd-ef12-3456-7890abcdef12 <span class="dt">\</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--resource-arns</span> arn:aws:ec2:us-east-1:111122223333:dedicated-host/h-0123456789abcdef0</span></code></pre></div>
+<h3 id="step-2-terminate-all-instances-on-the-host">Step 2: Terminate
+All Instances on the Host</h3>
+<p>Inspect the host from the owner account to verify whether any
+instances remain:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-hosts <span class="dt">\</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--host-ids</span> h-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">&#39;Hosts[0].Instances&#39;</span></span></code></pre></div>
+<p>If instances are listed, each respective account owner must terminate
+their instances (or change the tenancy of stopped instances from
+<code>host</code> to <code>default</code> or <code>dedicated</code> if
+supported by the OS and instance type):</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 terminate-instances <span class="at">--instance-ids</span> i-0123456789abcdef0</span></code></pre></div>
+<p>Wait until all instances reach the <code>terminated</code> state
+before proceeding.</p>
+<h3 id="step-3-release-the-dedicated-host">Step 3: Release the Dedicated
+Host</h3>
+<p>Once the Dedicated Host has zero active or stopped instances, run the
+<code>release-hosts</code> command from the owner account:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 release-hosts <span class="at">--host-ids</span> h-0123456789abcdef0</span></code></pre></div>
+<p>The output returns the Host ID under the <code>Successful</code>
+array:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Successful&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;h-0123456789abcdef0&quot;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Unsuccessful&quot;</span><span class="fu">:</span> <span class="ot">[]</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>If the release fails, check the <code>Unsuccessful</code> response
+array for error codes such as <code>InvalidHostState</code> (indicating
+instances are still terminating on the host) or
+<code>UnsupportedOperation</code> (indicating an active Dedicated Host
+Reservation is still bound to the host).</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-allocate-share-and-release-an-ec-2-dedicated-host';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

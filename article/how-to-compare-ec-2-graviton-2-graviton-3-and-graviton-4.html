@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Compare EC2 Graviton2, Graviton3, and Graviton4? - ec2</title>
+    <meta name="description" content="Evaluating performance gains across AWS Graviton2, Graviton3, and Graviton4 instances in Amazon EC2 requires a structured benchmarking methodology that combines micro-architectural metrics, synthetic workloads, and production-grade application testing. As">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-compare-ec-2-graviton-2-graviton-3-and-graviton-4">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Compare EC2 Graviton2, Graviton3, and Graviton4? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-compare-ec-2-graviton-2-graviton-3-and-graviton-4" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Evaluating performance gains across AWS Graviton2, Graviton3, and Graviton4 instances in Amazon EC2 requires a structured benchmarking methodology that combines micro-architectural metrics, synthetic workloads, and production-grade application testing. As" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-compare-ec2-graviton2-graviton3-and-graviton4">How to
+Compare EC2 Graviton2, Graviton3, and Graviton4?</h1>
+<p>Evaluating performance gains across AWS Graviton2, Graviton3, and
+Graviton4 instances in Amazon EC2 requires a structured benchmarking
+methodology that combines micro-architectural metrics, synthetic
+workloads, and production-grade application testing. As AWS evolves its
+custom Arm-based silicon from the Neoverse N1 in Graviton2 to the
+Neoverse V1 in Graviton3 and the Neoverse V2 in Graviton4, organizations
+must look beyond raw clock speeds and measure real-world throughput,
+tail latency, memory bandwidth, and price-performance efficiency to
+justify migration efforts.</p>
+<h2
+id="architectural-evolution-across-graviton-generations">Architectural
+Evolution Across Graviton Generations</h2>
+<p>Before executing benchmarks, it is essential to understand the
+hardware changes driving performance differences across each generation.
+Unlike traditional x86 processors that often utilize Simultaneous
+Multithreading (SMT), every vCPU on a Graviton instance is a physical
+core. This design eliminates thread contention between sibling
+hyperthreads and yields more predictable scaling.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Graviton2 (6g)</th>
+<th style="text-align: left;">Graviton3 (7g)</th>
+<th style="text-align: left;">Graviton4 (8g)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Arm Architecture</strong></td>
+<td style="text-align: left;">Armv8.2-A (Neoverse N1)</td>
+<td style="text-align: left;">Armv8.4-A (Neoverse V1)</td>
+<td style="text-align: left;">Armv9.0-A (Neoverse V2)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>L1 / L2 Cache per
+Core</strong></td>
+<td style="text-align: left;">64 KB L1 / 1 MB L2</td>
+<td style="text-align: left;">64 KB L1 / 1 MB L2</td>
+<td style="text-align: left;">64 KB L1 / 2 MB L2</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Max vCPUs per Socket</strong></td>
+<td style="text-align: left;">64</td>
+<td style="text-align: left;">64</td>
+<td style="text-align: left;">96</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Memory Technology</strong></td>
+<td style="text-align: left;">DDR4-3200</td>
+<td style="text-align: left;">DDR5-4800</td>
+<td style="text-align: left;">DDR5-5600</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SIMD / Vector
+Extensions</strong></td>
+<td style="text-align: left;">2x 128-bit NEON</td>
+<td style="text-align: left;">2x 256-bit SVE</td>
+<td style="text-align: left;">4x 128-bit SVE2</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Floating Point / ML
+Support</strong></td>
+<td style="text-align: left;">FP16, INT8 dot-product</td>
+<td style="text-align: left;">BF16, INT8 matrix multiply</td>
+<td style="text-align: left;">BF16, FP16, SVE2-BFloat16</td>
+</tr>
+</tbody>
+</table>
+<p>The jump from Graviton2 to Graviton3 introduced DDR5 memory, offering
+50% more memory bandwidth, alongside Scalable Vector Extensions (SVE)
+and BFloat16 support for machine learning inference. Moving from
+Graviton3 to Graviton4 doubles the L2 cache per core to 2 MB,
+transitions to the Armv9 architecture with SVE2, increases memory speed
+to DDR5-5600, and expands maximum instance sizes up to 192 vCPUs in
+dual-socket configurations.</p>
+<h2 id="step-1-standardize-the-software-and-compiler-environment">Step
+1: Standardize the Software and Compiler Environment</h2>
+<p>Hardware improvements in Graviton3 and Graviton4 rely heavily on
+modern Linux kernels, updated system libraries, and compiler flags that
+exploit newer instruction sets. Testing an older binary compiled for
+generic Arm64 (<code>armv8-a</code>) will fail to utilize features like
+Large System Extensions (LSE), SVE, or SVE2, skewing your benchmark
+results.</p>
+<p>To ensure a fair evaluation across <code>m6g</code> (Graviton2),
+<code>m7g</code> (Graviton3), and <code>m8g</code> (Graviton4)
+instances:</p>
+<ul>
+<li><strong>Operating System:</strong> Use Linux kernel 6.1 or later
+(such as Amazon Linux 2023 or Ubuntu 24.04 LTS) to ensure optimal
+scheduler awareness, page sizing, and hardware perf counter
+support.</li>
+<li><strong>C/C++ and Rust Compilers:</strong> Use GCC 12+ or Clang/LLVM
+15+ and compile with <code>-mcpu=native</code> on each target instance,
+or target specific architectures explicitly
+(<code>-mcpu=neoverse-n1</code>, <code>-mcpu=neoverse-v1</code>,
+<code>-mcpu=neoverse-v2</code>).</li>
+<li><strong>Runtime Versions:</strong> Use OpenJDK 21+ for Java
+workloads, Go 1.21+ for Go services, Python 3.11+ for interpreted
+workloads, and Node.js 20+ for JavaScript applications. Newer runtimes
+contain intrinsic optimizations for Armv8.4 and Armv9 instructions.</li>
+</ul>
+<h2 id="step-2-measure-micro-architectural-subsystem-gains">Step 2:
+Measure Micro-Architectural Subsystem Gains</h2>
+<p>Before testing full applications, run targeted synthetic benchmarks
+to isolate how CPU compute, memory bandwidth, and cache hierarchies
+behave across the three generations.</p>
+<h3 id="memory-bandwidth-and-latency">Memory Bandwidth and Latency</h3>
+<p>Database engines, in-memory caches (like Redis or Valkey), and
+analytics workloads are frequently bottlenecked by memory bandwidth
+rather than CPU cycles. Because Graviton3 moved to DDR5 and Graviton4
+doubled the L2 cache while increasing DDR5 clock rates, you should
+quantify memory throughput using the STREAM benchmark or
+<code>sysbench</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sysbench</span> memory <span class="at">--memory-block-size</span><span class="op">=</span>1M <span class="at">--memory-total-size</span><span class="op">=</span>100G <span class="at">--threads</span><span class="op">=</span><span class="va">$(</span><span class="fu">nproc</span><span class="va">)</span> run</span></code></pre></div>
+<p>Compare the transferred megabytes per second across identically sized
+instances (for example, <code>r6g.2xlarge</code>,
+<code>r7g.2xlarge</code>, and <code>r8g.2xlarge</code>). Workloads with
+large working sets will exhibit a steep reduction in LLC (Last Level
+Cache) misses on Graviton4 due to the 2 MB per-core L2 cache.</p>
+<h3 id="compute-cryptography-and-compression">Compute, Cryptography, and
+Compression</h3>
+<p>Graviton3 and Graviton4 feature enhanced cryptographic accelerators
+and wider vector units. You can evaluate raw cryptographic throughput
+using OpenSSL speed tests:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> speed <span class="at">-elapsed</span> <span class="at">-evp</span> aes-256-gcm</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> speed <span class="at">-elapsed</span> rsa2048</span></code></pre></div>
+<p>For compression-heavy workloads (such as Kafka brokers, log ingestion
+pipelines, or object storage gateways), benchmark <code>zstd</code> or
+<code>zlib-ng</code> compression and decompression speeds across all
+three instance families.</p>
+<h2 id="step-3-conduct-application-level-load-testing">Step 3: Conduct
+Application-Level Load Testing</h2>
+<p>Synthetic benchmarks establish theoretical ceilings, but production
+decisions require testing with representative application traffic. Set
+up an isolated load generation environment where the load generator runs
+on a separate EC2 instance within the same Availability Zone and
+Placement Group to minimize network jitter.</p>
+<h3 id="key-application-metrics-to-capture">Key Application Metrics to
+Capture</h3>
+<ol type="1">
+<li><strong>Maximum Sustainable Throughput:</strong> Measure Requests
+Per Second (RPS) or Transactions Per Second (TPS) before error rates
+exceed acceptable thresholds.</li>
+<li><strong>Tail Latency under Load:</strong> Compare <span
+class="math inline">\(P_{50}\)</span>, <span
+class="math inline">\(P_{95}\)</span>, and <span
+class="math inline">\(P_{99}\)</span> latencies at fixed load intervals
+(for example, at 50% and 75% CPU utilization). Because Graviton cores do
+not share execution pipelines via hyperthreading, latency degradation
+follows a smoother curve up to high CPU utilization.</li>
+<li><strong>Throughput at Target SLA:</strong> Determine the highest RPS
+an instance can sustain while keeping <span
+class="math inline">\(P_{99}\)</span> latency below a strict
+service-level objective (e.g., <span class="math inline">\(P_{99} &lt;
+50\text{ ms}\)</span>).</li>
+</ol>
+<p>Calculate the relative performance gain <span
+class="math inline">\(G_{\text{perf}}\)</span> between generations using
+the following formula:</p>
+<p><span class="math display">\[G_{\text{perf}} = \left(
+\frac{\text{Throughput}_{\text{target}} -
+\text{Throughput}_{\text{baseline}}}{\text{Throughput}_{\text{baseline}}}
+\right) \times 100\%\]</span></p>
+<h2 id="step-4-profile-hardware-counters-with-linux-perf">Step 4:
+Profile Hardware Counters with Linux Perf</h2>
+<p>To understand <em>why</em> a workload runs faster on Graviton3 or
+Graviton4, use the Linux <code>perf</code> tool to inspect hardware
+performance monitoring units (PMUs). Ensure your test runs on enough
+vCPUs (or dedicated metal instances) where hardware counters are
+exposed, and capture Instructions Per Cycle (IPC), branch
+mispredictions, and cache misses:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">perf</span> stat <span class="at">-e</span> cycles,instructions,cache-references,cache-misses,L1-dcache-load-misses,L2D_CACHE_REFILL <span class="at">-p</span> <span class="op">&lt;</span>PID<span class="op">&gt;</span> -- sleep 30</span></code></pre></div>
+<p>When comparing output across generations, calculate the Instructions
+Per Cycle:</p>
+<p><span class="math display">\[\text{IPC} =
+\frac{\text{Instructions}}{\text{Cycles}}\]</span></p>
+<p>A higher IPC on Graviton4 compared to Graviton3 and Graviton2
+indicates that the wider instruction decode front-end, improved branch
+predictor, and 2 MB L2 cache are keeping the execution units fed without
+stalling on main memory fetches.</p>
+<h2 id="step-5-evaluate-price-performance-efficiency">Step 5: Evaluate
+Price-Performance Efficiency</h2>
+<p>Newer Graviton generations carry a slight on-demand hourly price
+premium over their predecessors, but their higher throughput per vCPU
+typically results in a lower total cost to serve a given workload.</p>
+<p>To evaluate the true economic benefit, normalize your performance
+metrics against the hourly instance cost. Calculate the Cost Per Million
+Requests (<span class="math inline">\(C_{\text{req}}\)</span>) for each
+instance family:</p>
+<p><span class="math display">\[C_{\text{req}} = \frac{\text{Hourly
+Instance Price (USD)}}{\text{RPS}_{\text{SLA}} \times 3600} \times
+10^6\]</span></p>
+<p>Alternatively, compute the Price-Performance Ratio (<span
+class="math inline">\(R_{\text{pp}}\)</span>) relative to Graviton2:</p>
+<p><span class="math display">\[R_{\text{pp}} = \left(
+\frac{\text{Throughput}_{\text{New}}}{\text{Cost}_{\text{New}}} \right)
+\div \left(
+\frac{\text{Throughput}_{\text{Baseline}}}{\text{Cost}_{\text{Baseline}}}
+\right)\]</span></p>
+<p>If <span class="math inline">\(R_{\text{pp}} &gt; 1.0\)</span>,
+migrating to the newer Graviton generation reduces your overall EC2
+spend because you can either scale down the instance size (for example,
+moving from an <code>m6g.4xlarge</code> to an <code>m8g.2xlarge</code>)
+or reduce the total number of instances in your Auto Scaling group while
+maintaining the same cluster capacity.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-compare-ec-2-graviton-2-graviton-3-and-graviton-4';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

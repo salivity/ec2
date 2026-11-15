@@ -1,0 +1,1298 @@
+[
+  [
+    217,
+    "Can You Detach the Primary eth0 ENI from an EC2 Instance?",
+    "Attempting to detach the primary eth0 Elastic Network Interface from an Amazon EC2 instance will always fail and return an error, whether the instance is running or stopped. In Amazon Web Services, every EC2 instance requires at least one primary network",
+    false
+  ],
+  [
+    216,
+    "How can you use ENA Express to reduce EC2 tail latency?",
+    "Amazon Elastic Network Adapter Express is a networking feature powered by the AWS Nitro System and the Scalable Reliable Datagram protocol that significantly lowers tail latency and increases single-flow bandwidth between Amazon EC2 instances. By dynamica",
+    false
+  ],
+  [
+    215,
+    "Which EC2 Instances and OS Support EFA OS-Bypass via Libfabric?",
+    "Amazon EC2 Elastic Fabric Adapter (EFA) provides OS-bypass capabilities through the Libfabric communications library across high-performance Linux operating systems and numerous compute-optimized, memory-optimized, accelerated computing, and general-purpo",
+    false
+  ],
+  [
+    214,
+    "When Should You Move a Secondary ENI to a Standby EC2 Instance?",
+    "An administrator should detach a secondary Elastic Network Interface from a failed Amazon EC2 instance and attach it to a standby instance when rapid network failover is required while preserving specific network attributes. Moving a secondary network int",
+    false
+  ],
+  [
+    213,
+    "Why Enable EFA for Tightly Coupled MPI and HPC Workloads?",
+    "Tightly coupled Message Passing Interface and High Performance Computing workloads enable the Elastic Fabric Adapter on supported Amazon EC2 instances to achieve low-latency, high-throughput inter-node communication that scales across thousands of process",
+    false
+  ],
+  [
+    212,
+    "How Does AWS ENA Deliver High EC2 Network Throughput?",
+    "The Elastic Network Adapter driver achieves up to hundreds of gigabits per second of throughput on Amazon EC2 by combining custom AWS Nitro hardware offload with a scalable, multi-queue software architecture. Rather than relying on legacy software-emulate",
+    false
+  ],
+  [
+    211,
+    "What Is an AWS Elastic Network Interface (ENI) for EC2?",
+    "An Elastic Network Interface (ENI) is a logical networking component in a Virtual Private Cloud (VPC) that acts as a virtual network interface card (NIC) for Amazon Elastic Compute Cloud (EC2) instances. This article explores the core architecture of an E",
+    false
+  ],
+  [
+    210,
+    "Does Amazon EC2 Support Bringing Your Own IPv4 and IPv6?",
+    "Yes, Amazon EC2 and Amazon VPC support bringing your own publicly routable IPv4 and IPv6 address prefixes through a feature called Bring Your Own IP (BYOIP). However, how you assign and use these addresses inside a Virtual Private Cloud (VPC) differs sign",
+    false
+  ],
+  [
+    209,
+    "How Much Does Cross-AZ Data Transfer Cost in AWS VPC?",
+    "Transferring data between Amazon EC2 instances located in different Availability Zones within the same Virtual Private Cloud incurs bidirectional network charges that can significantly impact cloud budgets. While communication within a single Availability",
+    false
+  ],
+  [
+    208,
+    "How to Configure VPC Endpoints and AWS PrivateLink for EC2?",
+    "This article explains how to configure AWS VPC Endpoints and AWS PrivateLink so isolated Amazon EC2 instances in private subnets can securely access AWS APIs without needing an Internet Gateway or NAT Gateway. By setting up Gateway Endpoints for Amazon S3",
+    false
+  ],
+  [
+    207,
+    "What Happens If EC2 Source/Destination Check Stays Enabled?",
+    "When an Amazon EC2 instance attempts to route traffic as a virtual NAT device or firewall while the Source/Destination Check remains enabled, Amazon VPC immediately drops any network packets where the instance is neither the original sender nor the final",
+    false
+  ],
+  [
+    206,
+    "How to Assign Multiple Secondary IPv4s to an EC2 Interface?",
+    "Assigning multiple secondary private IPv4 addresses to a single elastic network interface on an Amazon EC2 instance is accomplished through the AWS Management Console, the AWS Command Line Interface, or the Amazon EC2 API. Once the addresses are allocated",
+    false
+  ],
+  [
+    205,
+    "Which IPv4 Addresses Are Reserved in an AWS Subnet?",
+    "Amazon Web Services reserves five specific IPv4 addresses within every Virtual Private Cloud subnet to manage essential networking functions such as routing, domain name resolution, and network broadcasting. Specifically, the first four IP addresses and t",
+    false
+  ],
+  [
+    204,
+    "When Should You Use a NAT Gateway vs an Egress-Only IGW?",
+    "Amazon EC2 instances deployed in private subnets require specialized gateway components to initiate outbound connections to the internet while blocking unsolicited inbound traffic. Choosing between a NAT Gateway and an Egress-Only Internet Gateway depends",
+    false
+  ],
+  [
+    203,
+    "Why Deploy Dual-Stack IPv4 and IPv6 on Amazon EC2?",
+    "Deploying dual-stack IPv4 and IPv6 networking for an Amazon EC2 fleet allows an enterprise to simultaneously run both Internet Protocol versions across its cloud infrastructure. This architectural approach addresses IPv4 address exhaustion, reduces cloud",
+    false
+  ],
+  [
+    202,
+    "How do EC2 instances in public vs private subnets differ?",
+    "Placing an Amazon EC2 instance in a public subnet versus a private subnet primarily determines how the instance communicates with the external internet. An instance in a public subnet has a direct route to an Internet Gateway, allowing it to send and rece",
+    false
+  ],
+  [
+    201,
+    "How Does Amazon VPC Relate to Amazon EC2 Networking?",
+    "An Amazon Virtual Private Cloud provides the foundational, isolated virtual network environment in which Amazon Elastic Compute Cloud instances operate. Every EC2 instance launches into a designated VPC subnet, inheriting its IP addressing scheme, routing",
+    false
+  ],
+  [
+    200,
+    "Can EC2 Mac instances mount Amazon EFS and Amazon FSx?",
+    "Yes, Amazon EC2 Mac instances can mount shared network storage from both Amazon Elastic File System and Amazon FSx. By using standard network file protocols built into macOS, such as Network File System and Server Message Block, EC2 Mac instances can conn",
+    false
+  ],
+  [
+    198,
+    "How to Attach Amazon EFS in EC2 Launch Wizard?",
+    "Attaching an Amazon Elastic File System directly during the Amazon EC2 launch instance wizard automates package installation, directory creation, and file system table configuration without manual scripting. When you select an existing shared file system",
+    false
+  ],
+  [
+    197,
+    "How Does Amazon EFS Handle Concurrent Cross-AZ Writes?",
+    "When multiple Amazon EC2 instances across different Availability Zones write concurrently to the same standard Amazon Elastic File System, the service maintains data integrity using the Network File System version 4 protocol. Standard EFS replicates data",
+    false
+  ],
+  [
+    196,
+    "How Does the EFS Mount Helper Simplify TLS and IAM?",
+    "The Amazon Elastic File System mount helper streamlines the process of connecting Amazon EC2 instances to EFS file systems by automating complex security configurations. Instead of manually configuring network tunnels and authentication tokens, administra",
+    false
+  ],
+  [
+    195,
+    "Which Ports and Security Groups Are Needed to Mount Amazon EFS?",
+    "To allow an Amazon EC2 instance to mount an Amazon Elastic File System via the Network File System protocol, you must open TCP port 2049. Specifically, the security group attached to your EFS mount targets requires an inbound rule permitting TCP traffic o",
+    false
+  ],
+  [
+    194,
+    "When Should You Choose Amazon EFS Over EBS Multi-Attach?",
+    "When designing shared storage for Amazon EC2 instances, cloud architects should choose Amazon EFS over Amazon EBS Multi-Attach whenever workloads require a managed POSIX file system, multi-Availability Zone resilience, elastic scaling, or concurrent acces",
+    false
+  ],
+  [
+    193,
+    "Why Use Amazon FSx for Lustre with EC2 ML Clusters?",
+    "A high-performance machine learning cluster attaches Amazon FSx for Lustre to its Amazon EC2 compute nodes to eliminate data input and output bottlenecks during distributed training. By providing sub-millisecond latencies, hundreds of gigabytes per second",
+    false
+  ],
+  [
+    192,
+    "How Does Amazon FSx for Windows File Server Work on EC2?",
+    "Amazon FSx for Windows File Server provides fully managed, native Microsoft Windows file systems that allow fleets of Windows-based Amazon EC2 instances to concurrently access shared storage over the Server Message Block protocol. Built directly on Window",
+    false
+  ],
+  [
+    191,
+    "Why Mount Amazon EFS Across Multiple EC2 Instances?",
+    "Mounting Amazon Elastic File System across multiple Amazon EC2 instances simultaneously provides a shared, scalable, and highly available storage layer for distributed cloud applications. Unlike block storage solutions that typically attach to a single co",
+    false
+  ],
+  [
+    190,
+    "Does Amazon EC2 Charge Extra for Instance Store Volumes?",
+    "No, Amazon EC2 does not charge extra per gigabyte or per IOPS for using the local instance store volumes included with an eligible instance type. The cost of the physical local storage and all input/output operations performed against those drives is comp",
+    false
+  ],
+  [
+    189,
+    "How Does AWS Nitro Encrypt EC2 NVMe Instance Store Drives?",
+    "AWS Nitro System provides always-on, line-rate hardware encryption for all Amazon EC2 NVMe instance store drives using dedicated Nitro Cards. These custom-designed hardware controllers execute XTS-AES-256 encryption and decryption transparently in transit",
+    false
+  ],
+  [
+    188,
+    "How to Check if an EC2 NVMe Device is EBS or Instance Store?",
+    "You can determine whether an NVMe block device on an Amazon EC2 Linux instance is an Amazon Elastic Block Store volume or an ephemeral instance store volume by inspecting its hardware model name and vendor-specific metadata. Because AWS Nitro-based instan",
+    false
+  ],
+  [
+    187,
+    "Does Rebooting an EC2 Instance Erase NVMe Instance Store Data?",
+    "When an Amazon EC2 instance equipped with local NVMe instance store volumes is rebooted from inside the guest operating system, all data stored on those volumes is preserved. Unlike stopping or terminating an instance, an operating system level reboot mai",
+    false
+  ],
+  [
+    186,
+    "How Do You Use TRIM on EC2 SSD Instance Store Volumes?",
+    "Maintaining consistent write performance on solid-state drive backed Amazon EC2 instance store volumes requires informing the underlying storage hardware when data blocks are no longer in use. This article explains how the TRIM command and file system dis",
+    false
+  ],
+  [
+    185,
+    "When Is Amazon EC2 Instance Store Data Permanently Erased?",
+    "An Amazon EC2 instance store provides temporary block-level storage that is physically attached to the host computer running your virtual machine. Data on an instance store volume is permanently erased whenever the instance stops, hibernates, or terminate",
+    false
+  ],
+  [
+    184,
+    "When Should You Avoid Storing Databases on EC2 Instance Store?",
+    "Engineers should avoid storing primary, unbacked database records on an Amazon EC2 instance store volume whenever data durability and persistence across instance lifecycle events are required. Because EC2 instance store provides temporary block-level stor",
+    false
+  ],
+  [
+    183,
+    "Why Use EC2 Instance Store for HPC Scratch Data and Caches?",
+    "High-performance computing workloads use Amazon EC2 instance store volumes for temporary scratch data and caches to achieve ultra-low latency and maximum input/output operations per second. Because these volumes are physically attached to the host server",
+    false
+  ],
+  [
+    182,
+    "How Does EC2 Instance Store Differ From Amazon EBS?",
+    "Ephemeral instance store storage and Amazon Elastic Block Store (EBS) are the two primary block-level storage options available for Amazon EC2 instances. The core difference lies in their physical architecture and data persistence. An EC2 instance store p",
+    false
+  ],
+  [
+    181,
+    "What Is an Amazon EC2 Instance Store Volume and Where Is It?",
+    "An Amazon EC2 instance store volume provides temporary block-level storage for your cloud virtual machines. This article explains how instance store volumes operate, why their physical disks are attached directly to the underlying host computer, and how t",
+    false
+  ],
+  [
+    180,
+    "Can EC2 boot from an EBS volume with a cross-account KMS key?",
+    "Yes, Amazon EC2 can boot from an encrypted root EBS volume using a customer-managed KMS key shared from another AWS account. This article explains the permission requirements in both the source and target AWS accounts, how to configure the KMS key policy",
+    false
+  ],
+  [
+    179,
+    "Crash-Consistent vs Application-Consistent EBS Snapshots?",
+    "This article explains the differences between crash-consistent Amazon Elastic Block Store snapshots and application-consistent multi-volume snapshots on Amazon EC2. It covers how data in memory and disk caches is handled during the backup process, the mec",
+    false
+  ],
+  [
+    178,
+    "How Do You Recover a Deleted EBS Snapshot from Recycle Bin?",
+    "Recovering an accidentally deleted Amazon Elastic Block Store snapshot is straightforward if you have configured retention rules in the AWS Recycle Bin prior to deletion. This article explains how the Recycle Bin protects your Amazon EC2 backup data, the",
+    false
+  ],
+  [
+    177,
+    "What Happens When Restoring an EBS Snapshot Without FSR?",
+    "When you restore an Amazon Elastic Block Store volume from a snapshot stored in Amazon Simple Storage Service without enabling Fast Snapshot Restore, the new volume becomes available for attachment immediately while its data loads lazily in the background",
+    false
+  ],
+  [
+    176,
+    "How to Enforce EBS Encryption by Default in an AWS Region?",
+    "Enforcing Amazon Elastic Block Store encryption by default is a native regional account setting in Amazon EC2 that automatically encrypts all newly created EBS volumes and snapshot copies without requiring explicit encryption parameters during creation. W",
+    false
+  ],
+  [
+    175,
+    "What File Systems Support Amazon EBS Multi-Attach Writes?",
+    "Amazon Elastic Block Store Multi-Attach allows a single provisioned IOPS SSD volume to be attached to up to sixteen Amazon EC2 instances in the same Availability Zone simultaneously. Standard local file systems such as XFS, ext4, and NTFS are not designed",
+    false
+  ],
+  [
+    174,
+    "When should you enable Amazon Data Lifecycle Manager for EC2?",
+    "Administrators should enable Amazon Data Lifecycle Manager when they need to automate the creation, retention, and deletion of Amazon EBS snapshots and EBS-backed AMIs for Amazon EC2 instances. This tool helps organizations protect critical data, enforce",
+    false
+  ],
+  [
+    173,
+    "Why Use Amazon EBS Multi-Attach for Clustered Applications?",
+    "Clustered applications use Amazon EBS Multi-Attach across multiple Amazon EC2 instances in the same Availability Zone to achieve high availability and share low-latency block storage concurrently without duplicating data. By allowing up to 16 Linux-based",
+    false
+  ],
+  [
+    172,
+    "How Does AWS KMS Encrypt EC2 EBS Volumes at Rest and Transit?",
+    "AWS Key Management Service integrates with Amazon EC2 to provide automated, transparent encryption for Amazon Elastic Block Store volumes both at rest and in transit. By using envelope encryption and hardware-accelerated cryptographic engines on Nitro-bas",
+    false
+  ],
+  [
+    171,
+    "How Do Amazon EBS Snapshots Protect Amazon EC2 Data?",
+    "An Amazon Elastic Block Store snapshot is a point-in-time backup of an Amazon EBS volume that helps safeguard data stored on Amazon Elastic Compute Cloud instances. This article explores how Amazon EBS snapshots operate through incremental block-level bac",
+    false
+  ],
+  [
+    170,
+    "Can You Attach an EBS Volume Across Availability Zones?",
+    "No, Amazon EC2 does not support attaching an Amazon Elastic Block Store volume located in one Availability Zone to an EC2 instance running in a different Availability Zone. Both the EBS volume and the EC2 instance must reside within the exact same Availab",
+    false
+  ],
+  [
+    169,
+    "How Does AWS io2 Block Express Beat io1 Latency and Durability?",
+    "Amazon Elastic Block Store io2 Block Express offers significant architectural improvements over standard io1 volumes by delivering consistent sub-millisecond latency and a 99.999 percent durability rating. Designed for mission-critical, I/O-intensive depl",
+    false
+  ],
+  [
+    168,
+    "How to Identify EC2 Instance vs. Volume EBS Bottlenecks?",
+    "Identifying whether an Amazon Elastic Block Store performance bottleneck is occurring at the Amazon Elastic Compute Cloud instance level or the individual volume level requires comparing aggregate instance metrics against individual storage volume metrics",
+    false
+  ],
+  [
+    167,
+    "What Happens When an EC2 Root Volume Has DeleteOnTermination?",
+    "When an Amazon EC2 instance is terminated and the DeleteOnTermination attribute on its root Amazon Elastic Block Store volume is set to true, AWS automatically and permanently deletes that root EBS volume along with all the data stored on it. The instance",
+    false
+  ],
+  [
+    166,
+    "How Can You Modify an Attached EBS Volume on the Fly?",
+    "This article explains how to dynamically expand storage size, adjust IOPS performance, or change the volume type of an attached Amazon EC2 Elastic Block Store volume without experiencing downtime. You will learn the core prerequisites for using the Elasti",
+    false
+  ],
+  [
+    165,
+    "What Governs EC2 Aggregate EBS Bandwidth and IOPS Limits?",
+    "Understanding the performance boundaries of an Amazon EC2 instance is essential for designing storage-intensive workloads. Every EBS-optimized EC2 instance type enforces two distinct ceilings on attached Amazon Elastic Block Store volumes: maximum through",
+    false
+  ],
+  [
+    164,
+    "When Should You Use AWS EBS st1 or sc1 Volumes for Big Data?",
+    "Choosing between Amazon EBS Throughput Optimized HDD st1 and Cold HDD sc1 volumes depends primarily on how frequently your sequential big data workload accesses stored data and your performance requirements. Both volume types are low-cost magnetic storage",
+    false
+  ],
+  [
+    163,
+    "Why Do Databases on EC2 Need io2 Block Express Volumes?",
+    "Mission-critical relational databases running on Amazon EC2 require Amazon EBS io2 Block Express volumes to achieve Storage Area Network performance in the cloud, offering up to 256,000 IOPS, 4,000 MB/s of throughput, and 64 TiB of storage capacity per vo",
+    false
+  ],
+  [
+    162,
+    "Why Are gp3 Volumes More Cost-Effective Than gp2 on EC2?",
+    "Decoupling storage performance from storage capacity allows Amazon EBS gp3 volumes to deliver significant cost savings compared to legacy gp2 volumes. Under the older gp2 pricing model, Input/Output Operations Per Second (IOPS) and throughput scale linear",
+    false
+  ],
+  [
+    161,
+    "What Is Amazon EBS and How Does It Work With EC2?",
+    "Amazon Elastic Block Store is a cloud storage service that provides scalable, high-performance block-level storage volumes for Amazon Elastic Compute Cloud instances. Unlike ephemeral instance store volumes that lose data when a virtual machine stops, Ama",
+    false
+  ],
+  [
+    160,
+    "Can EC2 Auto Scaling Launch Into Capacity Reservation Groups?",
+    "Yes, Amazon EC2 Auto Scaling groups can be configured to launch instances exclusively into specific Capacity Reservation resource groups through their launch template settings and capacity distribution policies. By combining targeted On-Demand Capacity Re",
+    false
+  ],
+  [
+    159,
+    "How Are Idle Amazon EC2 Capacity Reservations Priced?",
+    "When an Amazon EC2 On-Demand Capacity Reservation remains idle without running instances, you are still charged the equivalent On-Demand rate for the reserved capacity. This article covers the billing rules for unused EC2 Capacity Reservations, how pricin",
+    false
+  ],
+  [
+    158,
+    "How do you group EC2 Capacity Reservations for clusters?",
+    "Grouping multiple Amazon EC2 Capacity Reservations using AWS Resource Groups allows you to logically manage and target reserved compute capacity across different instance types and Availability Zones for cluster deployments. By combining individual Capaci",
+    false
+  ],
+  [
+    157,
+    "What Happens When an EC2 Capacity Block for ML Expires?",
+    "When an Amazon EC2 Capacity Block for Machine Learning reaches the end of its reservation period, AWS automatically terminates all running instances within the reservation and changes the Capacity Block state to expired. Thirty minutes before the reservat",
+    false
+  ],
+  [
+    156,
+    "How to Share EC2 Capacity Reservations and Offset Costs?",
+    "Unused capacity in an Amazon EC2 Capacity Reservation can be managed and optimized in two primary ways: sharing the reservation across multiple AWS accounts using AWS Resource Access Manager, and offsetting the cost of unused capacity with Zonal Reserved",
+    false
+  ],
+  [
+    155,
+    "What EC2 Capacity Reservation Attributes Must Match?",
+    "To utilize an existing Amazon EC2 On-Demand Capacity Reservation when launching a new instance, four core attributes must match exactly: the instance type, the operating system platform, the Availability Zone, and the tenancy. Additionally, if the Capacit",
+    false
+  ],
+  [
+    154,
+    "When to Use Targeted vs Open EC2 Capacity Reservations?",
+    "A team should use a targeted Capacity Reservation in Amazon EC2 when specific, critical workloads require guaranteed compute capacity and must be protected from other instances launching into that reserved pool. While open Capacity Reservations automatica",
+    false
+  ],
+  [
+    153,
+    "Why Use EC2 Capacity Reservations for Disaster Recovery?",
+    "Mission-critical disaster recovery sites maintain open or targeted Amazon EC2 On-Demand Capacity Reservations to guarantee compute resource availability during regional outages or severe failover events. When a catastrophic failure occurs in a primary reg",
+    false
+  ],
+  [
+    152,
+    "How Do Amazon EC2 Capacity Blocks Reserve GPU Clusters?",
+    "Amazon EC2 Capacity Blocks for ML allow organizations to reserve highly sought-after GPU instances for specific future time windows to support machine learning workloads. By searching an inventory calendar for available cluster capacity, users can book co",
+    false
+  ],
+  [
+    151,
+    "What Is an Amazon EC2 On-Demand Capacity Reservation?",
+    "An Amazon EC2 On-Demand Capacity Reservation enables you to reserve compute capacity for your Amazon EC2 instances in a specific Availability Zone for any duration. By creating a reservation, you ensure that you always have access to EC2 capacity when you",
+    false
+  ],
+  [
+    150,
+    "Can EC2 Dedicated Hosts Run Multiple Instance Sizes Together?",
+    "Yes, Amazon EC2 allows multiple different instance sizes from the same instance family to run simultaneously on a single Dedicated Host, provided the instance family supports this configuration and the host is allocated without a fixed instance type restr",
+    false
+  ],
+  [
+    149,
+    "How Does EC2 Dedicated Host vs Dedicated Instance Billing Work?",
+    "The primary billing difference between Amazon EC2 Dedicated Hosts and Dedicated Instances lies in the unit of charge and the presence of a regional fee. With Dedicated Hosts, you pay a fixed hourly rate for an entire physical server regardless of how many",
+    false
+  ],
+  [
+    148,
+    "How to Allocate, Share, and Release an EC2 Dedicated Host?",
+    "Managing an Amazon EC2 Dedicated Host across multiple AWS accounts involves allocating a physical server in an owner account, sharing it through AWS Resource Access Manager, and releasing it once all running instances are terminated. This approach helps o",
+    false
+  ],
+  [
+    147,
+    "What Happens When an EC2 Dedicated Host Hardware Fails?",
+    "When the underlying physical hardware of an Amazon EC2 Dedicated Host experiences an unexpected failure, AWS automatically responds depending on whether Host Recovery is enabled. With Host Recovery enabled, AWS automatically allocates a new replacement De",
+    false
+  ],
+  [
+    146,
+    "How to Enable Auto Placement and Host Recovery on EC2?",
+    "This article explains how an administrator can enable automatic instance placement and host recovery on an Amazon EC2 Dedicated Host. It outlines the functional purposes of both settings and provides step-by-step instructions for configuring them during i",
+    false
+  ],
+  [
+    145,
+    "Which AWS Service Tracks Licenses on EC2 Dedicated Hosts?",
+    "AWS License Manager is the primary service that automates the tracking of software license rules and host affinity on Amazon EC2 Dedicated Hosts. This article explores how AWS License Manager simplifies Bring Your Own License (BYOL) management, enforces v",
+    false
+  ],
+  [
+    144,
+    "When Should You Use EC2 Dedicated Instances vs Hosts?",
+    "Regulated workloads should use Amazon EC2 Dedicated Instances instead of Dedicated Hosts when compliance frameworks require single-tenant physical hardware isolation from other AWS accounts, but do not require visibility into underlying physical sockets,",
+    false
+  ],
+  [
+    143,
+    "Why Bring Existing Licenses to Amazon EC2 Dedicated Hosts?",
+    "Enterprises bring existing per-socket or per-core software licenses like Windows Server and SQL Server to Amazon EC2 Dedicated Hosts to reduce cloud migration costs, maintain license compliance, and maximize the return on prior software investments. By ut",
+    false
+  ],
+  [
+    142,
+    "How Do EC2 Dedicated Hosts Show Physical Cores and Sockets?",
+    "An Amazon EC2 Dedicated Host is a physical server with EC2 instance capacity fully dedicated to your use, offering direct visibility into the underlying hardware topology, including the exact number of physical processor sockets and physical CPU cores. Un",
+    false
+  ],
+  [
+    141,
+    "How Do EC2 Dedicated Hosts and Dedicated Instances Differ?",
+    "Amazon EC2 Dedicated Hosts and Amazon EC2 Dedicated Instances both isolate your virtual machines on physical hardware dedicated to a single AWS account, eliminating shared physical infrastructure with other cloud customers. The primary distinction lies in",
+    false
+  ],
+  [
+    140,
+    "Can EC2 Spot and On-Demand Run in One Auto Scaling Group?",
+    "Yes, Amazon EC2 Spot Instances can be combined with On-Demand Instances inside a single Auto Scaling group using a Mixed Instances Policy. This article explores how AWS Auto Scaling manages both purchase options simultaneously, the configuration steps req",
+    false
+  ],
+  [
+    139,
+    "How to Diversify EC2 Spot Instances and Availability Zones?",
+    "Diversifying Amazon EC2 Spot Instances across multiple instance families, generations, and Availability Zones is the most effective way to maximize cloud cost savings while maintaining high application availability. By spreading compute workloads across n",
+    false
+  ],
+  [
+    138,
+    "How to Test EC2 Spot Resilience Using AWS FIS?",
+    "Testing application resilience against unplanned Amazon EC2 Spot Instance terminations using AWS Fault Injection Service involves creating controlled chaos engineering experiments that simulate the exact two-minute interruption notice and subsequent insta",
+    false
+  ],
+  [
+    137,
+    "What Happens When EC2 Stops or Hibernates a Spot Instance?",
+    "When Amazon EC2 reclaims a Spot Instance configured to stop or hibernate rather than terminate, your underlying storage volumes and instance state are preserved until spare compute capacity becomes available again. By default, Spot Instances are terminate",
+    false
+  ],
+  [
+    136,
+    "How to Compare Interruption Frequencies with EC2 Spot Advisor?",
+    "The Amazon EC2 Spot Instance advisor is a free web tool provided by AWS that helps cloud architects and developers evaluate the cost savings and stability of Spot Instances before deploying workloads. By analyzing historical data over the trailing thirty",
+    false
+  ],
+  [
+    135,
+    "Which EC2 Spot allocation strategy minimizes interruptions?",
+    "Amazon EC2 Spot Instances offer significant cost savings over On-Demand prices, though Amazon Web Services can reclaim capacity with a two-minute notice when demand rises. To reduce the frequency of these interruptions when launching a pool of Spot Instan",
+    false
+  ],
+  [
+    134,
+    "When to Handle the EC2 Spot Instance Rebalance Signal?",
+    "An application should handle the Amazon EC2 Spot Instance Rebalance Recommendation signal when its graceful shutdown, state checkpointing, or node replacement processes require more than the standard two minutes provided by the Spot Instance interruption",
+    false
+  ],
+  [
+    133,
+    "Why Run Batch Processing and CI/CD on AWS EC2 Spot Instances?",
+    "Running fault-tolerant batch processing and continuous integration and continuous delivery workloads on Amazon EC2 Spot Instances allows organizations to achieve massive cost reductions while scaling compute capacity rapidly. Because Spot Instances utiliz",
+    false
+  ],
+  [
+    132,
+    "How does the EC2 two-minute Spot Instance interruption work?",
+    "The Amazon EC2 two-minute Spot Instance interruption notice is an automated warning issued when AWS needs to reclaim spare compute capacity. This mechanism provides applications with exactly 120 seconds before an instance is terminated, stopped, or hibern",
+    false
+  ],
+  [
+    131,
+    "What Is an EC2 Spot Instance and How Are Discounts Set?",
+    "An Amazon EC2 Spot Instance is a purchasing option in Amazon Web Services that allows users to utilize spare compute capacity in the AWS cloud at steep discounts of up to ninety percent compared to standard On-Demand rates. This article explores the archi",
+    false
+  ],
+  [
+    130,
+    "Do Windows or RHEL EC2 RIs Support Size Flexibility?",
+    "Amazon EC2 does not allow instance size flexibility for Reserved Instances that include commercial licensing such as Windows Server or Red Hat Enterprise Linux. Because the hourly rates for these operating systems contain built-in software license fees pr",
+    false
+  ],
+  [
+    129,
+    "What Are the Rules for Selling EC2 Reserved Instances?",
+    "Selling Amazon EC2 Reserved Instances on the Reserved Instance Marketplace allows organizations to recoup costs from unused cloud capacity, provided they meet specific AWS criteria. To qualify as a seller, you must hold Standard Reserved Instances that ha",
+    false
+  ],
+  [
+    128,
+    "How Do You Exchange Multiple EC2 Convertible RIs?",
+    "Exchanging multiple Amazon EC2 Convertible Reserved Instances for a different instance family allows organizations to adapt their cloud compute commitments as workload demands evolve. You can consolidate or merge two or more active Convertible Reserved In",
+    false
+  ],
+  [
+    127,
+    "What Happens When an EC2 Zonal Reserved Instance Expires?",
+    "When an Amazon EC2 Zonal Reserved Instance reaches the end of its one-year or three-year term, your running EC2 instance continues to operate without any interruption, reboot, or state change. Because a Reserved Instance is strictly a billing discount and",
+    false
+  ],
+  [
+    126,
+    "How Does EC2 Reserved Instance Size Flexibility Work?",
+    "Amazon EC2 Reserved Instance size flexibility automatically applies the discounted rate of a Regional Linux Reserved Instance to any running instance within the same instance family and AWS Region, regardless of its specific size. Every instance size is a",
+    false
+  ],
+  [
+    125,
+    "What Attributes Can Be Modified on an EC2 Regional RI?",
+    "An active Regional Reserved Instance in Amazon EC2 allows you to modify its scope to a specific Availability Zone, merge or split reservations, and change the instance size within the same instance family on Linux or Unix platforms with default tenancy. T",
+    false
+  ],
+  [
+    124,
+    "When should a company sell unused EC2 Reserved Instances?",
+    "Companies should sell unused Standard Reserved Instances on the Amazon EC2 Reserved Instance Marketplace when their infrastructure architecture changes, when they migrate workloads to different instance families or regions, or when business downsizing lea",
+    false
+  ],
+  [
+    123,
+    "Why buy an EC2 Zonal Reserved Instance over a Regional RI?",
+    "A customer purchases an Amazon EC2 Zonal Reserved Instance instead of a Regional Reserved Instance primarily to guarantee compute capacity in a specific Availability Zone. While both options provide the exact same billing discount for a one-year or three-",
+    false
+  ],
+  [
+    122,
+    "How do Convertible and Standard Reserved Instances differ?",
+    "Convertible Reserved Instances and Standard Reserved Instances in Amazon EC2 both offer significant cost savings over On-Demand pricing in exchange for a one-year or three-year commitment, but they differ primarily in their flexibility and discount levels",
+    false
+  ],
+  [
+    121,
+    "What is an Amazon EC2 Reserved Instance and how does it work?",
+    "An Amazon EC2 Reserved Instance is a billing discount model in Amazon Web Services that offers substantial cost savings of up to seventy two percent compared to standard On-Demand instance pricing in exchange for a one-year or three-year usage commitment.",
+    false
+  ],
+  [
+    120,
+    "Can You Queue Amazon EC2 Savings Plans in Advance?",
+    "Yes, Amazon EC2 Savings Plans can be queued in advance so that a new plan automatically starts when an expiring plan ends. AWS allows you to schedule future Savings Plan purchases up to three years in advance by specifying a future start date and time dur",
+    false
+  ],
+  [
+    119,
+    "Are EC2 Savings Plans More Flexible Than Reserved Instances?",
+    "Amazon EC2 Savings Plans offer significant flexibility advantages over legacy Reserved Instances by decoupling commitment discounts from rigid hardware configurations. Instead of locking into specific instance types, operating systems, or availability zon",
+    false
+  ],
+  [
+    118,
+    "How Do You Share EC2 Savings Plans Across AWS Organizations?",
+    "Sharing Amazon EC2 Savings Plan discounts across multiple member accounts within an AWS Organization is managed through the AWS Billing and Cost Management console by enabling consolidated billing and turning on discount sharing in your organization's man",
+    false
+  ],
+  [
+    117,
+    "What Happens When EC2 Usage Drops Below Savings Plan Rates?",
+    "When your actual hourly Amazon EC2 usage falls below your committed AWS Savings Plan hourly rate, you are still billed for the full committed amount for that specific hour. AWS Savings Plans operate on a strict use-it-or-lose-it hourly basis, meaning any",
+    false
+  ],
+  [
+    116,
+    "How Does AWS Cost Explorer Recommend Savings Plans?",
+    "AWS Cost Explorer recommends the optimal hourly dollar commitment for Amazon EC2 Savings Plans by analyzing historical On-Demand usage over a specified lookback period and simulating every possible commitment level to maximize total net savings. The engin",
+    false
+  ],
+  [
+    115,
+    "What Commitment Terms Are Offered for EC2 Savings Plans?",
+    "Amazon Web Services offers two distinct commitment term lengths when purchasing Savings Plans for Amazon EC2, which are a one year term and a three year term. Choosing between these two commitment periods allows organizations to balance their desire for m",
+    false
+  ],
+  [
+    114,
+    "Which EC2 Savings Plan Payment Option Should You Choose?",
+    "Financial operations teams choose between No Upfront, Partial Upfront, and All Upfront Amazon EC2 Savings Plans by balancing the organization's cost of capital, liquidity constraints, and discount optimization goals. While All Upfront delivers the highest",
+    false
+  ],
+  [
+    113,
+    "Why Choose Compute Savings Plans Over EC2 Instance Plans?",
+    "Enterprises choose Compute Savings Plans over EC2 Instance Savings Plans primarily for operational agility, cross-service coverage, and freedom from infrastructure lock-in. While EC2 Instance Savings Plans offer slightly higher discounts of up to 72 perce",
+    false
+  ],
+  [
+    112,
+    "How Does an EC2 Instance Savings Plan Apply Discounts?",
+    "An EC2 Instance Savings Plan reduces Amazon EC2 costs by exchanging a fixed hourly monetary commitment for discounted compute rates over a one-year or three-year term. The plan scopes its discount to a chosen instance family and AWS Region while automatic",
+    false
+  ],
+  [
+    111,
+    "Compute vs EC2 Instance Savings Plans: What Is the Difference?",
+    "Amazon Web Services offers both Compute Savings Plans and EC2 Instance Savings Plans to help organizations reduce their cloud computing bills in exchange for a one-year or three-year hourly spend commitment. The primary difference between the two pricing",
+    false
+  ],
+  [
+    110,
+    "Does Amazon EC2 Have a One-Minute Minimum Charge?",
+    "Amazon EC2 applies a one-minute minimum charge each time an On-Demand instance transitions into the running state for instances billed per second. However, not all Amazon EC2 instances use per-second billing. The minimum charge depends entirely on the ope",
+    false
+  ],
+  [
+    109,
+    "What Are the Hidden Costs of Running On-Demand EC2 Instances?",
+    "Running On-Demand Amazon EC2 instances often results in higher bills than expected because the base hourly compute rate only covers the virtual machine itself. Organizations frequently overlook additional charges stemming from networking architecture, dat",
+    false
+  ],
+  [
+    108,
+    "How to Track EC2 Costs by Department Using AWS Cost Tags?",
+    "Tracking On-Demand Amazon EC2 expenditure across multiple departments requires applying standardized key-value pairs to your compute resources, activating those tags in the AWS Billing and Cost Management console, and analyzing the resulting data through",
+    false
+  ],
+  [
+    107,
+    "What Happens to EC2 Compute and Storage Charges When Stopped?",
+    "When you stop an On-Demand Amazon EC2 instance, Amazon Web Services immediately stops billing you for the hourly or per-second compute capacity of that virtual server. However, any persistent storage attached to the instance, specifically Amazon Elastic B",
+    false
+  ],
+  [
+    106,
+    "How to Estimate EC2 Multi-Tier Costs in AWS Calculator?",
+    "Estimating the monthly On-Demand cost of a complex multi-tier architecture on Amazon EC2 using the AWS Pricing Calculator involves breaking down your infrastructure into logical groups, configuring individual compute and storage specifications for each ti",
+    false
+  ],
+  [
+    105,
+    "Which Amazon EC2 OS Use Hourly Billing Instead of Per-Second?",
+    "While Amazon EC2 uses per-second billing for open-source Linux distributions and Windows Server instances, commercial operating systems with third-party subscription fees or complex enterprise licensing continue to be billed on an hourly basis. Specifical",
+    false
+  ],
+  [
+    104,
+    "When Should You Move From EC2 On-Demand to Committed Discounts?",
+    "Transitioning a workload from Amazon EC2 On-Demand pricing to committed discount models like Savings Plans or Reserved Instances is best done once your resource utilization stabilizes and demonstrates a predictable baseline for at least thirty to ninety d",
+    false
+  ],
+  [
+    103,
+    "Why Do Startups Use Amazon EC2 On-Demand Instances?",
+    "Startups dealing with unpredictable traffic patterns often rely exclusively on Amazon EC2 On-Demand instances because this pricing model provides maximum agility without long-term financial commitments or upfront costs. Early-stage companies rarely have t",
+    false
+  ],
+  [
+    102,
+    "How Does EC2 Per-Second Billing Work for Linux and Windows?",
+    "Amazon EC2 per-second billing charges users for the exact number of seconds their Linux and Windows instances remain in a running state, subject to a 60-second minimum charge per launch. This model applies to open-source Linux distributions such as Amazon",
+    false
+  ],
+  [
+    101,
+    "What Is Amazon EC2 On-Demand Pricing and How Is It Calculated?",
+    "Amazon EC2 On-Demand pricing is a pay-as-you-go billing model that allows users to pay for compute capacity by the hour or by the second without any long-term commitments or upfront payments. This article explores how the On-Demand pricing model works in",
+    false
+  ],
+  [
+    100,
+    "Does the AWS Nitro Hypervisor Offer Bare-Metal Performance?",
+    "Yes, the Amazon EC2 Nitro Hypervisor delivers near-bare-metal performance by offloading traditional virtualization tasks onto dedicated hardware known as Nitro Cards. In conventional cloud environments, the host hypervisor consumes a notable portion of th",
+    false
+  ],
+  [
+    99,
+    "What are the storage and networking limits in Nitro Enclaves?",
+    "Amazon EC2 Nitro Enclaves are isolated compute environments engineered with strict hardware and architectural boundaries that eliminate all direct persistent storage and external network connectivity. This overview explains how an enclave operates exclusi",
+    false
+  ],
+  [
+    98,
+    "How to Build an Enclave Image File for AWS Nitro Enclaves?",
+    "Building and packaging a Docker container image into an Enclave Image File for Amazon EC2 Nitro Enclaves requires preparing a compatible container image and converting it using the AWS Nitro Enclaves Command Line Interface. This guide outlines the hardwar",
+    false
+  ],
+  [
+    97,
+    "How Does the AWS Nitro Security Chip Validate EC2 Firmware?",
+    "When an Amazon EC2 host boots up, the AWS Nitro Security Chip acts as the hardware root of trust to validate all system firmware before the main processor is allowed to execute instructions. Integrated directly into the host motherboard, this dedicated mi",
+    false
+  ],
+  [
+    96,
+    "How Do EC2 Instances Communicate with AWS Nitro Enclaves?",
+    "An Amazon EC2 parent instance communicates with its isolated AWS Nitro Enclave using a local virtual socket interface known as vsock. Because Nitro Enclaves are hardened virtual machines without persistent storage, external network interfaces, or interact",
+    false
+  ],
+  [
+    95,
+    "How Does Cryptographic Attestation Work in AWS Nitro Enclaves?",
+    "AWS Nitro Enclaves verify their identity and software integrity using a hardware-rooted cryptographic attestation mechanism powered by the AWS Nitro System. At the core of this process is a cryptographically signed Attestation Document generated by the Ni",
+    false
+  ],
+  [
+    94,
+    "When Should You Use AWS Nitro Bare Metal EC2 Instances?",
+    "Workloads should run on bare-metal Amazon EC2 instances powered by the AWS Nitro System when applications require direct access to physical processor and memory resources without a virtualization layer. This architecture is ideal for legacy workloads not",
+    false
+  ],
+  [
+    93,
+    "Why Use AWS Nitro Enclaves on EC2 for Financial Apps?",
+    "Security-sensitive financial applications use AWS Nitro Enclaves on Amazon EC2 to create isolated, hardened compute environments that protect highly confidential data during processing. By carving out dedicated CPU and memory resources from a parent EC2 i",
+    false
+  ],
+  [
+    92,
+    "How Does AWS Nitro Offloading Benefit Amazon EC2 Host CPUs?",
+    "Offloading networking, storage, and security operations to dedicated AWS Nitro Cards frees up virtually all host CPU and memory resources for customer workloads. In traditional virtualization architectures, the hypervisor consumes a significant percentage",
+    false
+  ],
+  [
+    91,
+    "What Is the AWS Nitro System and How Did It Transform EC2?",
+    "The AWS Nitro System is the underlying platform for modern Amazon Elastic Compute Cloud instances that offloads virtualization functions to dedicated hardware and software. By moving storage, networking, and management tasks off the main host processor, t",
+    false
+  ],
+  [
+    90,
+    "Can You Switch an Amazon EC2 Instance from Intel to AMD?",
+    "Yes, Amazon EC2 allows customers to switch an existing stopped Amazon EBS-backed instance from an Intel processor instance type to an AMD processor instance type because both processor families share the same x8664 instruction set architecture. This trans",
+    false
+  ],
+  [
+    89,
+    "What Are the EC2 Intel and AMD All-Core Turbo Clock Speeds?",
+    "Amazon EC2 offers a wide range of virtual machine instances powered by custom-tuned Intel Xeon Scalable and AMD EPYC processors, each delivering specific sustained all-core turbo clock speeds tailored to diverse workload needs. Understanding these frequen",
+    false
+  ],
+  [
+    88,
+    "How to Check CPU Model and Flags in an Amazon EC2 Instance?",
+    "Verifying the exact processor model and available instruction set flags inside a running Amazon EC2 instance is essential for performance tuning, software compatibility, and compiling optimized code. Because certain EC2 instance families can be backed by",
+    false
+  ],
+  [
+    87,
+    "How Does EC2 Optimize CPUs Affect vCPU Software Licensing?",
+    "This article explains how the Amazon EC2 Optimize CPUs feature interacts with software licensing models based on virtual CPUs or physical CPU cores. By customizing the number of active CPU cores and disabling multithreading at instance launch or restart,",
+    false
+  ],
+  [
+    86,
+    "How to Disable Multithreading and Adjust EC2 CPU Cores?",
+    "Amazon Elastic Compute Cloud allows you to customize the virtual central processing unit configuration of an instance during launch or while the instance is stopped. Through the Optimize CPU feature, you can specify the exact number of physical CPU cores",
+    false
+  ],
+  [
+    85,
+    "Which EC2 Suffix Letters Indicate the CPU Manufacturer?",
+    "Amazon EC2 instance type names use specific suffix letters positioned immediately after the generation number to identify the underlying CPU manufacturer, with a indicating AMD, g indicating AWS Graviton, i indicating Intel, and m indicating Apple silicon",
+    false
+  ],
+  [
+    84,
+    "When to Use Intel AMX vs AVX-512 on Amazon EC2?",
+    "Applications running on Amazon EC2 should rely on Intel Advanced Matrix Extensions and AVX-512 instructions when executing compute-intensive workloads that benefit from hardware-level vectorization and tile-based matrix multiplication. While AVX-512 accel",
+    false
+  ],
+  [
+    83,
+    "Why Choose AMD M6a and C6a Instances in Amazon EC2?",
+    "Cost-conscious enterprises select AMD-powered M6a and C6a instances in Amazon EC2 because they deliver up to 35 percent better price performance compared to previous-generation instances and a 10 percent lower cost than comparable x86-based Intel instance",
+    false
+  ],
+  [
+    82,
+    "How Does AMD SMT Compare to Intel HT on Amazon EC2?",
+    "This article explores the architectural, operational, and performance differences between AMD Simultaneous Multithreading and Intel Hyper-Threading across Amazon EC2 instances. Both technologies expose two logical processors per physical processor core to",
+    false
+  ],
+  [
+    81,
+    "What is the difference between Intel Xeon and AMD EPYC in EC2?",
+    "Amazon Elastic Compute Cloud offers both Intel Xeon Scalable and AMD EPYC processors to power its virtual machine instances across general-purpose, compute-optimized, and memory-optimized families. While both processor lines are built on the x86-64 instru",
+    false
+  ],
+  [
+    80,
+    "Can Amazon EC2 Graviton Instances Run Windows Server?",
+    "Amazon EC2 Graviton instances cannot run Windows Server workloads and are restricted to Arm64-compatible Linux distributions and FreeBSD. While AWS Graviton processors offer significant price-performance advantages over traditional x86 instances, Microsof",
+    false
+  ],
+  [
+    79,
+    "What Are AWS Graviton Memory Encryption and Cache Features?",
+    "AWS Graviton processors on Amazon EC2 provide hardware-level security through always-on DRAM memory encryption and dedicated physical cores that ensure strict cache isolation. Each Graviton vCPU maps directly to a physical processor core without simultane",
+    false
+  ],
+  [
+    78,
+    "How to Compare EC2 Graviton2, Graviton3, and Graviton4?",
+    "Evaluating performance gains across AWS Graviton2, Graviton3, and Graviton4 instances in Amazon EC2 requires a structured benchmarking methodology that combines micro-architectural metrics, synthetic workloads, and production-grade application testing. As",
+    false
+  ],
+  [
+    77,
+    "How Do EC2 Graviton vCPUs Map Directly to Physical Cores?",
+    "When each virtual CPU on an Amazon EC2 Graviton instance maps directly to a dedicated physical processor core without simultaneous multithreading, workloads gain predictable performance, dedicated cache resources, and enhanced hardware-level security isol",
+    false
+  ],
+  [
+    76,
+    "How to Run Multi-Arch Docker Images on AWS Graviton?",
+    "Containerized workloads can run seamlessly on Amazon EC2 Graviton nodes by building and pushing multi-architecture Docker images that package both x8664 and ARM64 binaries behind a single image manifest list. When an orchestration platform like Amazon EKS",
+    false
+  ],
+  [
+    75,
+    "Which Languages Run on AWS Graviton Without Code Changes?",
+    "Migrating applications to Amazon EC2 Graviton instances is often straightforward because interpreted languages and bytecode-based runtimes abstract the underlying processor architecture from your source code. Languages such as Python, Node.js, Ruby, PHP,",
+    false
+  ],
+  [
+    74,
+    "When Should a Workload Stay on x86 Over AWS Graviton on EC2?",
+    "While AWS Graviton processors offer compelling price-performance advantages for many cloud-native applications, certain workloads must remain on x86 architecture on Amazon EC2. Organizations should retain x86 instances when running Windows Server environm",
+    false
+  ],
+  [
+    73,
+    "Why Recompile Applications for AWS Graviton EC2 Instances?",
+    "Engineering teams recompile their applications to run on AWS Graviton-powered Amazon EC2 instances primarily to achieve superior price-performance, lower operational cloud expenses, and reduce carbon footprints. Designed by Amazon Web Services using 64-bi",
+    false
+  ],
+  [
+    72,
+    "How Does ARM Neoverse in AWS Graviton Improve Efficiency?",
+    "The 64-bit ARM Neoverse architecture inside Amazon EC2 Graviton processors improves cloud energy efficiency by combining a simplified Reduced Instruction Set Computer design with dedicated physical cores, custom silicon integration, and fine-grained power",
+    false
+  ],
+  [
+    71,
+    "What Is the AWS Graviton Processor in Amazon EC2?",
+    "The AWS Graviton processor is a line of custom Arm-based server processors designed by Amazon Web Services and Annapurna Labs to deliver high price-performance and energy efficiency for cloud workloads. Integrated directly into Amazon Elastic Compute Clou",
+    false
+  ],
+  [
+    70,
+    "Does Amazon EC2 Support Fractional GPU and MIG Partitioning?",
+    "Yes, Amazon EC2 supports both hardware-based Multi-Instance GPU partitioning and software-based fractional GPU sharing across select accelerated computing instances. Through NVIDIA Multi-Instance GPU technology on A100, H100, and H200 Tensor Core GPUs, us",
+    false
+  ],
+  [
+    69,
+    "How do AWS Inf2 and G5 instances compare for AI inference?",
+    "This article compares the cost, throughput, memory architecture, and software ecosystems of Amazon EC2 Inf2 instances powered by AWS Inferentia2 chips and GPU-based G5 instances powered by NVIDIA A10G Tensor Core GPUs. It explores how architectural differ",
+    false
+  ],
+  [
+    68,
+    "How to Install NVIDIA Drivers and CUDA on Amazon EC2?",
+    "Installing and managing NVIDIA drivers and the CUDA toolkit on Amazon EC2 accelerated computing instances requires matching your driver type to your specific instance family and workload, or bypassing manual setup altogether by selecting an AWS Deep Learn",
+    false
+  ],
+  [
+    67,
+    "How Do GPUs Communicate Over NVLink in AWS P4d and P5?",
+    "When multiple GPUs inside a single Amazon EC2 P4d or P5 instance communicate over NVLink and NVSwitch, they exchange data directly across a high-bandwidth, low-latency fabric without routing traffic through the host CPU, system memory, or PCIe switches. T",
+    false
+  ],
+  [
+    66,
+    "How do EC2 VT1 instances transcode dozens of 4K video streams?",
+    "Media streaming services transcode dozens of 4K video streams simultaneously on Amazon EC2 VT1 instances by utilizing up to eight custom Xilinx Alveo U30 media accelerator cards per server. Unlike general-purpose processors or traditional graphics cards,",
+    false
+  ],
+  [
+    65,
+    "Which Amazon EC2 Instance Family Provides FPGAs?",
+    "Amazon EC2 F1 and F2 instances are the dedicated instance families within Amazon Web Services that provide field-programmable gate arrays for custom hardware acceleration. These specialized accelerated computing instances allow developers and engineers to",
+    false
+  ],
+  [
+    64,
+    "When Should You Choose EC2 G-Series Over P-Series Instances?",
+    "Graphics workstation workloads should choose Amazon EC2 G-series instances over P-series instances whenever the primary requirement is real-time visual rendering, remote desktop streaming, CAD modeling, or cost-effective machine learning inference rather",
+    false
+  ],
+  [
+    63,
+    "Why Deploy AWS Trainium and Inferentia on EC2 Trn1 and Inf2?",
+    "Machine learning teams deploy AWS Trainium and AWS Inferentia chips on Amazon EC2 Trn1 and Inf2 instances primarily to significantly reduce the cost of training and serving deep learning models while maintaining high computational performance. As generati",
+    false
+  ],
+  [
+    62,
+    "How Do EC2 P-Series GPUs Speed Up LLM Training?",
+    "Amazon EC2 P-series instances accelerate large language model training by combining high-density NVIDIA GPUs, massive high-bandwidth memory, ultra-fast NVLink interconnects, and Elastic Fabric Adapter networking. These hardware components work together to",
+    false
+  ],
+  [
+    61,
+    "What Is the Role of Accelerated Computing in Amazon EC2?",
+    "Accelerated computing instances in Amazon EC2 use specialized hardware accelerators and co-processors to perform complex calculations much faster than general-purpose central processing units. This article explores how these instances work, the specific h",
+    false
+  ],
+  [
+    60,
+    "Can EC2 Storage Optimized Instances Hit Millions of IOPS?",
+    "Amazon EC2 Storage Optimized instances can sustain millions of random read IOPS without network storage bottlenecks by utilizing locally attached NVMe SSD instance store volumes instead of network-attached storage like Amazon EBS. Because these drives are",
+    false
+  ],
+  [
+    59,
+    "EC2 Storage Optimized Instances vs High-Performance EBS?",
+    "Choosing between Amazon EC2 Storage Optimized instances and high-performance Amazon Elastic Block Store volumes depends on your application's requirements for latency, data persistence, throughput, and operational flexibility. Storage Optimized instances",
+    false
+  ],
+  [
+    58,
+    "How do you configure NVMe RAID on Amazon EC2 instances?",
+    "Configuring a software RAID array across multiple local NVMe instance store volumes on an Amazon EC2 Storage Optimized instance combines the throughput and input/output operations per second of individual drives into a single logical volume. You can accom",
+    false
+  ],
+  [
+    57,
+    "What Happens When an EC2 Dense Storage Disk Fails?",
+    "When a physical disk fails on a multi-drive dense storage instance in Amazon EC2, the affected instance store volume becomes inaccessible and any data stored exclusively on that drive is lost. Unlike Amazon Elastic Block Store volumes, which are network-a",
+    false
+  ],
+  [
+    56,
+    "How Do AWS Nitro SSDs Minimize I/O Latency Variability?",
+    "AWS Nitro SSDs minimize I/O latency variability in Amazon EC2 I4i and Im4gn instances by utilizing custom-designed solid-state drive hardware and firmware managed directly by AWS. Unlike off-the-shelf commercial storage drives that rely on unpredictable i",
+    false
+  ],
+  [
+    55,
+    "Which EC2 instance family is best for MapReduce and HDFS?",
+    "Amazon EC2 D series instances, such as the D2 and D3 families, are the Storage Optimized instances specifically tailored for MapReduce and distributed file systems like the Hadoop Distributed File System. These instances provide dense local hard disk driv",
+    false
+  ],
+  [
+    54,
+    "When Should Data Warehouses Use Amazon EC2 D-Series Instances?",
+    "Amazon EC2 D-series instances, such as the D2 and D3 families, are dense storage virtual servers built specifically for workloads requiring massive local hard disk drive capacity and high sequential disk throughput. For data warehouse workloads, choosing",
+    false
+  ],
+  [
+    53,
+    "Why Run Apache Cassandra or ScyllaDB on AWS I4i Instances?",
+    "Distributed NoSQL databases like Apache Cassandra and ScyllaDB are regularly deployed on Amazon EC2 I4i instances because these instances deliver ultra-low latency local NVMe storage, high random I/O throughput, and balanced compute-to-memory ratios that",
+    false
+  ],
+  [
+    52,
+    "How Do EC2 I-Series NVMe SSDs Achieve Low Latency and IOPS?",
+    "Local NVMe SSD storage on Amazon EC2 I-series instances delivers low latency and high random IOPS by attaching solid-state drives directly to the host server PCIe bus, bypassing network storage fabrics entirely. Paired with the AWS Nitro System and custom",
+    false
+  ],
+  [
+    51,
+    "What Is the Purpose of EC2 Storage Optimized Instances?",
+    "The Storage Optimized instance family in Amazon EC2 is designed for workloads that require high, sequential read and write access to very large data sets on local storage. These instances are engineered to deliver tens of thousands of low-latency, random",
+    false
+  ],
+  [
+    50,
+    "Does Amazon EC2 Have Memory Optimized Instances with NVMe?",
+    "Amazon EC2 provides several Memory Optimized instance families equipped with physically attached local NVMe SSD volumes. These instances combine high memory-to-vCPU ratios with ultra-low latency block storage, making them ideal for high-performance databa",
+    false
+  ],
+  [
+    49,
+    "How Do Amazon EC2 R-Series, X-Series, and U-Series Differ?",
+    "Amazon EC2 memory-optimized instances belong to three distinct tiers designed for progressive scaling of memory-intensive workloads. The R-series serves as the foundational memory-optimized family with a balanced vCPU-to-memory ratio for general high-perf",
+    false
+  ],
+  [
+    48,
+    "How to Move EC2 High Memory Instances to On-Demand?",
+    "Transitioning an Amazon EC2 High Memory instance from a Dedicated Host billing model to an On-Demand or shared tenancy model depends heavily on the specific generation and size of your instance. Older bare metal High Memory instances require a Dedicated H",
+    false
+  ],
+  [
+    47,
+    "What Happens When an EC2 App Exceeds Its Physical RAM?",
+    "When an in-memory application running on an Amazon EC2 instance exceeds its physical RAM allocation, the operating system attempts to free memory by moving inactive data to disk swap space if configured, or by reclaiming cached memory. Because most defaul",
+    false
+  ],
+  [
+    46,
+    "How to Maximize Redis and Memcached Throughput on EC2 R-Series?",
+    "Maximizing throughput for distributed caching layers like Redis and Memcached on Amazon EC2 R-series instances requires aligning the software architecture with the underlying hardware resources. By tuning Linux kernel network parameters, selecting network",
+    false
+  ],
+  [
+    45,
+    "Which EC2 Instances Have the Most RAM per vCPU?",
+    "Amazon EC2 X2iedn, u-12tb1, u-18tb1, and u-24tb1 High Memory instances provide the highest memory-to-compute density in AWS, delivering up to 32 GiB to 53.3 GiB of RAM per vCPU. While standard memory-optimized families like R7i and R7g offer an 8 GiB per",
+    false
+  ],
+  [
+    44,
+    "When Should You Choose an Amazon EC2 z1d Instance?",
+    "An architect should choose an Amazon EC2 z1d instance when workloads require a combination of exceptionally high single-thread compute performance, substantial memory capacity, and low-latency local NVMe storage. This article explores the technical specif",
+    false
+  ],
+  [
+    43,
+    "Why Use EC2 R-Series or X-Series for Real-Time Big Data?",
+    "Real-time big data analytics clusters choose Amazon EC2 R-series or X-series instances because these memory-optimized instances provide high memory-to-vCPU ratios that enable in-memory processing, eliminate disk I/O bottlenecks, and deliver ultra-low late",
+    false
+  ],
+  [
+    42,
+    "How Does EC2 Support SAP HANA With High Memory Instances?",
+    "Amazon Elastic Compute Cloud supports large in-memory databases like SAP HANA by providing purpose-built High Memory U-series instances that offer up to 32 terabytes of memory in a single instance. This article examines the underlying hardware architectur",
+    false
+  ],
+  [
+    41,
+    "When Should You Use Amazon EC2 Memory Optimized Instances?",
+    "The primary use case for the Memory Optimized instance family in Amazon Elastic Compute Cloud is running workloads that process massive datasets directly in random access memory. These instances are engineered to deliver fast performance for applications",
+    false
+  ],
+  [
+    40,
+    "Can Amazon EC2 Compute Optimized Instances Run Telco Workloads?",
+    "Yes, Amazon EC2 Compute Optimized instances can effectively execute telecommunications network functions that require deterministic packet processing and low jitter. By combining high-performance virtualized or bare-metal compute instances with AWS networ",
+    false
+  ],
+  [
+    39,
+    "How Do AWS EC2 Standard C-Series and NVMe Instances Differ?",
+    "Amazon EC2 compute-optimized C-series instances come in two primary storage configurations, consisting of standard EBS-only instances and instances equipped with local NVMe SSD instance store volumes. While both variants deliver identical vCPU and memory",
+    false
+  ],
+  [
+    38,
+    "How to Benchmark EC2 C-Series CPU Performance?",
+    "Benchmarking single-threaded versus multi-threaded performance across Amazon EC2 C-series generations requires isolating processor architectures, standardizing operating system configurations, and executing synthetic and application-level workloads under",
+    false
+  ],
+  [
+    37,
+    "What Happens at 100% CPU on an Amazon EC2 C-Series Instance?",
+    "When a compute-intensive batch job reaches 100 percent CPU utilization on an Amazon EC2 C-series instance, the virtual machine continues to run at its full provisioned capacity without experiencing CPU credit throttling or unexpected surcharge billing. Un",
+    false
+  ],
+  [
+    36,
+    "How to Achieve Low-Latency Tick Rates on Amazon EC2?",
+    "Gaming studios can achieve low-latency multiplayer tick rates by deploying dedicated game servers on Compute Optimized Amazon EC2 instances, such as the C7g, C7i, and C7a families, combined with AWS networking and operating system optimizations. Because g",
+    false
+  ],
+  [
+    35,
+    "What Bandwidth Tiers Do EC2 C-Series Instances Offer?",
+    "Amazon EC2 compute-optimized C-series bare metal and high-end virtual instances provide dedicated networking bandwidth tiers ranging from twenty-five gigabits per second on standard large instances up to two hundred gigabits per second on network-optimize",
+    false
+  ],
+  [
+    34,
+    "When Should EC2 Web Tiers Use Compute Optimized Instances?",
+    "Choosing between Compute Optimized and General Purpose instances in Amazon EC2 for a high-traffic web tier depends primarily on the ratio of CPU consumption to memory utilization under peak load. While General Purpose instances offer a balanced allocation",
+    false
+  ],
+  [
+    33,
+    "Why Use EC2 C7g and C7i Instances for Compute Workloads?",
+    "Video encoding and scientific modeling pipelines use Amazon EC2 C7g and C7i instances because these compute-optimized servers deliver the high processor clock speeds, advanced vector instruction sets, and high memory bandwidth required for CPU-bound workl",
+    false
+  ],
+  [
+    32,
+    "How Does vCPU-to-Memory Ratio Benefit EC2 C-Series Instances?",
+    "Amazon EC2 C-series instances are specifically engineered with a high ratio of virtual CPUs to memory, generally offering two gigabytes of RAM per vCPU. This architecture directly benefits compute-bound workloads by eliminating the financial and operation",
+    false
+  ],
+  [
+    31,
+    "What Is the Amazon EC2 Compute Optimized Instance Family For?",
+    "The Amazon EC2 Compute Optimized instance family is designed to support compute-bound applications that benefit from high-performance processors and a lower ratio of memory to virtual CPUs. In this article, we explore the core architecture of Compute Opti",
+    false
+  ],
+  [
+    30,
+    "Can Amazon EC2 Hot-Swap Intel, AMD, and Graviton Instances?",
+    "Amazon EC2 does not support direct hot-swapping of a single running virtual machine between Intel, AMD, and AWS Graviton general-purpose M-series instance types without stopping the instance or replacing it. Because changing an instance type on a single A",
+    false
+  ],
+  [
+    29,
+    "What is the minimum allocation duration for EC2 Mac instances?",
+    "Amazon EC2 Mac instances require a minimum Dedicated Host allocation duration of 24 hours due to the terms of the Apple macOS Software License Agreement. Unlike standard Amazon EC2 instances that support per-second or per-hour billing without a minimum co",
+    false
+  ],
+  [
+    28,
+    "How Do You Monitor the EC2 CPU Credit Balance?",
+    "Monitoring the CPU credit balance of a burstable general-purpose instance in Amazon EC2 is done primarily through Amazon CloudWatch metrics, which track earned and consumed credits in five-minute intervals. This article explains how CPU credits work, list",
+    false
+  ],
+  [
+    27,
+    "What Happens When an EC2 Instance Exhausts CPU Credits?",
+    "When a burstable Amazon EC2 instance running in Standard mode exhausts its accrued CPU credit balance, its CPU performance is gradually throttled down to its baseline utilization level. The instance does not shut down, reboot, or incur extra usage charges",
+    false
+  ],
+  [
+    26,
+    "How to Build macOS and iOS Apps on Amazon EC2 Mac?",
+    "Apple developers can build and test macOS and iOS applications in the cloud by provisioning bare metal Amazon EC2 Mac instances powered by Apple silicon or Intel processors. These instances run on physical Mac mini computers connected to the AWS Nitro Sys",
+    false
+  ],
+  [
+    25,
+    "Which AWS EC2 M-Series Generation Has the Best Value?",
+    "Amazon EC2 M8g and M7g instances powered by AWS Graviton processors provide the highest price-performance ratio for standard microservices workloads. When architecture requirements strictly demand x86 compatibility, the AMD-powered M7a and M6a generations",
+    false
+  ],
+  [
+    24,
+    "When should you migrate from EC2 T-series to M-series?",
+    "Migrating a workload from an Amazon EC2 T-series burstable instance to an M-series general-purpose instance becomes necessary when an application transitions from intermittent, spiky CPU usage to sustained, predictable resource consumption. While T-series",
+    false
+  ],
+  [
+    23,
+    "Why Enable Unlimited Mode on AWS EC2 T3 and T4g Instances?",
+    "This article explains why developers enable Unlimited mode on Amazon EC2 T3 and T4g burstable instances, detailing how the CPU credit mechanism works, the performance benefits of sustaining high CPU utilization during traffic spikes, and the cost consider",
+    false
+  ],
+  [
+    22,
+    "How Do Amazon EC2 T-Series CPU Credits Work?",
+    "Amazon EC2 burstable T-series instances operate using a CPU credit mechanism designed for workloads that do not constantly use the full capacity of their allocated processors. Each instance is assigned a baseline level of CPU performance and continually e",
+    false
+  ],
+  [
+    21,
+    "What Is the Goal of Amazon EC2 General Purpose Instances?",
+    "The fundamental design goal of the General Purpose instance family in Amazon EC2 is to provide a balanced ratio of compute, memory, and networking resources. This equilibrium allows organizations to run a diverse array of workloads without over-provisioni",
+    false
+  ],
+  [
+    20,
+    "Can Amazon EC2 Block Public Sharing of AMIs?",
+    "Amazon Elastic Compute Cloud allows administrators to prevent the accidental exposure of Amazon Machine Images by enabling the block public access setting at the AWS account level. This regional security configuration ensures that no new machine images wi",
+    false
+  ],
+  [
+    19,
+    "What Are the Differences Between EBS and Instance Store AMIs?",
+    "Amazon Elastic Compute Cloud instances rely on Amazon Machine Images to define the initial software and root storage configuration required to launch a virtual server. The primary distinction between Elastic Block Store backed images and instance store ba",
+    false
+  ],
+  [
+    18,
+    "How to Subscribe to AWS Marketplace Software for Amazon EC2?",
+    "Subscribing to and deploying third-party software appliances through AWS Marketplace for Amazon EC2 streamlines the procurement and provisioning process within cloud environments. This guide covers the essential steps required to browse the catalog, evalu",
+    false
+  ],
+  [
+    17,
+    "What happens when you copy an encrypted EC2 AMI across Regions?",
+    "Copying an encrypted Amazon Elastic Compute Cloud (EC2) Amazon Machine Image (AMI) from one AWS Region to another results in a new, distinct AMI in the destination Region with a unique AMI ID. During this process, AWS automatically copies the underlying A",
+    false
+  ],
+  [
+    16,
+    "How to Share a Private EC2 AMI with Another AWS Account?",
+    "Sharing a privately created Amazon EC2 AMI with another AWS account requires modifying the AMI launch permissions to grant explicit access to the target 12-digit AWS account ID and configuring permissions for the underlying EBS snapshots and customer-mana",
+    false
+  ],
+  [
+    15,
+    "Which Operating Systems Do AWS AMIs Support in Amazon EC2?",
+    "Amazon Web Services provides officially supported Amazon Machine Images for several major operating system families in Amazon EC2, including Amazon Linux, Ubuntu, Red Hat Enterprise Linux, SUSE Linux Enterprise Server, Debian, Microsoft Windows Server, an",
+    false
+  ],
+  [
+    14,
+    "When should you deregister an older Amazon Machine Image?",
+    "Deregistering an older Amazon Machine Image in Amazon EC2 should occur when the image is obsolete, contains unpatched security vulnerabilities, or has been superseded by a newer gold image version. Removing unused images prevents accidental launches of ou",
+    false
+  ],
+  [
+    13,
+    "Why Create a Custom Golden AMI for Amazon EC2 Deployments?",
+    "Administrators create a custom golden Amazon Machine Image to standardize operating system configurations, embed mandatory security controls, and accelerate instance launch times across their Amazon EC2 environments. By pre-installing required software pa",
+    false
+  ],
+  [
+    12,
+    "How Does an EC2 AMI Root Volume Control Instance Booting?",
+    "The root device volume of an Amazon Elastic Compute Cloud machine image dictates the entire startup mechanism, persistence model, and lifecycle capabilities of a virtual server. Depending on whether the image uses an Amazon Elastic Block Store snapshot or",
+    false
+  ],
+  [
+    11,
+    "What Is an Amazon Machine Image and Its Role in Amazon EC2?",
+    "An Amazon Machine Image, commonly referred to as an AMI, is a master template used to create virtual servers known as Amazon Elastic Compute Cloud instances within the Amazon Web Services environment. This article explains the fundamental components of an",
+    false
+  ],
+  [
+    10,
+    "Does Amazon EC2 Guarantee a Regional Monthly Uptime SLA?",
+    "Amazon Elastic Compute Cloud offers a formal Service Level Agreement that guarantees a specific monthly uptime percentage for resources deployed across an AWS Region. Under the Amazon Compute Service Level Agreement, AWS commits to making Amazon EC2 avail",
+    false
+  ],
+  [
+    9,
+    "How Does Amazon EC2 Compare to Container Orchestration?",
+    "Managing virtual machines on Amazon EC2 and deploying applications on container orchestration platforms represent two distinct cloud infrastructure approaches. Amazon EC2 provides Infrastructure as a Service by provisioning virtualized hardware and full o",
+    false
+  ],
+  [
+    8,
+    "How Do You Select the Right AWS Region for Amazon EC2?",
+    "Selecting the optimal AWS Region for deploying globally distributed applications on Amazon EC2 requires evaluating four primary pillars: data compliance and governance, network latency to end users, regional service and instance type availability, and inf",
+    false
+  ],
+  [
+    7,
+    "What happens during an Amazon EC2 availability zone outage?",
+    "When an Amazon EC2 availability zone experiences a power or networking outage, the instances, storage volumes, and networking components physically located within that zone become unreachable or shut down. Because Amazon Web Services designs each availabi",
+    false
+  ],
+  [
+    6,
+    "How Can Amazon EC2 Reduce Application Time-to-Market?",
+    "Businesses can significantly accelerate their application time-to-market by deploying on Amazon Elastic Compute Cloud because it eliminates hardware procurement delays, provides pre-configured machine images, automates infrastructure scaling, and integrat",
+    false
+  ],
+  [
+    5,
+    "Which Virtualization Technologies Have Powered Amazon EC2?",
+    "Amazon Elastic Compute Cloud has transitioned through several major virtualization architectures since its initial beta launch in 2006. Starting with a heavily customized version of the Xen hypervisor utilizing paravirtualization, Amazon Web Services late",
+    false
+  ],
+  [
+    4,
+    "When Should You Choose Amazon EC2 Over AWS Lambda?",
+    "Cloud architects should select Amazon EC2 over serverless compute options like AWS Lambda when workloads require long execution times, predictable high-throughput pricing, specialized hardware, or granular control over the underlying operating system. Whi",
+    false
+  ],
+  [
+    3,
+    "Why Choose Amazon EC2 Over On-Premises Physical Servers?",
+    "Organizations choose Amazon Elastic Compute Cloud over traditional on-premises physical servers primarily to replace hefty upfront capital hardware expenses with variable operational pricing, achieve rapid scalability, reduce physical infrastructure maint",
+    false
+  ],
+  [
+    2,
+    "How Does Amazon EC2 Provide Resizable Cloud Compute?",
+    "Amazon Elastic Compute Cloud (Amazon EC2) provides resizable compute capacity in the cloud by allowing enterprise organizations to provision, scale, and reconfigure virtual servers on demand through programmable APIs, diverse instance families, and automa",
+    false
+  ],
+  [
+    1,
+    "What Is the Primary Purpose of Amazon EC2 in AWS?",
+    "Amazon Elastic Compute Cloud, commonly known as Amazon EC2, serves as the foundational compute service within the Amazon Web Services ecosystem by providing secure and resizable virtual servers in the cloud. Its primary purpose is to eliminate the need fo",
+    false
+  ]
+]

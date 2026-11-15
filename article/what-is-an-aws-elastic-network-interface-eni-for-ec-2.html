@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Is an AWS Elastic Network Interface (ENI) for EC2? - ec2</title>
+    <meta name="description" content="An Elastic Network Interface (ENI) is a logical networking component in a Virtual Private Cloud (VPC) that acts as a virtual network interface card (NIC) for Amazon Elastic Compute Cloud (EC2) instances. This article explores the core architecture of an E">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-an-aws-elastic-network-interface-eni-for-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Is an AWS Elastic Network Interface (ENI) for EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-an-aws-elastic-network-interface-eni-for-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Elastic Network Interface (ENI) is a logical networking component in a Virtual Private Cloud (VPC) that acts as a virtual network interface card (NIC) for Amazon Elastic Compute Cloud (EC2) instances. This article explores the core architecture of an E" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-is-an-aws-elastic-network-interface-eni-for-ec2">What Is an
+AWS Elastic Network Interface (ENI) for EC2?</h1>
+<p>An Elastic Network Interface (ENI) is a logical networking component
+in a Virtual Private Cloud (VPC) that acts as a virtual network
+interface card (NIC) for Amazon Elastic Compute Cloud (EC2) instances.
+This article explores the core architecture of an ENI, the networking
+attributes it encapsulates, how it attaches to and detaches from compute
+instances, and common deployment scenarios such as high-availability
+failover and network traffic segregation.</p>
+<h2 id="core-components-and-attributes-of-an-eni">Core Components and
+Attributes of an ENI</h2>
+<p>Just as a physical server relies on a hardware network interface card
+to connect to a local area network, an Amazon EC2 instance relies on an
+ENI to communicate within a VPC and with external networks. An ENI is an
+independent AWS resource that exists within a specific subnet and
+Availability Zone. Because its configuration is tied to the ENI resource
+rather than the EC2 instance itself, all networking attributes stay with
+the interface even when it is moved between instances.</p>
+<p>An Elastic Network Interface can hold the following attributes:</p>
+<ul>
+<li>Primary Private IPv4 Address: Every ENI is assigned one primary
+private IPv4 address from the IPv4 CIDR block range of its subnet. This
+address cannot be changed after the ENI is created.</li>
+<li>Secondary Private IPv4 Addresses: Depending on the EC2 instance
+type, an ENI can hold one or more secondary private IPv4 addresses from
+the same subnet range.</li>
+<li>Elastic IP or Public IPv4 Addresses: Each private IPv4 address
+associated with an ENI can be mapped to an Elastic IP (EIP) or an
+auto-assigned public IPv4 address via network address translation at the
+Internet Gateway.</li>
+<li>IPv6 Addresses: If the VPC and subnet support IPv6, one or more
+global unicast IPv6 addresses can be assigned to the interface.</li>
+<li>MAC Address: Every ENI has a unique Media Access Control (MAC)
+address used for Layer 2 Ethernet frame delivery within the VPC network
+fabric.</li>
+<li>Security Groups: Firewall rules in AWS are applied directly to the
+ENI rather than to the instance OS. Multiple security groups can be
+associated with a single ENI to govern inbound and outbound
+traffic.</li>
+<li>Source/Destination Check Flag: By default, an ENI verifies that it
+is either the source or the destination of any traffic it handles.
+Disabling this check allows an EC2 instance to act as a network address
+translation (NAT) device, router, or firewall appliance.</li>
+</ul>
+<h2 id="primary-vs-secondary-network-interfaces">Primary vs. Secondary
+Network Interfaces</h2>
+<p>Every EC2 instance starts with a default network interface known as
+the primary ENI, commonly seen inside a Linux operating system as
+<code>eth0</code> or <code>ens5</code>. The primary ENI is created
+automatically when the instance launches, resides in the subnet selected
+for the instance, and cannot be detached from the instance while it
+exists. When the EC2 instance is terminated, the primary ENI is deleted
+automatically by default.</p>
+<p>Beyond the primary interface, you can create secondary ENIs and
+attach them to running or stopped EC2 instances. Secondary ENIs share
+the same Availability Zone as the instance, though they can belong to
+different subnets within that Availability Zone. Unlike the primary
+interface, secondary ENIs can be detached from one instance and
+reattached to another without restarting the instances, allowing rapid
+redirection of network traffic.</p>
+<h2 id="how-enis-function-on-the-aws-hypervisor">How ENIs Function on
+the AWS Hypervisor</h2>
+<p>Under the hood, AWS uses the Nitro System to offload virtualization
+of networking, storage, and management onto dedicated hardware. When you
+attach an ENI to a Nitro-based EC2 instance, the Nitro Card presents the
+ENI to the guest operating system as a standard PCIe device using the
+Elastic Network Adapter (ENA) driver.</p>
+<p>When packets leave the guest operating system through the virtual
+interface, the Nitro hardware encapsulates and processes the traffic
+according to VPC routing tables and security group state tables before
+placing it onto the physical AWS network fabric. If you detach a
+secondary ENI from Instance A and attach it to Instance B, the AWS
+control plane updates its mapping tables so that packets destined for
+the ENI's IP or MAC address are immediately routed to the Nitro hardware
+hosting Instance B.</p>
+<h2 id="capacity-limits-and-scaling-formulas">Capacity Limits and
+Scaling Formulas</h2>
+<p>The maximum number of ENIs you can attach to an EC2 instance, as well
+as the maximum number of private IP addresses supported per ENI, depends
+on the instance family and size. Larger instance sizes provide higher
+networking allocations.</p>
+<p>If an instance type supports up to <span
+class="math inline">\(N\)</span> network interfaces and each interface
+supports up to <span class="math inline">\(M\)</span> private IPv4
+addresses, the total number of private IPv4 addresses <span
+class="math inline">\(T_{\text{IPv4}}\)</span> that a single EC2
+instance can host across all of its interfaces is expressed as:</p>
+<p><span class="math display">\[T_{\text{IPv4}} = N \times
+M\]</span></p>
+<p>Within a single ENI supporting <span class="math inline">\(M\)</span>
+total IPv4 addresses, the number of available secondary private IPv4
+addresses <span class="math inline">\(S_{\text{IPv4}}\)</span> is:</p>
+<p><span class="math display">\[S_{\text{IPv4}} = M - 1\]</span></p>
+<p>For example, if an instance supports <span class="math inline">\(N =
+4\)</span> interfaces and <span class="math inline">\(M = 15\)</span>
+private IPv4 addresses per interface, the instance can manage up to
+<span class="math inline">\(T_{\text{IPv4}} = 60\)</span> private IPv4
+addresses, with each ENI holding <span class="math inline">\(1\)</span>
+primary address and up to <span class="math inline">\(14\)</span>
+secondary addresses.</p>
+<h2 id="common-use-cases-for-elastic-network-interfaces">Common Use
+Cases for Elastic Network Interfaces</h2>
+<h3 id="high-availability-failover">High-Availability Failover</h3>
+<p>Because secondary ENIs retain their IP addresses, MAC addresses, and
+security groups when moved, they provide a fast mechanism for
+active-standby failover. If a primary database or virtual appliance
+fails health checks, an automation script or cluster manager can call
+the EC2 API to detach the secondary ENI from the unhealthy instance and
+attach it to a standby instance in the same Availability Zone. Client
+applications continue communicating with the exact same private IP
+address without waiting for DNS propagation.</p>
+<h3 id="management-and-data-plane-segregation">Management and Data Plane
+Segregation</h3>
+<p>Organizations with strict compliance requirements often separate
+production application traffic from administrative and monitoring
+traffic. By attaching two ENIs located in different subnets to a single
+EC2 instance, an administrator can configure the primary ENI in a public
+or application subnet to serve customer traffic with one set of security
+groups, while placing the secondary ENI in an isolated management subnet
+restricted to SSH, RDP, or logging traffic with a different set of
+security groups.</p>
+<h3 id="virtual-network-appliances">Virtual Network Appliances</h3>
+<p>Load balancers, intrusion detection systems, VPN concentrators, and
+next-generation firewalls deployed from the AWS Marketplace frequently
+use multiple ENIs. One interface acts as the untrusted external ingress
+port, another acts as the internal trusted egress port, and a third
+serves as an out-of-band management interface.</p>
+<h3 id="container-networking-in-amazon-eks">Container Networking in
+Amazon EKS</h3>
+<p>Amazon Elastic Kubernetes Service (EKS) relies heavily on ENIs
+through the Amazon VPC CNI plugin. The plugin attaches secondary ENIs
+and assigns secondary private IPv4 addresses directly to Kubernetes Pods
+running on an EC2 worker node, allowing Pods to have first-class VPC IP
+addresses and communicate directly with other AWS services without
+overlay network encapsulation.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-an-aws-elastic-network-interface-eni-for-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

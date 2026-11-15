@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Use EC2 C7g and C7i Instances for Compute Workloads? - ec2</title>
+    <meta name="description" content="Video encoding and scientific modeling pipelines use Amazon EC2 C7g and C7i instances because these compute-optimized servers deliver the high processor clock speeds, advanced vector instruction sets, and high memory bandwidth required for CPU-bound workl">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/why-use-ec-2-c-7-g-and-c-7-i-instances-for-compute-workloads">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Why Use EC2 C7g and C7i Instances for Compute Workloads? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/why-use-ec-2-c-7-g-and-c-7-i-instances-for-compute-workloads" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Video encoding and scientific modeling pipelines use Amazon EC2 C7g and C7i instances because these compute-optimized servers deliver the high processor clock speeds, advanced vector instruction sets, and high memory bandwidth required for CPU-bound workl" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="why-use-ec2-c7g-and-c7i-instances-for-compute-workloads">Why Use
+EC2 C7g and C7i Instances for Compute Workloads?</h1>
+<p>Video encoding and scientific modeling pipelines use Amazon EC2 C7g
+and C7i instances because these compute-optimized servers deliver the
+high processor clock speeds, advanced vector instruction sets, and high
+memory bandwidth required for CPU-bound workloads. Unlike
+general-purpose or memory-optimized servers, the C7 family allocates a
+higher ratio of virtual CPUs to memory, ensuring that computationally
+intensive tasks complete rapidly without paying for unused RAM.
+Organizations choose between the Arm-based C7g and the Intel-based C7i
+depending on whether their software stack prioritizes raw
+price-performance efficiency or specialized x86 vector extensions.</p>
+<h2 id="the-architecture-of-compute-optimized-instances">The
+Architecture of Compute-Optimized Instances</h2>
+<p>Amazon EC2 C-series instances are engineered specifically for
+workloads where the central processing unit is the primary bottleneck.
+Both video transcoding and numerical simulations spend the vast majority
+of their execution cycles performing mathematical operations in tight
+loops.</p>
+<p>In a typical compute-optimized configuration, AWS provides a 1:2
+ratio of vCPUs to gigabytes of memory. Because video frames and
+localized simulation grids can often be streamed through processor
+caches without requiring massive in-memory databases, this resource
+balance eliminates wasted expenditure on idle system memory.
+Furthermore, seventh-generation instances introduce Double Data Rate 5
+(DDR5) memory, which provides up to 50 percent more memory bandwidth
+than the DDR4 memory found in sixth-generation instances.</p>
+<h2 id="hardware-capabilities-of-amazon-ec2-c7g">Hardware Capabilities
+of Amazon EC2 C7g</h2>
+<p>Amazon EC2 C7g instances are powered by custom AWS Graviton3
+processors based on the 64-bit Arm Neoverse architecture. Graviton3 is
+designed to maximize throughput per watt and reduce total cost of
+ownership for scalable cloud pipelines.</p>
+<p>Key architectural advantages of C7g instances include:</p>
+<ul>
+<li><strong>Physical Core Mapping:</strong> Unlike x86 processors that
+use simultaneous multithreading (SMT) to map two vCPUs to a single
+physical core, every vCPU on a C7g instance is a dedicated physical
+core. This eliminates thread contention for execution units and L1/L2
+caches, resulting in predictable scaling where throughput <span
+class="math inline">\(T\)</span> scales linearly with core count <span
+class="math inline">\(N\)</span> such that <span
+class="math inline">\(T(N) \approx N \cdot T(1)\)</span>.</li>
+<li><strong>SIMD Vector Processing:</strong> Graviton3 features dual
+256-bit Scalable Vector Extension (SVE) units alongside standard Arm
+Neon instructions, doubling the floating-point and integer vector
+performance compared to Graviton2.</li>
+<li><strong>Energy and Cost Efficiency:</strong> C7g instances consume
+up to 60 percent less energy for the same performance as comparable EC2
+instances and typically offer up to 20 percent better price-performance
+for compatible Linux workloads.</li>
+</ul>
+<h2 id="hardware-capabilities-of-amazon-ec2-c7i">Hardware Capabilities
+of Amazon EC2 C7i</h2>
+<p>Amazon EC2 C7i instances run on custom 4th Generation Intel Xeon
+Scalable processors (codenamed Sapphire Rapids), available exclusively
+to AWS among major cloud providers. These processors maintain full
+x86-64 compatibility while introducing wider vector registers and
+dedicated on-die accelerators.</p>
+<p>Key architectural advantages of C7i instances include:</p>
+<ul>
+<li><strong>AVX-512 Instruction Sets:</strong> C7i processors support
+Advanced Vector Extensions 512 (AVX-512), allowing a single core to
+execute operations on 512-bit wide data registers simultaneously. In
+single-precision floating-point math (<span
+class="math inline">\(32\text{-bit}\)</span>), a single instruction can
+calculate <span class="math inline">\(\frac{512}{32} = 16\)</span>
+values per clock cycle.</li>
+<li><strong>Intel Advanced Matrix Extensions (AMX):</strong> Built
+directly into the silicon, AMX accelerates matrix multiplication
+routines that frequently appear in hybrid scientific models and
+AI-assisted video upscaling or denoising filters.</li>
+<li><strong>High Sustained Turbo Frequencies:</strong> C7i instances
+operate at an all-core turbo frequency of up to <span
+class="math inline">\(3.2\text{ GHz}\)</span>, providing superior
+single-threaded performance for algorithms that cannot be easily
+parallelized according to Amdahl's Law:</li>
+</ul>
+<p><span class="math display">\[S_{\text{latency}}(s) = \frac{1}{(1 - p)
++ \frac{p}{s}}\]</span></p>
+<p>where <span class="math inline">\(S_{\text{latency}}\)</span> is the
+theoretical speedup of the execution of the whole task, <span
+class="math inline">\(s\)</span> is the speedup of the part of the task
+that benefits from improved system resources, and <span
+class="math inline">\(p\)</span> is the proportion of execution time
+that the part benefiting from improved resources originally
+occupied.</p>
+<h2 id="video-encoding-pipeline-optimization">Video Encoding Pipeline
+Optimization</h2>
+<p>Modern video encoding standards—such as H.264 (AVC), H.265 (HEVC),
+VP9, and AV1—rely heavily on discrete cosine transforms, motion
+estimation, and entropy coding. These stages process pixel blocks in
+parallel using Single Instruction, Multiple Data (SIMD) assembly
+routines.</p>
+<p>When running open-source encoders like <code>x264</code>,
+<code>x265</code>, or <code>SVT-AV1</code> inside FFmpeg, C7g and C7i
+offer distinct operational benefits:</p>
+<ul>
+<li><strong>High-Volume Batch Transcoding on C7g:</strong>
+Video-on-demand (VoD) platforms that encode thousands of files
+simultaneously benefit from C7g. Both <code>x264</code> and
+<code>x265</code> have mature Arm Neon and SVE assembly optimizations.
+Because each vCPU is a physical core, running multiple isolated
+container jobs on a single large C7g instance avoids the noisy-neighbor
+degradation often seen when two heavy encoding threads share a single
+hyperthreaded x86 core.</li>
+<li><strong>Low-Latency Live Streaming and AV1 on C7i:</strong> Live
+broadcast pipelines require rapid frame completion times to keep buffer
+latencies low. Encoders like <code>SVT-AV1</code> and <code>x265</code>
+are heavily optimized for Intel AVX-512. When encoding 4K or 8K streams
+at high bitrates, the wider 512-bit vector registers and higher clock
+speeds on C7i allow individual frames to finish processing faster than
+on Arm cores.</li>
+</ul>
+<h2 id="scientific-modeling-and-high-performance-computing">Scientific
+Modeling and High-Performance Computing</h2>
+<p>Scientific modeling pipelines—spanning computational fluid dynamics
+(CFD), weather forecasting, molecular dynamics, and finite element
+analysis—spend most of their execution time solving partial differential
+equations, such as the Navier-Stokes momentum equation:</p>
+<p><span class="math display">\[\rho \left( \frac{\partial
+\mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla) \mathbf{u} \right) =
+-\nabla p + \mu \nabla^2 \mathbf{u} + \mathbf{f}\]</span></p>
+<p>Discretizing these equations across a 3D mesh requires intense
+double-precision floating-point (<span
+class="math inline">\(64\text{-bit}\)</span>, or <code>FP64</code>)
+arithmetic and rapid data movement between RAM and CPU registers.</p>
+<ul>
+<li><strong>Memory Bandwidth Saturation:</strong> Stencil calculations
+in CFD and weather models (such as WRF or OpenFOAM) are notoriously
+memory-bandwidth bound. The transition to DDR5 memory in both C7g and
+C7i alleviates memory stalls, ensuring the floating-point units remain
+fed with mesh data.</li>
+<li><strong>Dense Linear Algebra on C7i:</strong> Applications relying
+on the Intel Math Kernel Library (oneMKL), LAPACK, or legacy Fortran
+codebases run natively on C7i without recompilation. The AVX-512 units
+allow each core to execute 8 double-precision floating-point operations
+per vector instruction, dramatically accelerating matrix inversions and
+eigenvalue problems.</li>
+<li><strong>Scale-Out Simulations on C7g:</strong> Many modern
+scientific applications (such as GROMACS, LAMMPS, and OpenFOAM) fully
+support Arm64 architectures. Because C7g instances lack hyperthreading,
+Message Passing Interface (MPI) ranks map 1:1 to physical cores,
+simplifying process pinning and reducing synchronization jitter across
+nodes. For tightly coupled multi-node simulations, variants like
+<code>C7gn</code> and <code>C7i</code> support Elastic Fabric Adapter
+(EFA), providing low-latency, OS-bypass network communication up to
+<span class="math inline">\(200\text{ Gbps}\)</span>.</li>
+</ul>
+<h2 id="comparing-c7g-and-c7i-for-pipeline-selection">Comparing C7g and
+C7i for Pipeline Selection</h2>
+<p>Selecting the optimal instance family requires evaluating compiler
+support, instruction set dependencies, and performance targets:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Amazon EC2 C7g (Graviton3)</th>
+<th style="text-align: left;">Amazon EC2 C7i (Intel Sapphire
+Rapids)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Instruction Set
+Architecture</strong></td>
+<td style="text-align: left;">Arm64 (<code>aarch64</code>)</td>
+<td style="text-align: left;">x86-64 (<code>amd64</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>vCPU to Physical Core
+Ratio</strong></td>
+<td style="text-align: left;">1 vCPU = 1 Physical Core</td>
+<td style="text-align: left;">2 vCPUs = 1 Physical Core (SMT)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Vector Extensions</strong></td>
+<td style="text-align: left;">Arm Neon (128-bit), SVE (2x 256-bit)</td>
+<td style="text-align: left;">AVX2, AVX-512 (512-bit), Intel AMX</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Memory Technology</strong></td>
+<td style="text-align: left;">DDR5</td>
+<td style="text-align: left;">DDR5</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Maximum Instance
+Size</strong></td>
+<td style="text-align: left;"><code>16xlarge</code> (64 vCPUs, 128 GiB
+RAM)</td>
+<td style="text-align: left;"><code>48xlarge</code> (192 vCPUs, 384 GiB
+RAM)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ideal Video Workload</strong></td>
+<td style="text-align: left;">High-density VoD batch encoding</td>
+<td style="text-align: left;">Low-latency 4K/8K live streaming &amp;
+SVT-AV1</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ideal Scientific
+Workload</strong></td>
+<td style="text-align: left;">Cloud-native MPI grids, cost-capped
+runs</td>
+<td style="text-align: left;">Legacy Fortran/x86 binaries, AVX-512 dense
+math</td>
+</tr>
+</tbody>
+</table>
+<p>By matching the software pipeline's instruction-level parallelism and
+licensing model to either C7g or C7i, engineering teams can maximize
+computational throughput while keeping cloud infrastructure costs
+tightly aligned with actual CPU utilization.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/why-use-ec-2-c-7-g-and-c-7-i-instances-for-compute-workloads';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

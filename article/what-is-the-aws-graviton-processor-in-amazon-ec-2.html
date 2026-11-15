@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Is the AWS Graviton Processor in Amazon EC2? - ec2</title>
+    <meta name="description" content="The AWS Graviton processor is a line of custom Arm-based server processors designed by Amazon Web Services and Annapurna Labs to deliver high price-performance and energy efficiency for cloud workloads. Integrated directly into Amazon Elastic Compute Clou">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-the-aws-graviton-processor-in-amazon-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Is the AWS Graviton Processor in Amazon EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-the-aws-graviton-processor-in-amazon-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The AWS Graviton processor is a line of custom Arm-based server processors designed by Amazon Web Services and Annapurna Labs to deliver high price-performance and energy efficiency for cloud workloads. Integrated directly into Amazon Elastic Compute Clou" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-is-the-aws-graviton-processor-in-amazon-ec2">What Is the
+AWS Graviton Processor in Amazon EC2?</h1>
+<p>The AWS Graviton processor is a line of custom Arm-based server
+processors designed by Amazon Web Services and Annapurna Labs to deliver
+high price-performance and energy efficiency for cloud workloads.
+Integrated directly into Amazon Elastic Compute Cloud via the AWS Nitro
+System, Graviton processors power general-purpose, compute-optimized,
+memory-optimized, and storage-optimized EC2 instance families. This
+article examines the architecture of AWS Graviton across its
+generations, how it integrates into Amazon EC2 infrastructure, the
+workloads it supports, and how organizations can migrate to
+Graviton-backed instances.</p>
+<h2 id="architectural-foundations-of-aws-graviton">Architectural
+Foundations of AWS Graviton</h2>
+<p>Unlike traditional cloud servers built on x86_64 processors from
+Intel or AMD, AWS Graviton processors use the 64-bit Arm Neoverse
+architecture (AArch64). By designing custom silicon specifically for
+cloud data centers, AWS eliminates unnecessary hardware features found
+in off-the-shelf server chips and optimizes the processor layout for
+multi-tenant cloud workloads.</p>
+<h3
+id="dedicated-physical-cores-vs-simultaneous-multithreading">Dedicated
+Physical Cores vs. Simultaneous Multithreading</h3>
+<p>A fundamental architectural distinction between AWS Graviton and x86
+processors in Amazon EC2 is how virtual CPUs (vCPUs) map to physical
+hardware. On most x86-based EC2 instances, a single physical core uses
+Simultaneous Multithreading (SMT) to present two hardware threads,
+meaning <span class="math inline">\(1 \text{ physical core} = 2 \text{
+vCPUs}\)</span>. Sister threads share core execution resources, caches,
+and memory bandwidth, which can lead to contention under heavy load.</p>
+<p>On AWS Graviton processors, every vCPU is a dedicated physical
+core:</p>
+<p><span class="math display">\[\text{vCPUs}_{\text{Graviton}} =
+\text{Physical Cores}\]</span></p>
+<p>Because there is no thread sharing within a core, each vCPU has
+independent access to its own L1 and L2 caches and execution pipelines.
+This design yields predictable latency, linear scaling across core
+counts, and stronger isolation between workloads.</p>
+<h3 id="evolution-of-graviton-generations">Evolution of Graviton
+Generations</h3>
+<p>AWS has iterated on the Graviton architecture over multiple
+generations, steadily increasing core counts, memory bandwidth, and
+instruction-level performance:</p>
+<ul>
+<li><strong>AWS Graviton (Graviton1):</strong> Introduced in 2018 based
+on Arm Cortex-A72 cores, powering the A1 instance family. It proved the
+viability of Arm in EC2 for scale-out workloads.</li>
+<li><strong>AWS Graviton2:</strong> Built on 7nm Arm Neoverse N1 cores,
+delivering up to 64 cores per chip. It introduced 256-bit always-on DRAM
+encryption and 50% faster per-core cache compared to the first
+generation.</li>
+<li><strong>AWS Graviton3 and Graviton3E:</strong> Built on Arm Neoverse
+V1 cores with DDR5 memory support, offering 50% more memory bandwidth
+than Graviton2. It added support for Scalable Vector Extensions (SVE),
+bfloat16 instructions for machine learning inference, and pointer
+authentication for hardware-level security. Graviton3E further optimized
+vector-processing performance for High Performance Computing (HPC) and
+network-intensive tasks.</li>
+<li><strong>AWS Graviton4:</strong> Built on Arm Neoverse V2 cores with
+up to 96 cores per processor, larger L2 caches per core, and 12-channel
+DDR5 memory. It introduces encrypted high-speed coherent interconnects
+for multi-socket configurations and significantly expands memory
+capacity and bandwidth for large databases and enterprise
+analytics.</li>
+</ul>
+<h2 id="how-aws-graviton-is-integrated-into-amazon-ec2">How AWS Graviton
+Is Integrated into Amazon EC2</h2>
+<p>AWS Graviton processors are not deployed as standalone servers; they
+are engineered in tandem with the underlying EC2 virtualization and
+hardware offloading platform.</p>
+<h3 id="tight-coupling-with-the-aws-nitro-system">Tight Coupling with
+the AWS Nitro System</h3>
+<p>The integration of Graviton into Amazon EC2 relies on the AWS Nitro
+System, a combination of dedicated hardware cards and a lightweight
+hypervisor. On traditional virtualized hosts, the host CPU must spend
+cycles handling software-defined networking, Elastic Block Store (EBS)
+storage I/O, security monitoring, and hypervisor management.</p>
+<p>In an EC2 Graviton host, Nitro cards offload virtually all I/O
+virtualization, VPC networking, and EBS encryption directly to dedicated
+ASICs. The Nitro Hypervisor provides near-bare-metal performance by
+performing minimal memory and CPU allocation tasks, allowing nearly 100%
+of the Graviton processor's compute cycles and memory bandwidth to be
+delivered directly to customer instances.</p>
+<h3 id="instance-naming-conventions-and-families">Instance Naming
+Conventions and Families</h3>
+<p>Within Amazon EC2, Graviton-powered instances are identified by a
+<code>g</code> suffix appended to the instance family letter and
+generation number. For example, while <code>m7i</code> denotes a
+7th-generation Intel-based general-purpose instance, <code>m7g</code>
+denotes a 7th-generation Graviton3-based instance, and <code>m8g</code>
+denotes an 8th-generation Graviton4-based instance.</p>
+<p>Graviton processors are integrated across all primary EC2 instance
+categories:</p>
+<ul>
+<li><strong>General Purpose (<code>M</code> and <code>T</code>
+families):</strong> Instances such as <code>m6g</code>,
+<code>m7g</code>, <code>m8g</code>, and burstable <code>t4g</code>
+provide a balance of compute, memory, and networking for web servers,
+microservices, and small-to-medium data stores.</li>
+<li><strong>Compute Optimized (<code>C</code> family):</strong>
+Instances such as <code>c6g</code>, <code>c7g</code>, and
+<code>c7gn</code> (enhanced networking) are tailored for CPU-bound
+workloads like batch processing, media transcoding, high-performance web
+tiers, and scientific modeling.</li>
+<li><strong>Memory Optimized (<code>R</code> and <code>X</code>
+families):</strong> Instances such as <code>r6g</code>,
+<code>r7g</code>, <code>r8g</code>, and high-memory <code>x2gd</code>
+are designed for relational and NoSQL databases, distributed in-memory
+caches (such as Redis and Valkey), and real-time big data
+analytics.</li>
+<li><strong>Storage Optimized (<code>I</code> and <code>Im</code>
+families):</strong> Instances such as <code>im4gn</code> and
+<code>is4gen</code> pair Graviton processors with AWS Nitro SSDs to
+deliver low-latency local NVMe storage for I/O-intensive transactional
+databases and search engines.</li>
+<li><strong>Accelerated Computing (<code>G</code> family):</strong>
+Instances such as <code>g5g</code> pair Graviton2 processors with NVIDIA
+T4G Tensor Core GPUs for Android game streaming and cost-effective
+machine learning inference.</li>
+</ul>
+<p>In addition to standard virtualized instances, many Graviton families
+offer <code>.metal</code> sizes (for example, <code>c7g.metal</code>),
+granting workloads direct access to the physical Graviton processor and
+memory without a hypervisor layer, while still retaining full
+integration with EBS and VPC via Nitro cards. Local NVMe SSD storage is
+also available across families by selecting the <code>d</code> suffix
+(such as <code>m7gd</code>).</p>
+<h2
+id="integration-with-managed-aws-services-and-containers">Integration
+with Managed AWS Services and Containers</h2>
+<p>While users can provision raw EC2 Graviton instances directly, AWS
+also integrates Graviton EC2 instances beneath higher-level compute and
+managed services:</p>
+<ul>
+<li><strong>Amazon ECS and Amazon EKS:</strong> Both container
+orchestrators natively support multi-architecture clusters. Through AWS
+Fargate or EC2 capacity providers (including Karpenter), workloads
+compiled for <code>linux/arm64</code> can be scheduled onto Graviton
+instances seamlessly alongside x86 workloads.</li>
+<li><strong>Managed Databases and Analytics:</strong> Services built on
+EC2—such as Amazon RDS, Amazon Aurora, Amazon ElastiCache, Amazon
+OpenSearch Service, and Amazon EMR—offer Graviton instance types as a
+drop-in configuration change, requiring no application code
+modifications by the customer.</li>
+</ul>
+<h2 id="performance-cost-and-energy-efficiency">Performance, Cost, and
+Energy Efficiency</h2>
+<p>The primary motivator for adopting Graviton in Amazon EC2 is
+price-performance ratio, which can be expressed as:</p>
+<p><span class="math display">\[\text{Price-Performance} =
+\frac{\text{Throughput (Requests/sec)}}{\text{Instance Hourly Cost
+(\$)}}\]</span></p>
+<p>In general, Graviton instances are priced up to 20% lower per hour
+than comparable generation x86 instances while delivering up to 20% to
+40% higher performance depending on the workload. This compounds into a
+total price-performance advantage of up to 40%.</p>
+<p>From a sustainability standpoint, the Arm Neoverse architecture
+combined with custom silicon integration consumes up to 60% less energy
+for the same performance level compared to comparable x86 EC2 instances,
+directly lowering the carbon footprint of cloud deployments.</p>
+<h2 id="compatibility-and-software-ecosystem-on-ec2">Compatibility and
+Software Ecosystem on EC2</h2>
+<p>Running workloads on Graviton requires software targeting the
+<code>arm64</code> / <code>aarch64</code> instruction set
+architecture.</p>
+<ol type="1">
+<li><strong>Operating Systems:</strong> Amazon Linux 2023, Ubuntu, Red
+Hat Enterprise Linux (RHEL), SUSE, Debian, and FreeBSD all provide
+official Arm64 Amazon Machine Images (AMIs) directly in the EC2
+console.</li>
+<li><strong>Interpreted and JIT-Compiled Languages:</strong>
+Applications written in Python, Node.js, Ruby, PHP, Java
+(OpenJDK/Corretto), and .NET (6 and later) run on Graviton mostly
+without code changes, provided their native C/C++ dependencies are
+available for Arm64.</li>
+<li><strong>Compiled Languages:</strong> Applications written in Go,
+Rust, C, and C++ require recompilation targeting
+<code>ARCH=arm64</code>. Modern CI/CD pipelines and Docker Buildx make
+it straightforward to produce multi-architecture container images using
+a single manifest list.</li>
+</ol>
+<p>By unifying custom Arm silicon with the AWS Nitro System and broad
+operating system support, the AWS Graviton processor acts as a core
+compute pillar within Amazon EC2, providing scalable, power-efficient
+alternatives to traditional x86 cloud infrastructure.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-the-aws-graviton-processor-in-amazon-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

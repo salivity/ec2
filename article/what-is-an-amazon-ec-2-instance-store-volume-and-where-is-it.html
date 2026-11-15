@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Is an Amazon EC2 Instance Store Volume and Where Is It? - ec2</title>
+    <meta name="description" content="An Amazon EC2 instance store volume provides temporary block-level storage for your cloud virtual machines. This article explains how instance store volumes operate, why their physical disks are attached directly to the underlying host computer, and how t">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-instance-store-volume-and-where-is-it">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Is an Amazon EC2 Instance Store Volume and Where Is It? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-instance-store-volume-and-where-is-it" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon EC2 instance store volume provides temporary block-level storage for your cloud virtual machines. This article explains how instance store volumes operate, why their physical disks are attached directly to the underlying host computer, and how t" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-is-an-amazon-ec2-instance-store-volume-and-where-is-it">What Is
+an Amazon EC2 Instance Store Volume and Where Is It?</h1>
+<p>An Amazon EC2 instance store volume provides temporary block-level
+storage for your cloud virtual machines. This article explains how
+instance store volumes operate, why their physical disks are attached
+directly to the underlying host computer, and how their ephemeral
+lifecycle differs from network-attached storage options like Amazon
+Elastic Block Store. You will also learn the primary use cases,
+performance advantages, and scenarios that cause data on an instance
+store volume to be permanently erased.</p>
+<h2 id="understanding-amazon-ec2-instance-store-volumes">Understanding
+Amazon EC2 Instance Store Volumes</h2>
+<p>An Amazon EC2 instance store provides temporary, high-performance
+block-level storage for an EC2 instance. Because the data stored on
+these volumes does not persist across standard instance stops,
+terminations, or underlying hardware failures, it is commonly referred
+to as ephemeral storage.</p>
+<p>Instance store volumes are included as part of the hourly usage cost
+for specific EC2 instance types. Unlike network-based storage, you
+cannot detach an instance store volume from one instance and attach it
+to another, nor can you dynamically resize it after launching the
+instance. The size, number of volumes, and hardware technology (such as
+NVMe SSD, SATA SSD, or HDD) are strictly determined by the chosen EC2
+instance family and size.</p>
+<h2 id="where-does-the-physical-storage-reside">Where Does the Physical
+Storage Reside?</h2>
+<p>The physical storage for an Amazon EC2 instance store volume resides
+on disks that are physically attached to the same underlying host server
+running the EC2 instance.</p>
+<p>In a traditional cloud environment, storage volumes such as Amazon
+Elastic Block Store (EBS) reside on separate storage arrays accessed
+across the data center network. In contrast, an instance store volume
+bypasses the network layer entirely. The solid-state drives (SSDs) or
+hard disk drives (HDDs) sit directly inside the physical server
+chassis—typically connected to the host motherboard via PCIe lanes using
+the Non-Volatile Memory Express (NVMe) protocol or standard SATA
+interfaces.</p>
+<p>Because the storage media is located directly on the physical host,
+the virtual machine communicates with the drives over the local bus
+rather than over a network fabric. This physical proximity provides two
+major architectural characteristics:</p>
+<ol type="1">
+<li><strong>Ultra-Low Latency and High IOPS:</strong> Without network
+hops between the compute hypervisor and the storage drive, read and
+write operations achieve minimal latency and very high input/output
+operations per second (IOPS). For example, if total read latency <span
+class="math inline">\(L_{\text{total}}\)</span> is represented as: <span
+class="math display">\[L_{\text{total}} = L_{\text{network}} +
+L_{\text{controller}} + L_{\text{media}}\]</span> An instance store
+volume eliminates <span
+class="math inline">\(L_{\text{network}}\)</span> (<span
+class="math inline">\(L_{\text{network}} = 0\)</span>), leaving only
+local controller and media access times.</li>
+<li><strong>Host-Bound Lifecycle:</strong> Because the data lives on
+physical drives inside a specific host computer, the storage is tied to
+the time your instance runs on that exact physical machine. If your
+instance moves to a different physical server—which happens
+automatically when you stop and start an instance—it loses access to the
+original host's physical disks.</li>
+</ol>
+<h2 id="data-persistence-and-lifecycle-behavior">Data Persistence and
+Lifecycle Behavior</h2>
+<p>Understanding when data persists and when it is lost is critical when
+architecting systems that use EC2 instance store volumes.</p>
+<h3 id="events-where-data-persists">Events Where Data Persists</h3>
+<ul>
+<li><strong>Operating System Reboot:</strong> If you issue a reboot
+command from within the guest operating system or use the Amazon EC2
+<code>RebootInstances</code> API call, the instance remains on the same
+physical host computer, and all data on the instance store volume is
+preserved.</li>
+<li><strong>Instance Running State:</strong> As long as the instance
+remains in the <code>running</code> state and the underlying physical
+hardware remains healthy, your data stays intact.</li>
+</ul>
+<h3 id="events-where-data-is-permanently-lost">Events Where Data Is
+Permanently Lost</h3>
+<ul>
+<li><strong>Stopping or Hibernating the Instance:</strong> When an
+EBS-backed instance is stopped, AWS releases the physical host
+resources. When started again, the instance is typically provisioned on
+a new physical host, meaning all data on the previous host's instance
+store volume is wiped and gone.</li>
+<li><strong>Terminating the Instance:</strong> Upon termination, the
+instance store volumes are cryptographically erased or wiped so the
+physical blocks can be safely allocated to future customers.</li>
+<li><strong>Underlying Drive or Host Failure:</strong> If the physical
+server or the local disk experiences a hardware malfunction, the data on
+that instance store volume cannot be recovered unless you have actively
+replicated it elsewhere.</li>
+</ul>
+<h2 id="ideal-use-cases-for-instance-store-volumes">Ideal Use Cases for
+Instance Store Volumes</h2>
+<p>Because instance store volumes combine extreme local I/O speed with
+temporary data retention, they are best suited for workloads that either
+regenerate data easily or replicate data across multiple nodes:</p>
+<ul>
+<li><strong>Swap Space and Scratch Directories:</strong> Operating
+system swap files, temporary file processing directories
+(<code>/tmp</code>), and video rendering scratch disks.</li>
+<li><strong>Buffers and Caches:</strong> Local read/write caches for web
+servers, content delivery proxies, and in-memory database spillovers
+where cache misses can safely re-fetch data from a durable backend like
+Amazon S3 or Amazon EBS.</li>
+<li><strong>Replicated Distributed Databases and NoSQL
+Clusters:</strong> Systems like Apache Cassandra, Elasticsearch,
+OpenSearch, or Kafka that manage data durability at the application
+layer by replicating shards across multiple EC2 instances in different
+Availability Zones.</li>
+<li><strong>High-Performance Computing (HPC) and Analytics:</strong>
+Large-scale simulations, financial modeling, and machine learning
+training jobs that pull source datasets from durable storage, perform
+rapid intermediate calculations locally, and write final results back to
+persistent storage.</li>
+</ul>
+<h2 id="comparing-ec2-instance-store-and-amazon-ebs">Comparing EC2
+Instance Store and Amazon EBS</h2>
+<p>While both offer block-level storage that can be formatted with a
+file system and mounted to your operating system, they serve different
+architectural needs:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">EC2 Instance Store</th>
+<th style="text-align: left;">Amazon EBS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Physical Location</strong></td>
+<td style="text-align: left;">Physically attached to the local host
+server</td>
+<td style="text-align: left;">Network-attached storage arrays</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Data Persistence</strong></td>
+<td style="text-align: left;">Ephemeral (lost on stop, terminate, or
+hardware failure)</td>
+<td style="text-align: left;">Persistent across stops, starts, and host
+failures</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Latency &amp;
+Throughput</strong></td>
+<td style="text-align: left;">Highest possible IOPS and lowest latency
+(local bus)</td>
+<td style="text-align: left;">High performance, constrained by network
+bandwidth limits</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Portability</strong></td>
+<td style="text-align: left;">Fixed to the specific running
+instance</td>
+<td style="text-align: left;">Can be detached and reattached to other
+instances</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Backup Mechanism</strong></td>
+<td style="text-align: left;">Manual or application-level replication
+required</td>
+<td style="text-align: left;">Native point-in-time snapshots via AWS
+Backup / EBS</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cost Model</strong></td>
+<td style="text-align: left;">Included in the hourly price of supported
+instance types</td>
+<td style="text-align: left;">Billed separately per provisioned GB,
+IOPS, and throughput</td>
+</tr>
+</tbody>
+</table>
+<h2 id="summary-of-best-practices">Summary of Best Practices</h2>
+<p>When deploying workloads onto EC2 instances equipped with instance
+store volumes, always treat the local disks as disposable. Never store
+the sole copy of critical application state, primary database records,
+or unpushed configuration files on an instance store volume. For
+NVMe-based instance stores, AWS automatically encrypts data on the drive
+using a hardware module on the host; when the instance stops or
+terminates, the encryption key is destroyed, ensuring immediate
+cryptographic erasure. Always pair instance store volumes with Amazon
+EBS, Amazon EFS, or Amazon S3 to guarantee long-term durability for
+important data.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-instance-store-volume-and-where-is-it';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

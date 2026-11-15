@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How can you use ENA Express to reduce EC2 tail latency? - ec2</title>
+    <meta name="description" content="Amazon Elastic Network Adapter Express is a networking feature powered by the AWS Nitro System and the Scalable Reliable Datagram protocol that significantly lowers tail latency and increases single-flow bandwidth between Amazon EC2 instances. By dynamica">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-can-you-use-ena-express-to-reduce-ec-2-tail-latency">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How can you use ENA Express to reduce EC2 tail latency? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-can-you-use-ena-express-to-reduce-ec-2-tail-latency" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Elastic Network Adapter Express is a networking feature powered by the AWS Nitro System and the Scalable Reliable Datagram protocol that significantly lowers tail latency and increases single-flow bandwidth between Amazon EC2 instances. By dynamica" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-can-you-use-ena-express-to-reduce-ec2-tail-latency">How can
+you use ENA Express to reduce EC2 tail latency?</h1>
+<p>Amazon Elastic Network Adapter Express is a networking feature
+powered by the AWS Nitro System and the Scalable Reliable Datagram
+protocol that significantly lowers tail latency and increases
+single-flow bandwidth between Amazon EC2 instances. By dynamically
+routing network packets across multiple paths and handling packet
+recovery directly on the Nitro card hardware, ENA Express overcomes
+traditional TCP congestion bottlenecks. This article explains how ENA
+Express works under the hood, its prerequisites, and how to enable,
+configure, and monitor it on your EC2 instances to improve performance
+for latency-sensitive workloads.</p>
+<h2 id="understanding-tail-latency-in-cloud-networking">Understanding
+Tail Latency in Cloud Networking</h2>
+<p>In distributed applications such as financial trading platforms,
+real-time analytics, and in-memory databases, average network latency
+only tells part of the performance story. Tail latency, commonly
+measured at the 99th (<span class="math inline">\(P_{99}\)</span>) or
+99.9th (<span class="math inline">\(P_{99.9}\)</span>) percentile,
+represents the slowest network responses in a system. Even if 99% of
+your requests complete in microseconds, the remaining 1% experiencing
+millisecond delays can stall distributed transactions and degrade
+overall application throughput.</p>
+<p>Traditional TCP/IP networking relies on Equal-Cost Multi-Path (ECMP)
+routing, which hashes a network flow's 5-tuple (source IP, destination
+IP, source port, destination port, and protocol) to assign all packets
+of that flow to a single physical network path. While this prevents
+packets from arriving out of order, it creates two major challenges:</p>
+<ol type="1">
+<li><strong>Hash collisions:</strong> Multiple high-bandwidth flows can
+be hashed onto the same network link, causing congestion and buffer
+buildup even when adjacent paths are idle.</li>
+<li><strong>Slow failure recovery:</strong> If a network switch or link
+degrades, TCP must wait for retransmission timeouts to detect packet
+loss and scale back its congestion window, resulting in significant
+latency spikes.</li>
+</ol>
+<h2 id="how-ena-express-and-srd-work">How ENA Express and SRD Work</h2>
+<p>ENA Express addresses the limitations of traditional ECMP routing by
+replacing standard physical transport mechanisms with the AWS Scalable
+Reliable Datagram (SRD) protocol directly on the AWS Nitro hardware.
+Importantly, ENA Express is completely transparent to your applications;
+it works with standard TCP and UDP sockets without requiring application
+code changes.</p>
+<p>When an EC2 instance sends a TCP or UDP packet over an ENA
+Express-enabled interface, the Nitro card encapsulates the traffic into
+SRD packets and manages delivery across the AWS data center fabric using
+four core mechanisms:</p>
+<ul>
+<li><strong>Multi-path spraying:</strong> Instead of pinning a single
+flow to a single network path, SRD sprays packets from a single flow
+across dozens of available network paths simultaneously. This balances
+load evenly across the network fabric and prevents single-link
+congestion.</li>
+<li><strong>Fine-grained congestion control:</strong> SRD continuously
+monitors round-trip times and link utilization at the hardware level,
+dynamically routing packets around congested or failed links in
+microseconds rather than waiting for operating system TCP timeouts.</li>
+<li><strong>Hardware retransmission:</strong> If a packet is lost in
+transit, the Nitro card detects the missing sequence and retransmits the
+packet directly between the source and destination Nitro cards, hiding
+the loss from the guest operating system's TCP stack.</li>
+<li><strong>Out-of-order reassembly:</strong> Because packets take
+different paths, they naturally arrive out of order. For TCP traffic,
+the receiving Nitro card buffers and reorders the packets in hardware
+before passing them to the guest OS, preventing the OS from mistakenly
+interpreting out-of-order delivery as packet loss.</li>
+</ul>
+<p>By offloading path selection, retransmission, and reordering to the
+Nitro card, ENA Express achieves two primary performance
+improvements:</p>
+<p><span class="math display">\[\text{Single-Flow Bandwidth}: 5\text{
+Gbps} \rightarrow 25\text{ Gbps}\]</span></p>
+<p><span class="math display">\[\text{Tail Latency } (P_{99.9}):
+\text{Up to } 85\% \text{ reduction under high load}\]</span></p>
+<h2 id="prerequisites-and-compatibility">Prerequisites and
+Compatibility</h2>
+<p>Before enabling ENA Express, both the source and destination EC2
+instances must meet specific architectural requirements:</p>
+<ul>
+<li><strong>Supported instance types:</strong> Both instances must
+support ENA Express. This generally includes modern Nitro-based
+instances with high networking capabilities, such as
+<code>c6gn.16xlarge</code>, <code>c6in.32xlarge</code>,
+<code>c7g.16xlarge</code>, <code>c7gn.16xlarge</code>,
+<code>r6in.32xlarge</code>, <code>m6in.32xlarge</code>,
+<code>hpc7g</code>, and newer high-bandwidth instance families.</li>
+<li><strong>Same Availability Zone:</strong> The communicating instances
+must reside in the exact same Availability Zone (AZ). Traffic crossing
+AZ boundaries or going through transit gateways falls back to standard
+ENA routing.</li>
+<li><strong>ENA Linux driver version:</strong> For Linux instances, the
+<code>ena</code> kernel driver must be version <code>2.8.0</code> or
+later to view ENA Express metrics and manage settings via
+<code>ethtool</code>.</li>
+<li><strong>Maximum Transmission Unit (MTU):</strong> To achieve optimal
+throughput and avoid fragmentation overhead, configure your VPC and
+instance network interfaces to use Jumbo Frames (MTU 8900 or 9001,
+depending on exact topology requirements; standard VPC Jumbo Frames use
+9001, and ENA Express handles encapsulation internally).</li>
+</ul>
+<p>You can verify whether a specific instance type supports ENA Express
+using the AWS CLI:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-instance-types <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--instance-types</span> c7gn.16xlarge <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> <span class="st">&quot;InstanceTypes[].NetworkInfo.EnaExpressSupport&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> text</span></code></pre></div>
+<h2 id="how-to-enable-ena-express">How to Enable ENA Express</h2>
+<p>ENA Express is configured per Elastic Network Interface (ENI). You
+can enable it when launching a new instance or attach/modify it on an
+existing network interface using the AWS CLI, AWS Management Console, or
+Infrastructure as Code tools.</p>
+<h3 id="enabling-on-an-existing-network-interface">Enabling on an
+Existing Network Interface</h3>
+<p>To enable ENA Express on an existing ENI, use the
+<code>modify-network-interface-attribute</code> command:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-network-interface-attribute <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--network-interface-id</span> eni-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--ena-srd-specification</span> EnaSrdEnabled=true</span></code></pre></div>
+<h3 id="enabling-udp-support-for-ena-express">Enabling UDP Support for
+ENA Express</h3>
+<p>By default, enabling <code>EnaSrdEnabled</code> activates SRD
+transport for both TCP and UDP traffic. However, because SRD sprays
+packets across multiple paths, UDP packets may arrive out of order
+(unlike TCP, the Nitro card does not reorder UDP packets so as not to
+introduce head-of-line blocking for real-time protocols). If your UDP
+application cannot tolerate out-of-order packets, you can disable SRD
+specifically for UDP while keeping it enabled for TCP:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-network-interface-attribute <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--network-interface-id</span> eni-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--ena-srd-specification</span> <span class="st">&quot;EnaSrdEnabled=true,EnaSrdUdpSpecification={EnaSrdUdpEnabled=false}&quot;</span></span></code></pre></div>
+<h3 id="enabling-at-instance-launch">Enabling at Instance Launch</h3>
+<p>You can also enable ENA Express directly during instance launch using
+<code>run-instances</code>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--instance-type</span> c7gn.16xlarge <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--subnet-id</span> subnet-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--network-interfaces</span> <span class="st">&quot;DeviceIndex=0,EnaSrdSpecification={EnaSrdEnabled=true,EnaSrdUdpSpecification={EnaSrdUdpEnabled=true}}&quot;</span></span></code></pre></div>
+<h2 id="guest-os-configuration-and-tuning">Guest OS Configuration and
+Tuning</h2>
+<p>Once ENA Express is enabled on the ENI, traffic between two
+compatible instances in the same AZ automatically uses SRD. However, to
+maximize single-flow throughput (up to 25 Gbps) and keep tail latency
+low, you should verify your guest operating system configuration.</p>
+<h3 id="1-verify-the-ena-driver-version">1. Verify the ENA Driver
+Version</h3>
+<p>Check that your Linux kernel is running ENA driver version
+<code>2.8.0</code> or newer:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ethtool</span> <span class="at">-i</span> eth0</span></code></pre></div>
+<p>Look for the <code>version:</code> field in the output. If it is
+older than <code>2.8.0</code>, update your Linux kernel or install the
+latest <code>amzn-drivers</code> package.</p>
+<h3 id="2-tune-tcp-buffer-sizes-for-25-gbps-flows">2. Tune TCP Buffer
+Sizes for 25 Gbps Flows</h3>
+<p>Standard Linux TCP buffer defaults are often sized for 5 Gbps or 10
+Gbps flows. To allow a single TCP connection to scale up to the 25 Gbps
+limit provided by ENA Express, calculate the Bandwidth-Delay Product
+(BDP):</p>
+<p><span class="math display">\[\text{BDP} = \text{Bandwidth} \times
+\text{RTT}\]</span></p>
+<p>For a <span class="math inline">\(25\text{ Gbps}\)</span> (<span
+class="math inline">\(3.125 \times 10^9\text{ bytes/sec}\)</span>) flow
+with a conservative intra-AZ round-trip time of <span
+class="math inline">\(500\ \mu\text{s}\)</span> (<span
+class="math inline">\(0.0005\text{ seconds}\)</span>), the minimum
+buffer size required is approximately <span
+class="math inline">\(1.56\text{ MB}\)</span>. To account for transient
+queuing and window scaling, increase the maximum TCP read and write
+buffers in <code>/etc/sysctl.conf</code>:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">net.core.rmem_max </span><span class="ot">=</span><span class="st"> </span><span class="dv">16777216</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">net.core.wmem_max </span><span class="ot">=</span><span class="st"> </span><span class="dv">16777216</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="dt">net.ipv4.tcp_rmem </span><span class="ot">=</span><span class="st"> 4096 87380 16777216</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="dt">net.ipv4.tcp_wmem </span><span class="ot">=</span><span class="st"> 4096 65536 16777216</span></span></code></pre></div>
+<p>Apply the settings without rebooting:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> sysctl <span class="at">-p</span></span></code></pre></div>
+<h2 id="monitoring-and-verifying-ena-express">Monitoring and Verifying
+ENA Express</h2>
+<p>To confirm that your traffic is actively using SRD and to monitor
+hardware resource utilization, inspect the extended network statistics
+exposed by <code>ethtool</code>.</p>
+<p>Run the following command on your instance (replace <code>eth0</code>
+with your primary network interface name, such as
+<code>ens5</code>):</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ethtool</span> <span class="at">-S</span> eth0 <span class="kw">|</span> <span class="fu">grep</span> ena_srd</span></code></pre></div>
+<p>This command outputs several key metrics:</p>
+<ul>
+<li><code>ena_srd_mode</code>: Displays a bitmask indicating the active
+configuration (<code>1</code> means ENA Express is enabled for TCP;
+<code>3</code> means both TCP and UDP are enabled).</li>
+<li><code>ena_srd_tx_pkts</code>: The number of packets transmitted over
+SRD. If this counter is incrementing, your outbound traffic is actively
+using ENA Express.</li>
+<li><code>ena_srd_rx_pkts</code>: The number of packets received over
+SRD.</li>
+<li><code>ena_srd_eligible_tx_pkts</code>: The number of packets
+eligible to be sent over SRD. Comparing <code>ena_srd_tx_pkts</code> to
+<code>ena_srd_eligible_tx_pkts</code> gives you the SRD utilization
+ratio:</li>
+</ul>
+<p><span class="math display">\[\text{SRD Utilization} =
+\frac{\text{ena\_srd\_tx\_pkts}}{\text{ena\_srd\_eligible\_tx\_pkts}}
+\times 100\%\]</span></p>
+<ul>
+<li><code>ena_srd_resource_utilization</code>: Shows the percentage of
+hardware SRD connection tracking resources currently in use on the Nitro
+card. If this value approaches 100%, new connections may temporarily
+fall back to standard ENA routing until existing flows close.</li>
+</ul>
+<h2 id="best-practices-for-reducing-tail-latency">Best Practices for
+Reducing Tail Latency</h2>
+<ol type="1">
+<li><strong>Combine with Cluster Placement Groups:</strong> While ENA
+Express prevents multi-path congestion across the AZ, combining it with
+a Cluster Placement Group places your instances in close physical
+proximity, minimizing both baseline propagation delay (<span
+class="math inline">\(P_{50}\)</span>) and worst-case tail latency
+(<span class="math inline">\(P_{99.9}\)</span>).</li>
+<li><strong>Monitor <code>ena_srd_resource_utilization</code>:</strong>
+ENA Express excels at high-throughput, medium-connection-count workloads
+(such as storage replication, distributed caching, and media pipelines).
+If your workload opens hundreds of thousands of concurrent connections,
+monitor the resource utilization counter to ensure the Nitro hardware
+buffers are not exhausted.</li>
+<li><strong>Keep TCP In-Order Guarantees in Mind for Custom
+Protocols:</strong> If you build custom protocols over UDP, test
+thoroughly before enabling <code>EnaSrdUdpEnabled</code>, or implement
+sequence handling in the application layer to accommodate multi-path
+packet reordering.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-can-you-use-ena-express-to-reduce-ec-2-tail-latency';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

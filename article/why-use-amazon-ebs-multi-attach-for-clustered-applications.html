@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Use Amazon EBS Multi-Attach for Clustered Applications? - ec2</title>
+    <meta name="description" content="Clustered applications use Amazon EBS Multi-Attach across multiple Amazon EC2 instances in the same Availability Zone to achieve high availability and share low-latency block storage concurrently without duplicating data. By allowing up to 16 Linux-based">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/why-use-amazon-ebs-multi-attach-for-clustered-applications">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Why Use Amazon EBS Multi-Attach for Clustered Applications? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/why-use-amazon-ebs-multi-attach-for-clustered-applications" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Clustered applications use Amazon EBS Multi-Attach across multiple Amazon EC2 instances in the same Availability Zone to achieve high availability and share low-latency block storage concurrently without duplicating data. By allowing up to 16 Linux-based" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="why-use-amazon-ebs-multi-attach-for-clustered-applications">Why
+Use Amazon EBS Multi-Attach for Clustered Applications?</h1>
+<p>Clustered applications use Amazon EBS Multi-Attach across multiple
+Amazon EC2 instances in the same Availability Zone to achieve high
+availability and share low-latency block storage concurrently without
+duplicating data. By allowing up to 16 Linux-based Nitro instances to
+attach to a single Provisioned IOPS SSD volume, cluster nodes can
+coordinate read and write access to the same underlying disk. This
+architecture eliminates the need for application-level storage
+replication within a single Availability Zone, streamlines failover
+procedures when an individual compute node fails, and delivers
+consistent sub-millisecond storage performance for enterprise workloads
+that manage their own concurrent disk input and output operations.</p>
+<h2 id="how-amazon-ebs-multi-attach-works">How Amazon EBS Multi-Attach
+Works</h2>
+<p>In a standard cloud storage configuration, an Amazon Elastic Block
+Store (EBS) volume can only be attached to a single Amazon EC2 instance
+at any given time. If an instance fails, the orchestration layer must
+detach the volume from the unhealthy instance and reattach it to a
+standby instance before workloads can resume. This detachment and
+reattachment process introduces recovery time overhead.</p>
+<p>Amazon EBS Multi-Attach removes this single-instance limitation for
+Provisioned IOPS SSD (<code>io1</code> and <code>io2</code>) volumes.
+With Multi-Attach enabled, a single volume can be concurrently attached
+to up to 16 Amazon EC2 instances built on the AWS Nitro System within
+the same Availability Zone. Each attached instance has full read and
+write permissions to the shared block device.</p>
+<h2 id="key-benefits-for-clustered-applications">Key Benefits for
+Clustered Applications</h2>
+<h3 id="instantaneous-failover-and-high-availability">Instantaneous
+Failover and High Availability</h3>
+<p>Enterprise applications often rely on active-active or active-passive
+clustering to maintain uptime. When all nodes in a cluster already have
+the storage volume attached and mounted, failing over from a degraded
+EC2 instance to a healthy standby node does not require AWS API calls to
+detach and attach volumes. The cluster manager simply fences the failed
+node and redirects traffic to a surviving instance, reducing the
+Recovery Time Objective (<span class="math inline">\(RTO\)</span>) from
+minutes to seconds:</p>
+<p><span class="math display">\[RTO_{\text{Multi-Attach}} \ll
+RTO_{\text{Detach/Attach}}\]</span></p>
+<h3 id="shared-storage-consistency-without-replication-overhead">Shared
+Storage Consistency Without Replication Overhead</h3>
+<p>Without shared block storage, clustered databases and applications
+must replicate data across separate EBS volumes attached to each
+instance. Maintaining multiple copies of data within the same
+Availability Zone consumes extra storage capacity and requires network
+bandwidth between instances to keep replicas synchronized. Multi-Attach
+provides a single source of truth at the block level, allowing all
+cluster nodes to access the exact same data blocks immediately after
+they are written.</p>
+<h3 id="predictable-provisioned-iops-performance">Predictable
+Provisioned IOPS Performance</h3>
+<p>Clustered applications that require shared block storage are
+typically I/O-intensive. Because Multi-Attach is supported on
+<code>io1</code> and <code>io2</code> volumes, workloads benefit from
+high durability and consistent performance. Each attached instance
+drives I/O up to its individual instance bandwidth and throughput
+limits, while the aggregate throughput and IOPS across all attached
+instances are bounded by the total provisioned capacity of the
+volume:</p>
+<p><span class="math display">\[\sum_{i=1}^{n}
+\text{IOPS}_{\text{instance } i} \le
+\text{IOPS}_{\text{volume}}\]</span></p>
+<p>where <span class="math inline">\(n \le 16\)</span> represents the
+number of attached EC2 instances in the cluster.</p>
+<h2
+id="requirements-for-file-system-and-application-coordination">Requirements
+for File System and Application Coordination</h2>
+<p>Standard Linux file systems such as <code>ext4</code> and
+<code>XFS</code> are not designed for concurrent access by multiple
+servers. They cache metadata locally in the operating system memory of
+each instance, which leads to immediate data corruption if multiple
+nodes write to the volume simultaneously without coordination.</p>
+<p>To safely use Amazon EBS Multi-Attach, clustered applications must
+implement one of two mechanisms:</p>
+<ol type="1">
+<li><strong>Cluster-Aware File Systems</strong>: Deploying a
+distributed, cluster-aware file system such as Global File System 2
+(GFS2) or Oracle Cluster File System 2 (OCFS2) that uses a distributed
+lock manager (DLM) to coordinate metadata and block locks across all
+nodes.</li>
+<li><strong>Application-Level I/O Fencing</strong>: Using enterprise
+database engines or storage managers—such as Oracle Real Application
+Clusters (RAC) with Automatic Storage Management (ASM)—that bypass
+standard operating system file caches and manage raw block locking,
+heartbeats, and I/O fencing directly within the application
+software.</li>
+</ol>
+<h2 id="common-use-cases">Common Use Cases</h2>
+<ul>
+<li><strong>Clustered Relational Databases</strong>: Running shared-disk
+database architectures like Teradata or custom clustered databases that
+coordinate concurrent read/write operations across compute nodes.</li>
+<li><strong>Active-Passive High Availability Clusters</strong>:
+Configuring Pacemaker and Corosync clusters where a secondary node keeps
+the volume attached in a standby state to take over immediately if the
+primary instance stops responding.</li>
+<li><strong>Shared Media and Financial Processing</strong>: Workloads
+where multiple compute nodes need high-speed, low-latency block access
+to a unified dataset controlled by a centralized lock manager, avoiding
+the latency overhead of network-based file shares like NFS.</li>
+</ul>
+<h2
+id="architectural-scope-and-single-availability-zone-design">Architectural
+Scope and Single Availability Zone Design</h2>
+<p>Amazon EBS volumes are zonal resources that exist within a single
+Availability Zone. Consequently, EBS Multi-Attach protects against the
+failure of individual Amazon EC2 instances inside one Availability Zone,
+rather than the loss of an entire Availability Zone. For multi-AZ
+disaster recovery, organizations typically pair local EBS Multi-Attach
+clusters with cross-AZ asynchronous replication or periodic Amazon EBS
+snapshots to ensure both rapid local failover and regional
+resilience.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/why-use-amazon-ebs-multi-attach-for-clustered-applications';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

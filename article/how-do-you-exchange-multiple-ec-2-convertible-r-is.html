@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do You Exchange Multiple EC2 Convertible RIs? - ec2</title>
+    <meta name="description" content="Exchanging multiple Amazon EC2 Convertible Reserved Instances for a different instance family allows organizations to adapt their cloud compute commitments as workload demands evolve. You can consolidate or merge two or more active Convertible Reserved In">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-you-exchange-multiple-ec-2-convertible-r-is">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do You Exchange Multiple EC2 Convertible RIs? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-you-exchange-multiple-ec-2-convertible-r-is" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Exchanging multiple Amazon EC2 Convertible Reserved Instances for a different instance family allows organizations to adapt their cloud compute commitments as workload demands evolve. You can consolidate or merge two or more active Convertible Reserved In" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-you-exchange-multiple-ec2-convertible-ris">How Do You
+Exchange Multiple EC2 Convertible RIs?</h1>
+<p>Exchanging multiple Amazon EC2 Convertible Reserved Instances for a
+different instance family allows organizations to adapt their cloud
+compute commitments as workload demands evolve. You can consolidate or
+merge two or more active Convertible Reserved Instances in the same AWS
+Region into a new configuration with a different instance family,
+operating system, tenancy, or payment option. To complete the exchange
+through the Amazon EC2 console or AWS Command Line Interface, the new
+target reservation must have an equal or greater total commitment value
+than the combined remaining value of the original reservations, and it
+cannot downgrade from an All Upfront or Partial Upfront payment option
+to a No Upfront option.</p>
+<h2 id="prerequisites-and-exchange-rules">Prerequisites and Exchange
+Rules</h2>
+<p>Before initiating an exchange across multiple Convertible Reserved
+Instances, verify that your existing reservations and target instance
+configurations satisfy Amazon EC2 requirements:</p>
+<ul>
+<li><strong>Active State and Region:</strong> All source Convertible
+Reserved Instances must be in the <code>active</code> state and located
+within the same AWS Region. You cannot exchange Standard Reserved
+Instances or combine reservations across different Regions.</li>
+<li><strong>Equal or Greater Value:</strong> The total upfront and
+recurring commitment of the new Convertible Reserved Instance
+configuration must be equal to or greater than the remaining value of
+the combined source reservations.</li>
+<li><strong>Expiration Date Calculation:</strong> When merging multiple
+Convertible Reserved Instances with different end dates, AWS sets the
+expiration date of the new reservation to match the furthest expiration
+date among all the source reservations being exchanged.</li>
+<li><strong>Payment Option Compatibility:</strong> If any of the source
+reservations use the All Upfront or Partial Upfront payment option, the
+new target reservation must also use All Upfront or Partial Upfront. You
+can only select a No Upfront target configuration if every source
+reservation being exchanged is already a No Upfront reservation.</li>
+<li><strong>Uncovered Upfront Costs:</strong> If the new instance family
+configuration requires a higher upfront commitment than the remaining
+upfront credit of the exchanged reservations, you are billed immediately
+for the true-up difference.</li>
+</ul>
+<h2 id="understanding-the-exchange-value-calculation">Understanding the
+Exchange Value Calculation</h2>
+<p>When you exchange <span class="math inline">\(n\)</span> Convertible
+Reserved Instances, AWS calculates the remaining list value of your
+current commitments and compares it against the list cost of the target
+instance family over the remaining term.</p>
+<p>Let <span class="math inline">\(V_{\text{old}}\)</span> represent the
+combined remaining commitment value of the <span
+class="math inline">\(n\)</span> source reservations, calculated as:</p>
+<p><span class="math display">\[V_{\text{old}} = \sum_{i=1}^{n} \left(
+U_{\text{rem}, i} + H_{i} \times t_{\text{rem}, i} \right)\]</span></p>
+<p>where <span class="math inline">\(U_{\text{rem}, i}\)</span> is the
+prorated remaining upfront value of reservation <span
+class="math inline">\(i\)</span>, <span
+class="math inline">\(H_{i}\)</span> is the hourly recurring rate of
+reservation <span class="math inline">\(i\)</span>, and <span
+class="math inline">\(t_{\text{rem}, i}\)</span> is the remaining hours
+until reservation <span class="math inline">\(i\)</span> expires.</p>
+<p>The new expiration timestamp <span
+class="math inline">\(T_{\text{new}}\)</span> is determined by the
+maximum expiration timestamp among the source reservations:</p>
+<p><span class="math display">\[T_{\text{new}} = \max_{1 \le i \le n}
+\left( T_{\text{end}, i} \right)\]</span></p>
+<p>For a target configuration of <span
+class="math inline">\(N_{\text{new}}\)</span> instances in the new
+instance family with an upfront cost per instance of <span
+class="math inline">\(U_{\text{new}}\)</span> and an hourly rate per
+instance of <span class="math inline">\(H_{\text{new}}\)</span> over the
+remaining duration <span class="math inline">\(t_{\text{new}}\)</span>,
+the total new commitment value <span
+class="math inline">\(V_{\text{new}}\)</span> must satisfy:</p>
+<p><span class="math display">\[V_{\text{new}} = N_{\text{new}} \times
+\left( U_{\text{new}} + H_{\text{new}} \times t_{\text{new}} \right) \ge
+V_{\text{old}}\]</span></p>
+<p>AWS automatically computes the minimum required instance count <span
+class="math inline">\(N_{\text{new}}\)</span> so that <span
+class="math inline">\(V_{\text{new}} \ge V_{\text{old}}\)</span> and
+calculates any true-up upfront payment due at checkout.</p>
+<h2
+id="exchanging-multiple-reservations-via-the-aws-management-console">Exchanging
+Multiple Reservations via the AWS Management Console</h2>
+<p>You can merge and exchange multiple Convertible Reserved Instances
+simultaneously using the Amazon EC2 console:</p>
+<ol type="1">
+<li>Sign in to the AWS Management Console and open the <strong>Amazon
+EC2</strong> dashboard.</li>
+<li>In the left navigation pane, choose <strong>Reserved
+Instances</strong> under the <strong>Instances</strong> section.</li>
+<li>Select the checkboxes next to the two or more
+<strong>Convertible</strong> Reserved Instances that you want to
+exchange. Verify that the <strong>Offering class</strong> column shows
+<code>convertible</code> and the <strong>State</strong> column shows
+<code>active</code> for every selected item.</li>
+<li>Choose <strong>Actions</strong>, and then select <strong>Exchange
+Reserved Instance</strong>.</li>
+<li>In the <strong>Exchange Reserved Instances</strong> configuration
+dialog, specify the target attributes for your new reservation:
+<ul>
+<li><strong>Instance type:</strong> Select the desired target instance
+family and size (for example, moving from <code>c5.large</code> and
+<code>m5.large</code> to <code>m6i.xlarge</code>).</li>
+<li><strong>Platform:</strong> Select the operating system (such as
+Linux/UNIX, Red Hat Enterprise Linux, SUSE Linux, or Windows).</li>
+<li><strong>Tenancy:</strong> Choose <code>Default</code> or
+<code>Dedicated</code>.</li>
+<li><strong>Payment option:</strong> Select <code>All Upfront</code>,
+<code>Partial Upfront</code>, or <code>No Upfront</code> (subject to the
+payment compatibility rules).</li>
+</ul></li>
+<li>Choose <strong>Find offering</strong> (or review the automatically
+populated target calculation). The console displays the minimum number
+of instances required in the new instance family to cover the remaining
+value of your selected reservations, along with any additional upfront
+true-up cost.</li>
+<li>Review the summary table comparing your current reservations to the
+new reservation, and then choose <strong>Exchange</strong> to submit the
+request.</li>
+</ol>
+<h2 id="exchanging-multiple-reservations-via-the-aws-cli">Exchanging
+Multiple Reservations via the AWS CLI</h2>
+<p>For automated workflows or bulk reservation management, use the AWS
+Command Line Interface (<code>aws ec2</code>) to find a target offering,
+request a quote, and execute the exchange.</p>
+<h3 id="step-1-identify-your-current-reserved-instance-ids">Step 1:
+Identify Your Current Reserved Instance IDs</h3>
+<p>List your active Convertible Reserved Instances to retrieve their
+<code>ReservedInstancesId</code> values:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-reserved-instances <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--filters</span> <span class="st">&quot;Name=offering-class,Values=convertible&quot;</span> <span class="st">&quot;Name=state,Values=active&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">&quot;ReservedInstances[*].{ID:ReservedInstancesId,Type:InstanceType,Count:InstanceCount,End:End}&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output</span> table</span></code></pre></div>
+<h3 id="step-2-find-a-target-offering-in-the-new-instance-family">Step
+2: Find a Target Offering in the New Instance Family</h3>
+<p>Query the available Convertible Reserved Instance offerings for your
+target instance family (for example, <code>m6i.xlarge</code>):</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-reserved-instances-offerings <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--offering-class</span> convertible <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> m6i.xlarge <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--product-description</span> <span class="st">&quot;Linux/UNIX&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-tenancy</span> default <span class="dt">\</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--no-include-marketplace</span> <span class="dt">\</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">&quot;ReservedInstancesOfferings[*].{OfferingId:ReservedInstancesOfferingId,Payment:OfferingType,Duration:Duration}&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output</span> table</span></code></pre></div>
+<h3 id="step-3-preview-the-exchange-quote">Step 3: Preview the Exchange
+Quote</h3>
+<p>Before committing to the exchange, run
+<code>get-reserved-instances-exchange-quote</code> by passing multiple
+space-separated reservation IDs to <code>--reserved-instance-ids</code>
+and the target offering ID from the previous step:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 get-reserved-instances-exchange-quote <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--reserved-instance-ids</span> <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        11111111-2222-3333-4444-555555555551 <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        11111111-2222-3333-4444-555555555552 <span class="dt">\</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--target-configurations</span> OfferingId=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</span></code></pre></div>
+<p>note that omitting <code>InstanceCount</code> inside
+<code>--target-configurations</code> instructs AWS to automatically
+calculate the minimum number of instances of the target offering
+required to equal or exceed the combined value of the source
+reservations. Examine the <code>PaymentDue</code>,
+<code>OutputReservedInstancesWillExpireAt</code>, and
+<code>TargetConfiguration.InstanceCount</code> fields in the JSON
+output.</p>
+<h3 id="step-4-execute-the-exchange">Step 4: Execute the Exchange</h3>
+<p>Once you verify the quote details, execute the exchange using
+<code>accept-reserved-instances-exchange-quote</code>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 accept-reserved-instances-exchange-quote <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--reserved-instance-ids</span> <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        11111111-2222-3333-4444-555555555551 <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        11111111-2222-3333-4444-555555555552 <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--target-configurations</span> OfferingId=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</span></code></pre></div>
+<p>The command returns an <code>ExchangeId</code>. Your original
+Convertible Reserved Instances transition to the <code>retired</code>
+state, and the new Convertible Reserved Instance in the target instance
+family transitions to <code>payment-pending</code> and then
+<code>active</code> within a few minutes.</p>
+<h2 id="splitting-a-reservation-before-exchanging">Splitting a
+Reservation Before Exchanging</h2>
+<p>When you include a Convertible Reserved Instance in an exchange, all
+instances within that specific <code>ReservedInstancesId</code> must be
+exchanged together unless you specify a smaller subset or split the
+reservation first. If a reservation contains <span
+class="math inline">\(10\)</span> instances and you only want to combine
+<span class="math inline">\(4\)</span> of them with another reservation
+into a new instance family, first use the <strong>Modify Reserved
+Instances</strong> action (<code>modify-reserved-instances</code> in the
+AWS CLI) to split the original reservation into two separate
+reservations of <span class="math inline">\(6\)</span> and <span
+class="math inline">\(4\)</span> instances, and then include only the
+<span class="math inline">\(4\)</span>-instance reservation ID in your
+multi-reservation exchange.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-you-exchange-multiple-ec-2-convertible-r-is';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Identify EC2 Instance vs. Volume EBS Bottlenecks? - ec2</title>
+    <meta name="description" content="Identifying whether an Amazon Elastic Block Store performance bottleneck is occurring at the Amazon Elastic Compute Cloud instance level or the individual volume level requires comparing aggregate instance metrics against individual storage volume metrics">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-identify-ec-2-instance-vs-volume-ebs-bottlenecks">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Identify EC2 Instance vs. Volume EBS Bottlenecks? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-identify-ec-2-instance-vs-volume-ebs-bottlenecks" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Identifying whether an Amazon Elastic Block Store performance bottleneck is occurring at the Amazon Elastic Compute Cloud instance level or the individual volume level requires comparing aggregate instance metrics against individual storage volume metrics" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-identify-ec2-instance-vs-volume-ebs-bottlenecks">How to
+Identify EC2 Instance vs. Volume EBS Bottlenecks?</h1>
+<p>Identifying whether an Amazon Elastic Block Store performance
+bottleneck is occurring at the Amazon Elastic Compute Cloud instance
+level or the individual volume level requires comparing aggregate
+instance metrics against individual storage volume metrics in Amazon
+CloudWatch. Every EC2 instance type enforces a maximum ceiling for total
+EBS bandwidth and input/output operations per second across all attached
+volumes, while each EBS volume enforces its own provisioned limits based
+on its volume type and configuration. By analyzing specific CloudWatch
+metrics for micro-bursting, throughput, IOPS, and queue length alongside
+operating system tools like iostat, administrators can quickly pinpoint
+the exact source of storage throttling and resolve latency issues.</p>
+<h2
+id="understanding-the-two-layers-of-ebs-performance-limits">Understanding
+the Two Layers of EBS Performance Limits</h2>
+<p>When an application reads from or writes to an Amazon EBS volume, the
+storage traffic must pass through two distinct performance gates:</p>
+<ol type="1">
+<li><strong>The EC2 Instance Limit</strong>: EBS-optimized instances
+allocate dedicated network bandwidth between the EC2 instance and the
+EBS storage fleet. Each instance size has a baseline and burst (or
+maximum) limit for both IOPS and throughput (measured in megabytes per
+second). If you attach multiple high-performance volumes to a single
+instance, their combined traffic cannot exceed the ceiling of the
+instance itself.</li>
+<li><strong>The EBS Volume Limit</strong>: Each individual EBS volume
+(<code>gp3</code>, <code>gp2</code>, <code>io2</code>, <code>io1</code>,
+<code>st1</code>, <code>sc1</code>) has its own performance cap. For
+example, a standard <code>gp3</code> volume provides a baseline of <span
+class="math inline">\(3,000\text{ IOPS}\)</span> and <span
+class="math inline">\(125\text{ MB/s}\)</span> of throughput unless
+scaled higher. Even if your EC2 instance supports <span
+class="math inline">\(40,000\text{ IOPS}\)</span>, a single default
+<code>gp3</code> volume will throttle once demand exceeds <span
+class="math inline">\(3,000\text{ IOPS}\)</span>.</li>
+</ol>
+<p>The effective performance for your workload is determined by the
+lower of the two limits:</p>
+<p><span class="math display">\[\text{Effective IOPS} =
+\min\left(\text{Instance Max IOPS}, \sum_{i=1}^{n} \text{Volume}_i\text{
+Max IOPS}\right)\]</span></p>
+<p><span class="math display">\[\text{Effective Throughput} =
+\min\left(\text{Instance Max Throughput}, \sum_{i=1}^{n}
+\text{Volume}_i\text{ Max Throughput}\right)\]</span></p>
+<h2 id="how-to-identify-instance-level-ebs-bottlenecks">How to Identify
+Instance-Level EBS Bottlenecks</h2>
+<p>An instance-level bottleneck occurs when the combined I/O demand of
+one or more attached EBS volumes exceeds the capacity of the EC2
+instance's dedicated EBS connection.</p>
+<h3 id="1-check-instance-ebs-exceeded-metrics-in-cloudwatch">1. Check
+Instance EBS Exceeded Metrics in CloudWatch</h3>
+<p>AWS provides two specific CloudWatch metrics under the
+<code>AWS/EC2</code> namespace that directly measure instance-level EBS
+throttling (available on Nitro-based instances):</p>
+<ul>
+<li><strong><code>EBSIOBalance%</code> and
+<code>EBSByteBalance%</code></strong> (for burstable EBS-optimized
+instances like <code>t3</code>, <code>m5.large</code>, or
+<code>c5.large</code>): Many smaller instance sizes can burst their EBS
+performance for up to 30 minutes at a time using a credit bucket. When
+<code>EBSIOBalance%</code> or <code>EBSByteBalance%</code> drops to
+<span class="math inline">\(0\%\)</span>, the instance falls back to its
+much lower baseline IOPS or throughput limit.</li>
+<li><strong><code>EBSIOPSExceededCheck</code> and
+<code>EBSThroughputExceededCheck</code></strong>: Detailed CloudWatch
+metrics or AWS Compute Optimizer findings can reveal when aggregate
+demand hits the instance ceiling.</li>
+</ul>
+<h3 id="2-calculate-aggregate-instance-iops-and-throughput">2. Calculate
+Aggregate Instance IOPS and Throughput</h3>
+<p>If you suspect the instance is hitting its maximum limit, sum the
+<code>EBSReadOps</code> and <code>EBSWriteOps</code> (or
+<code>EBSReadBytes</code> and <code>EBSWriteBytes</code>) metrics in the
+<code>AWS/EC2</code> namespace and divide by the period in seconds:</p>
+<p><span class="math display">\[\text{Instance IOPS} =
+\frac{\text{Sum}(\text{EBSReadOps}) +
+\text{Sum}(\text{EBSWriteOps})}{\text{Period in Seconds}}\]</span></p>
+<p><span class="math display">\[\text{Instance Throughput (MiB/s)} =
+\frac{\text{Sum}(\text{EBSReadBytes}) +
+\text{Sum}(\text{EBSWriteBytes})}{\text{Period in Seconds} \times
+1,048,576}\]</span></p>
+<p>Compare these calculated values against the published maximum EBS
+performance specifications for your EC2 instance type in the AWS
+documentation. If your calculated values plateau right at the instance
+specification while application latency increases, the EC2 instance is
+the bottleneck.</p>
+<h2 id="how-to-identify-volume-level-ebs-bottlenecks">How to Identify
+Volume-Level EBS Bottlenecks</h2>
+<p>A volume-level bottleneck occurs when a specific EBS volume reaches
+its maximum provisioned IOPS or throughput, even while the EC2 instance
+still has plenty of available EBS bandwidth.</p>
+<h3 id="1-monitor-volume-performance-metrics-in-cloudwatch">1. Monitor
+Volume Performance Metrics in CloudWatch</h3>
+<p>Navigate to the <code>AWS/EBS</code> namespace in CloudWatch and
+inspect the following metrics for each individual
+<code>VolumeId</code>:</p>
+<ul>
+<li><strong><code>VolumeReadOps</code> and
+<code>VolumeWriteOps</code></strong>: Divide the sum of these two
+metrics by the period in seconds to determine the actual IOPS consumed
+by the volume:</li>
+</ul>
+<p><span class="math display">\[\text{Volume IOPS} =
+\frac{\text{Sum}(\text{VolumeReadOps}) +
+\text{Sum}(\text{VolumeWriteOps})}{\text{Period in
+Seconds}}\]</span></p>
+<ul>
+<li><strong><code>VolumeReadBytes</code> and
+<code>VolumeWriteBytes</code></strong>: Divide the sum of these metrics
+by the period in seconds to determine the volume throughput:</li>
+</ul>
+<p><span class="math display">\[\text{Volume Throughput (MiB/s)} =
+\frac{\text{Sum}(\text{VolumeReadBytes}) +
+\text{Sum}(\text{VolumeWriteBytes})}{\text{Period in Seconds} \times
+1,048,576}\]</span></p>
+<ul>
+<li><strong><code>VolumeQueueLength</code></strong>: This metric tracks
+the number of I/O requests waiting to be completed by the volume. If
+<code>VolumeQueueLength</code> spikes alongside high latency
+(<code>VolumeTotalReadTime</code> and
+<code>VolumeTotalWriteTime</code>), and the calculated IOPS or
+throughput matches the volume's provisioned limit, the individual volume
+is throttling.</li>
+<li><strong><code>BurstBalance</code></strong>: If you are using legacy
+<code>gp2</code>, <code>st1</code>, or <code>sc1</code> volumes, check
+the <code>BurstBalance</code> metric. If <code>BurstBalance</code>
+reaches <span class="math inline">\(0\%\)</span>, the volume has
+exhausted its I/O credits and is throttled down to its baseline
+performance.</li>
+</ul>
+<h3 id="2-watch-out-for-micro-bursting">2. Watch Out for
+Micro-Bursting</h3>
+<p>CloudWatch aggregates basic EBS metrics in 1-minute or 5-minute
+intervals. However, EBS enforces performance limits on a 1-second basis.
+A volume might spike to <span class="math inline">\(10,000\text{
+IOPS}\)</span> for 5 seconds and sit idle for 55 seconds. Over a
+1-minute CloudWatch period, the average will report only <span
+class="math inline">\(833\text{ IOPS}\)</span>, hiding the fact that the
+volume was severely throttled during those 5 active seconds.</p>
+<p>To detect micro-bursting on Nitro-based EC2 instances, check the
+high-resolution <code>VolumeConsumedReadWriteOps</code> metric or use
+Amazon EBS Detailed Performance Statistics via <code>ethtool</code> or
+NVMe driver statistics inside the guest operating system.</p>
+<h2
+id="diagnosing-bottlenecks-inside-the-linux-operating-system">Diagnosing
+Bottlenecks Inside the Linux Operating System</h2>
+<p>You can verify CloudWatch findings in real time with the
+<code>iostat</code> utility (part of the <code>sysstat</code> package)
+and NVMe CLI tools on Linux instances.</p>
+<p>Run <code>iostat</code> with a 1-second interval to catch
+micro-bursting and compare individual disk behavior:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">iostat</span> <span class="at">-xz</span> 1</span></code></pre></div>
+<p>Examine the following columns in the output:</p>
+<ul>
+<li><strong><code>r/s</code> and <code>w/s</code></strong>: The read and
+write operations per second per device.</li>
+<li><strong><code>rkB/s</code> and <code>wkB/s</code></strong>: The
+kilobytes read and written per second.</li>
+<li><strong><code>r_await</code> and <code>w_await</code></strong>: The
+average time (in milliseconds) for I/O requests to be serviced.</li>
+<li><strong><code>aqu-sz</code></strong>: The average queue length of
+requests.</li>
+</ul>
+<h3 id="comparing-multi-volume-behavior">Comparing Multi-Volume
+Behavior</h3>
+<p>Suppose an EC2 instance has three attached <code>gp3</code> volumes
+(<code>nvme1n1</code>, <code>nvme2n1</code>, and
+<code>nvme3n1</code>):</p>
+<ul>
+<li><strong>Scenario A (Volume Bottleneck)</strong>:
+<code>nvme1n1</code> shows <code>aqu-sz</code> &gt; <span
+class="math inline">\(4\)</span> and <code>r_await</code> &gt; <span
+class="math inline">\(15\text{ ms}\)</span> while running right at <span
+class="math inline">\(3,000\text{ IOPS}\)</span>, whereas
+<code>nvme2n1</code> and <code>nvme3n1</code> show sub-millisecond
+<code>await</code> times and low utilization. This confirms that
+<code>nvme1n1</code> is bottlenecked at the volume level.</li>
+<li><strong>Scenario B (Instance Bottleneck)</strong>: All three volumes
+show elevated <code>await</code> times and growing queue lengths
+simultaneously whenever their combined throughput hits <span
+class="math inline">\(600\text{ MB/s}\)</span> (for example, on an
+<code>m5.xlarge</code> after burst credits expire), even though each
+volume is provisioned for <span class="math inline">\(500\text{
+MB/s}\)</span>. This confirms an instance-level bottleneck.</li>
+</ul>
+<h3 id="checking-nitro-nvme-driver-performance-statistics">Checking
+Nitro NVMe Driver Performance Statistics</h3>
+<p>On modern Nitro-based EC2 instances, Amazon EBS exposes detailed
+hardware-level throttling counters directly to the guest OS through the
+NVMe driver. You can inspect whether the instance or the volume exceeded
+its limits with the <code>nvme</code> command-line tool:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> nvme amzn stats /dev/nvme1n1</span></code></pre></div>
+<p>Look for the following counters in the output:</p>
+<ul>
+<li><strong><code>ebsnvme-volume_iops_exceeded</code></strong>: Total
+seconds within the measurement window where the volume exceeded its
+provisioned IOPS limit.</li>
+<li><strong><code>ebsnvme-volume_throughput_exceeded</code></strong>:
+Total seconds where the volume exceeded its provisioned throughput
+limit.</li>
+<li><strong><code>ebsnvme-instance_iops_exceeded</code></strong>: Total
+seconds where the EC2 instance's aggregate EBS IOPS limit was
+exceeded.</li>
+<li><strong><code>ebsnvme-instance_throughput_exceeded</code></strong>:
+Total seconds where the EC2 instance's aggregate EBS throughput limit
+was exceeded.</li>
+</ul>
+<p>If the <code>instance_*_exceeded</code> counters are incrementing,
+your EC2 instance is the bottleneck. If the
+<code>volume_*_exceeded</code> counters are incrementing while the
+instance counters remain at zero, the individual EBS volume is the
+bottleneck.</p>
+<h2 id="summary-comparison-matrix">Summary Comparison Matrix</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Diagnostic Indicator</th>
+<th style="text-align: left;">Instance-Level Bottleneck</th>
+<th style="text-align: left;">Volume-Level Bottleneck</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Impact Scope</strong></td>
+<td style="text-align: left;">Affects all EBS volumes attached to the
+EC2 instance simultaneously.</td>
+<td style="text-align: left;">Affects only the specific EBS volume
+hitting its provisioned cap.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>CloudWatch Metrics</strong></td>
+<td style="text-align: left;"><code>EBSIOBalance%</code> or
+<code>EBSByteBalance%</code> drops to <span
+class="math inline">\(0\%\)</span>; sum of <code>EBSReadOps</code> +
+<code>EBSWriteOps</code> hits instance max.</td>
+<td style="text-align: left;"><code>VolumeReadOps</code> +
+<code>VolumeWriteOps</code> or bytes hits volume max;
+<code>BurstBalance</code> drops to <span
+class="math inline">\(0\%\)</span>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>NVMe Stats
+(<code>nvme amzn stats</code>)</strong></td>
+<td style="text-align: left;"><code>instance_iops_exceeded</code> or
+<code>instance_throughput_exceeded</code> increments.</td>
+<td style="text-align: left;"><code>volume_iops_exceeded</code> or
+<code>volume_throughput_exceeded</code> increments.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Resolution</strong></td>
+<td style="text-align: left;">Resize the EC2 instance to a larger size
+or switch to a storage-optimized/EBS-optimized instance family (e.g.,
+<code>r6in</code>, <code>m6in</code>).</td>
+<td style="text-align: left;">Modify the EBS volume using Elastic
+Volumes to increase provisioned IOPS/throughput, or stripe data across
+multiple volumes.</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-identify-ec-2-instance-vs-volume-ebs-bottlenecks';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

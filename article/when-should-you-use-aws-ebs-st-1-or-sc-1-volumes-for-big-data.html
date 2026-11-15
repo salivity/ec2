@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Should You Use AWS EBS st1 or sc1 Volumes for Big Data? - ec2</title>
+    <meta name="description" content="Choosing between Amazon EBS Throughput Optimized HDD st1 and Cold HDD sc1 volumes depends primarily on how frequently your sequential big data workload accesses stored data and your performance requirements. Both volume types are low-cost magnetic storage">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-should-you-use-aws-ebs-st-1-or-sc-1-volumes-for-big-data">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When Should You Use AWS EBS st1 or sc1 Volumes for Big Data? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-should-you-use-aws-ebs-st-1-or-sc-1-volumes-for-big-data" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Choosing between Amazon EBS Throughput Optimized HDD st1 and Cold HDD sc1 volumes depends primarily on how frequently your sequential big data workload accesses stored data and your performance requirements. Both volume types are low-cost magnetic storage" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="when-should-you-use-aws-ebs-st1-or-sc1-volumes-for-big-data">When
+Should You Use AWS EBS st1 or sc1 Volumes for Big Data?</h1>
+<p>Choosing between Amazon EBS Throughput Optimized HDD st1 and Cold HDD
+sc1 volumes depends primarily on how frequently your sequential big data
+workload accesses stored data and your performance requirements. Both
+volume types are low-cost magnetic storage options designed for large,
+sequential I/O operations rather than small, random I/O tasks. This
+article explains the architectural differences, throughput mechanics,
+use cases, and cost trade-offs to help you select the right HDD volume
+for your Amazon EC2 instances.</p>
+<h2 id="understanding-amazon-ebs-hdd-volume-types">Understanding Amazon
+EBS HDD Volume Types</h2>
+<p>Amazon Elastic Block Store provides two magnetic hard disk drive
+options tailored for throughput-intensive workloads. Unlike Solid State
+Drive volumes such as <code>gp3</code> or <code>io2</code> that measure
+performance in Input/Output Operations Per Second, HDD-backed volumes
+measure performance in megabytes per second (<span
+class="math inline">\(\text{MiB/s}\)</span>). They are engineered to
+handle large block sizes and sequential read/write operations
+efficiently.</p>
+<p>Neither <code>st1</code> nor <code>sc1</code> can be used as a boot
+volume for an Amazon EC2 instance. Instead, they serve as secondary data
+volumes attached to compute instances running distributed file systems,
+data warehouses, or log processing pipelines.</p>
+<h2 id="how-burst-bucket-credits-work">How Burst Bucket Credits
+Work</h2>
+<p>Both <code>st1</code> and <code>sc1</code> use a burst-bucket credit
+model to determine available throughput. Each volume earns throughput
+credits at a baseline rate determined by the provisioned volume size in
+terabytes (<span class="math inline">\(\text{TiB}\)</span>). When your
+workload is idle or running below its baseline rate, unused credits
+accumulate in a burst bucket up to a maximum credit balance limit.</p>
+<p>When your application performs heavy sequential reads or writes, it
+consumes these accumulated credits to burst up to the volume's maximum
+throughput limit. The baseline throughput, burst throughput, and credit
+bucket capacity scale linearly with the volume size up to a hard
+ceiling. We can express the effective baseline throughput <span
+class="math inline">\(T_{\text{base}}\)</span> and burst throughput
+<span class="math inline">\(T_{\text{burst}}\)</span> for a volume of
+size <span class="math inline">\(S\)</span> (in <span
+class="math inline">\(\text{TiB}\)</span>) as:</p>
+<p><span class="math display">\[T_{\text{base}} = \min(R_{\text{base}}
+\times S, T_{\text{max}})\]</span></p>
+<p><span class="math display">\[T_{\text{burst}} = \min(R_{\text{burst}}
+\times S, T_{\text{max}})\]</span></p>
+<p>Where <span class="math inline">\(R_{\text{base}}\)</span> is the
+baseline rate per <span class="math inline">\(\text{TiB}\)</span>, <span
+class="math inline">\(R_{\text{burst}}\)</span> is the burst rate per
+<span class="math inline">\(\text{TiB}\)</span>, and <span
+class="math inline">\(T_{\text{max}}\)</span> is the maximum throughput
+cap for the volume type.</p>
+<h2 id="when-to-use-throughput-optimized-hdd-st1">When to Use Throughput
+Optimized HDD (st1)</h2>
+<p>Throughput Optimized HDD (<code>st1</code>) volumes are designed for
+frequently accessed, throughput-intensive workloads that require
+consistent and fast sequential I/O performance.</p>
+<h3 id="performance-specifications-of-st1">Performance Specifications of
+st1</h3>
+<ul>
+<li>Volume size range: <span class="math inline">\(125\text{
+GiB}\)</span> to <span class="math inline">\(16\text{ TiB}\)</span></li>
+<li>Baseline throughput: <span class="math inline">\(40\text{
+MiB/s}\)</span> per <span class="math inline">\(\text{TiB}\)</span></li>
+<li>Maximum burst throughput: <span class="math inline">\(250\text{
+MiB/s}\)</span> per <span class="math inline">\(\text{TiB}\)</span></li>
+<li>Absolute maximum throughput cap: <span
+class="math inline">\(500\text{ MiB/s}\)</span> per volume (reached at
+<span class="math inline">\(12.5\text{ TiB}\)</span> for baseline, or
+<span class="math inline">\(2\text{ TiB}\)</span> for burst)</li>
+<li>Bucket capacity: <span class="math inline">\(1\text{ TiB}\)</span>
+of credits per <span class="math inline">\(\text{TiB}\)</span> of
+provisioned volume size</li>
+</ul>
+<h3 id="ideal-workloads-for-st1">Ideal Workloads for st1</h3>
+<p>You should choose <code>st1</code> when your big data architecture
+actively processes, scans, or streams data throughout the day:</p>
+<ol type="1">
+<li><strong>Apache Kafka and Streaming Platforms</strong>: Message
+brokers write and read append-only commit logs sequentially. Because
+consumers frequently read from these partitions, <code>st1</code>
+provides the sustained <span class="math inline">\(\text{MiB/s}\)</span>
+required without paying SSD prices.</li>
+<li><strong>Big Data Analytics (MapReduce, Apache Spark,
+Hadoop)</strong>: Distributed Hadoop Distributed File System (HDFS)
+nodes scanning multi-terabyte datasets benefit from <code>st1</code>
+because data blocks are large (typically <span
+class="math inline">\(128\text{ MiB}\)</span> or <span
+class="math inline">\(256\text{ MiB}\)</span>) and accessed
+sequentially.</li>
+<li><strong>Data Warehouses</strong>: Columnar databases and MPP
+(Massively Parallel Processing) analytics platforms perform full table
+scans over contiguous blocks of disk storage.</li>
+<li><strong>Centralized Log Processing</strong>: Workloads that ingest,
+aggregate, and index high-velocity application logs continuously.</li>
+</ol>
+<h2 id="when-to-use-cold-hdd-sc1">When to Use Cold HDD (sc1)</h2>
+<p>Cold HDD (<code>sc1</code>) volumes provide the lowest cost per
+gigabyte of all Amazon EBS volume types. They are built for large
+volumes of data that are accessed infrequently and where the lowest
+possible block storage cost is the primary objective.</p>
+<h3 id="performance-specifications-of-sc1">Performance Specifications of
+sc1</h3>
+<ul>
+<li>Volume size range: <span class="math inline">\(125\text{
+GiB}\)</span> to <span class="math inline">\(16\text{ TiB}\)</span></li>
+<li>Baseline throughput: <span class="math inline">\(12\text{
+MiB/s}\)</span> per <span class="math inline">\(\text{TiB}\)</span></li>
+<li>Maximum burst throughput: <span class="math inline">\(80\text{
+MiB/s}\)</span> per <span class="math inline">\(\text{TiB}\)</span></li>
+<li>Absolute maximum throughput cap: <span
+class="math inline">\(250\text{ MiB/s}\)</span> per volume (reached at
+approximately <span class="math inline">\(3.125\text{ TiB}\)</span> for
+burst)</li>
+<li>Bucket capacity: <span class="math inline">\(1\text{ TiB}\)</span>
+of credits per <span class="math inline">\(\text{TiB}\)</span> of
+provisioned volume size</li>
+</ul>
+<h3 id="ideal-workloads-for-sc1">Ideal Workloads for sc1</h3>
+<p>You should choose <code>sc1</code> when your dataset must remain
+attached as block storage to an EC2 instance (rather than being
+offloaded to Amazon S3), but daily read/write volume is low:</p>
+<ol type="1">
+<li><strong>Cold Data Tiers in Distributed Storage</strong>: In tiered
+storage architectures (such as HDFS heterogeneous storage or
+Elasticsearch warm/cold nodes), older partitions that are rarely queried
+can be moved to <code>sc1</code> volumes while active partitions remain
+on <code>gp3</code> or <code>st1</code>.</li>
+<li><strong>Infrequent Full-System Scans</strong>: Historical compliance
+records, audit logs, or archival databases that only run batch reporting
+jobs once a week or once a month.</li>
+<li><strong>Cost-Constrained Sequential Backups</strong>: Maintaining
+local on-instance database dumps or staging backups before transferring
+them to object storage.</li>
+</ol>
+<h2 id="comparing-st1-and-sc1-side-by-side">Comparing st1 and sc1 Side
+by Side</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Throughput Optimized HDD
+(<code>st1</code>)</th>
+<th style="text-align: left;">Cold HDD (<code>sc1</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Primary Use Case</strong></td>
+<td style="text-align: left;">Frequent sequential access</td>
+<td style="text-align: left;">Infrequent sequential access</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Volume Size</strong></td>
+<td style="text-align: left;"><span class="math inline">\(125\text{
+GiB}\)</span> – <span class="math inline">\(16\text{ TiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(125\text{
+GiB}\)</span> – <span class="math inline">\(16\text{ TiB}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Baseline Throughput</strong></td>
+<td style="text-align: left;"><span class="math inline">\(40\text{
+MiB/s}\)</span> per <span class="math inline">\(\text{TiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(12\text{
+MiB/s}\)</span> per <span class="math inline">\(\text{TiB}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Burst Throughput</strong></td>
+<td style="text-align: left;"><span class="math inline">\(250\text{
+MiB/s}\)</span> per <span class="math inline">\(\text{TiB}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(80\text{
+MiB/s}\)</span> per <span class="math inline">\(\text{TiB}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Max Throughput per
+Volume</strong></td>
+<td style="text-align: left;"><span class="math inline">\(500\text{
+MiB/s}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(250\text{
+MiB/s}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Max IOPS (at <span
+class="math inline">\(1\text{ MiB}\)</span> I/O size)</strong></td>
+<td style="text-align: left;"><span class="math inline">\(500\text{
+IOPS}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(250\text{
+IOPS}\)</span></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Boot Volume Support</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Multi-Attach Support</strong></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="evaluating-scan-frequency-and-daily-volume-limits">Evaluating
+Scan Frequency and Daily Volume Limits</h2>
+<p>A practical method to decide between <code>st1</code> and
+<code>sc1</code> is calculating how many times per day your workload
+scans the entire volume. Because a volume earns throughput credits
+continuously at its baseline rate, the total amount of data <span
+class="math inline">\(D_{\text{daily}}\)</span> you can read or write
+per <span class="math inline">\(\text{TiB}\)</span> of storage in a
+<span class="math inline">\(24\text{-hour}\)</span> period (<span
+class="math inline">\(86,400\text{ seconds}\)</span>) without depleting
+your burst bucket is:</p>
+<p><span class="math display">\[D_{\text{daily}} = R_{\text{base}}
+\times 86,400\text{ s}\]</span></p>
+<p>For an <code>st1</code> volume (<span
+class="math inline">\(R_{\text{base}} = 40\text{ MiB/s}\)</span>):</p>
+<p><span class="math display">\[D_{\text{daily (st1)}} = 40\text{ MiB/s}
+\times 86,400\text{ s} = 3,456,000\text{ MiB} \approx 3.29\text{ TiB per
+TiB}\]</span></p>
+<p>For an <code>sc1</code> volume (<span
+class="math inline">\(R_{\text{base}} = 12\text{ MiB/s}\)</span>):</p>
+<p><span class="math display">\[D_{\text{daily (sc1)}} = 12\text{ MiB/s}
+\times 86,400\text{ s} = 1,036,800\text{ MiB} \approx 0.99\text{ TiB per
+TiB}\]</span></p>
+<p>From these calculations, a clear operational rule emerges:</p>
+<ul>
+<li><strong>Use <code>sc1</code></strong> if your workload scans the
+entire volume <strong>once a day or less</strong>.</li>
+<li><strong>Use <code>st1</code></strong> if your workload scans the
+entire volume <strong>up to three times a day</strong>, or requires
+burst speeds up to <span class="math inline">\(500\text{
+MiB/s}\)</span>.</li>
+</ul>
+<h2
+id="architectural-best-practices-for-hdd-volumes-on-ec2">Architectural
+Best Practices for HDD Volumes on EC2</h2>
+<p>To get the expected throughput from <code>st1</code> and
+<code>sc1</code> volumes, your EC2 instance and operating system must be
+configured to avoid I/O bottlenecks:</p>
+<ul>
+<li><strong>Avoid Small Random I/O</strong>: Magnetic drives normalize
+contiguous I/O requests into single operations, but random <span
+class="math inline">\(4\text{ KiB}\)</span> or <span
+class="math inline">\(16\text{ KiB}\)</span> reads force physical disk
+head movement (seek time), drastically degrading throughput. If your
+workload mixes random metadata lookups with sequential reads, place
+metadata or indexes on a separate <code>gp3</code> SSD volume and keep
+only raw sequential data on <code>st1</code> or <code>sc1</code>.</li>
+<li><strong>Verify EC2 Instance Bandwidth</strong>: Ensure your chosen
+EC2 instance type is EBS-optimized and provides sufficient network
+bandwidth to the EBS subsystem. A volume capable of <span
+class="math inline">\(500\text{ MiB/s}\)</span> (<span
+class="math inline">\(4\text{ Gbps}\)</span>) will be throttled if
+attached to an instance that only supports <span
+class="math inline">\(1.5\text{ Gbps}\)</span> of dedicated EBS
+bandwidth.</li>
+<li><strong>Use RAID 0 for Higher Throughput</strong>: If a single
+<code>st1</code> volume's <span class="math inline">\(500\text{
+MiB/s}\)</span> ceiling is insufficient for your big data node, you can
+stripe multiple <code>st1</code> volumes together in a software RAID 0
+array using <code>mdadm</code> to aggregate their baseline and burst
+throughput limits.</li>
+<li><strong>Monitor Burst Balance in Amazon CloudWatch</strong>: Always
+configure CloudWatch alarms on the <code>BurstBalance</code> metric for
+your <code>st1</code> and <code>sc1</code> volumes. If
+<code>BurstBalance</code> frequently drops toward <span
+class="math inline">\(0\%\)</span>, your workload is exceeding its
+baseline throughput and getting throttled down from burst speeds to
+baseline speeds. You can resolve this by either provisioning a larger
+volume (to gain a higher baseline rate) or migrating an <code>sc1</code>
+volume to <code>st1</code> via Elastic Volumes without downtime.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-should-you-use-aws-ebs-st-1-or-sc-1-volumes-for-big-data';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

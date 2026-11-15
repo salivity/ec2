@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do Amazon EC2 T-Series CPU Credits Work? - ec2</title>
+    <meta name="description" content="Amazon EC2 burstable T-series instances operate using a CPU credit mechanism designed for workloads that do not constantly use the full capacity of their allocated processors. Each instance is assigned a baseline level of CPU performance and continually e">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-amazon-ec-2-t-series-cpu-credits-work">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do Amazon EC2 T-Series CPU Credits Work? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-amazon-ec-2-t-series-cpu-credits-work" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 burstable T-series instances operate using a CPU credit mechanism designed for workloads that do not constantly use the full capacity of their allocated processors. Each instance is assigned a baseline level of CPU performance and continually e" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-amazon-ec2-t-series-cpu-credits-work">How Do Amazon EC2
+T-Series CPU Credits Work?</h1>
+<p>Amazon EC2 burstable T-series instances operate using a CPU credit
+mechanism designed for workloads that do not constantly use the full
+capacity of their allocated processors. Each instance is assigned a
+baseline level of CPU performance and continually earns CPU credits at a
+fixed rate per hour based on its size. When an instance uses less CPU
+than its baseline, it accumulates these earned credits in a bucket up to
+a maximum cap. When the instance requires additional computing power to
+handle traffic spikes or intensive processing tasks, it spends the
+accumulated credits to burst above the baseline performance level. This
+system allows organizations to lower their cloud computing costs while
+maintaining the ability to scale performance on demand.</p>
+<h2 id="what-is-a-cpu-credit">What Is a CPU Credit?</h2>
+<p>A single CPU credit represents the performance of a full processor
+core (vCPU) running at 100% utilization for one minute. However, this
+value is flexible and can be divided across multiple vCPUs or stretched
+over longer periods of lower utilization.</p>
+<p>The mathematical relationship for a CPU credit is defined as:</p>
+<p><span class="math display">\[\text{1 CPU Credit} = 1\text{ vCPU}
+\times 100\%\text{ Utilization} \times 1\text{ Minute}\]</span></p>
+<p>Because utilization and time are inversely proportional for a single
+credit, the same credit can be consumed in different ways:</p>
+<p><span class="math display">\[\text{1 CPU Credit} = 1\text{ vCPU}
+\times 50\%\text{ Utilization} \times 2\text{ Minutes}\]</span></p>
+<p><span class="math display">\[\text{1 CPU Credit} = 2\text{ vCPUs}
+\times 25\%\text{ Utilization} \times 2\text{ Minutes}\]</span></p>
+<p>Amazon EC2 tracks credit usage at a millisecond resolution, ensuring
+that even brief micro-bursts of activity accurately deduct only the
+exact fraction of a credit required.</p>
+<h2 id="baseline-utilization-and-credit-earning-rates">Baseline
+Utilization and Credit Earning Rates</h2>
+<p>Every T-series instance size (such as <code>t3.micro</code>,
+<code>t3.medium</code>, or <code>t4g.large</code>) has a predefined
+baseline utilization percentage per vCPU. The baseline is the level of
+CPU utilization at which the net credit balance does not change—the
+instance earns credits at the exact same rate it spends them.</p>
+<p>The number of credits an instance earns per hour is determined by its
+baseline percentage and the number of vCPUs:</p>
+<p><span class="math display">\[\text{Credits Earned per Hour} =
+\text{Number of vCPUs} \times \text{Baseline Utilization} \times
+60\text{ Minutes}\]</span></p>
+<p>For example, consider an instance with <span
+class="math inline">\(2\text{ vCPUs}\)</span> and a <span
+class="math inline">\(20\%\)</span> (<span
+class="math inline">\(0.20\)</span>) baseline utilization per vCPU:</p>
+<p><span class="math display">\[\text{Credits Earned per Hour} = 2
+\times 0.20 \times 60 = 24\text{ Credits}\]</span></p>
+<p>Since credits are accrued continuously rather than in a single hourly
+lump sum, this instance earns <span class="math inline">\(0.4\text{
+credits}\)</span> every minute it is in the <code>running</code>
+state.</p>
+<h2 id="how-credit-accumulation-works">How Credit Accumulation
+Works</h2>
+<p>An instance accumulates credits whenever its actual CPU utilization
+falls below its baseline percentage. The net rate of accumulation per
+minute is calculated by taking the difference between the credits earned
+and the credits spent:</p>
+<p><span class="math display">\[\text{Net Credits per Minute} =
+\left(\text{vCPUs} \times \text{Baseline Utilization}\right) -
+\left(\text{vCPUs} \times \text{Actual Utilization}\right)\]</span></p>
+<p>If our <span class="math inline">\(2\text{-vCPU}\)</span> instance
+with a <span class="math inline">\(20\%\)</span> baseline is idling at
+<span class="math inline">\(5\%\)</span> utilization across both vCPUs,
+the per-minute calculation is:</p>
+<p><span class="math display">\[\text{Net Credits per Minute} = (2
+\times 0.20) - (2 \times 0.05) = 0.40 - 0.10 = +0.30\text{
+Credits}\]</span></p>
+<h3 id="maximum-credit-balance-cap">Maximum Credit Balance Cap</h3>
+<p>Accrued credits do not accumulate infinitely. Every T-series instance
+has a maximum credit balance limit, which is equal to the total number
+of credits the instance can earn in a 24-hour period. Once the instance
+reaches this cap, any new credits earned while idling are discarded. For
+an instance earning <span class="math inline">\(24\text{
+credits}\)</span> per hour, the credit bucket is capped at:</p>
+<p><span class="math display">\[\text{Maximum Credit Balance} = 24\text{
+Credits/Hour} \times 24\text{ Hours} = 576\text{ Credits}\]</span></p>
+<p>Accrued credits on modern T3, T3a, and T4g instances persist for
+seven days after an instance is stopped. If the instance is restarted
+within those seven days, its previous credit balance is restored. On
+older T2 instances, stopping the instance immediately clears the entire
+accrued balance.</p>
+<h2 id="how-credit-spending-works">How Credit Spending Works</h2>
+<p>When an application demands more CPU power than the baseline
+provides, the instance automatically draws from its accrued credit
+balance to burst up to <span class="math inline">\(100\%\)</span>
+utilization across all available vCPUs.</p>
+<p>Using the previous <span class="math inline">\(2\text{-vCPU}\)</span>
+instance (<span class="math inline">\(20\%\)</span> baseline), if a
+workload spikes to <span class="math inline">\(100\%\)</span>
+utilization across both cores, the net credit change per minute is:</p>
+<p><span class="math display">\[\text{Net Credits per Minute} = (2
+\times 0.20) - (2 \times 1.00) = 0.40 - 2.00 = -1.60\text{
+Credits}\]</span></p>
+<p>If this instance starts with a full bucket of <span
+class="math inline">\(576\text{ credits}\)</span>, the duration it can
+sustain a continuous <span class="math inline">\(100\%\)</span> CPU
+burst before exhausting its balance is:</p>
+<p><span class="math display">\[\text{Burst Duration} = \frac{576\text{
+Credits}}{1.60\text{ Credits/Minute}} = 360\text{ Minutes (6
+Hours)}\]</span></p>
+<h2 id="standard-mode-vs-unlimited-mode">Standard Mode vs. Unlimited
+Mode</h2>
+<p>What happens when an instance exhausts its entire credit balance
+depends on whether the instance is configured in
+<strong>Standard</strong> mode or <strong>Unlimited</strong> mode.</p>
+<h3 id="standard-mode">Standard Mode</h3>
+<p>In Standard mode, if an instance depletes its accrued credit balance,
+it can no longer burst above its baseline. Amazon EC2 gradually
+throttles the instance's CPU utilization down to its baseline level (for
+example, <span class="math inline">\(20\%\)</span>). The instance
+remains capped at this baseline performance until demand drops below the
+baseline, allowing the instance to accumulate positive credits
+again.</p>
+<ul>
+<li><strong>Launch Credits:</strong> Older T2 instances in Standard mode
+receive an initial allotment of launch credits when first provisioned so
+they can burst immediately during boot sequences without waiting to
+accrue credits.</li>
+</ul>
+<h3 id="unlimited-mode">Unlimited Mode</h3>
+<p>In Unlimited mode (the default setting for T3, T3a, and T4g
+instances), an instance is never throttled down to its baseline when its
+credit bucket hits zero. Instead, it is allowed to spend <strong>surplus
+credits</strong> to maintain high CPU utilization for as long as
+needed.</p>
+<p>When an instance spends surplus credits, two outcomes are possible
+over a rolling 24-hour period:</p>
+<ol type="1">
+<li><strong>Payback via Idling:</strong> If the instance's CPU
+utilization subsequently drops below the baseline, the credits it earns
+are first used to pay down the surplus credit debt rather than adding to
+the positive accrued balance.</li>
+<li><strong>Billed Surplus Credits:</strong> If the surplus credit
+balance reaches the maximum 24-hour cap, or if there is an outstanding
+surplus balance when the hourly billing cycle reconciles, AWS bills the
+account a flat rate per vCPU-hour (equivalent to <span
+class="math inline">\(60\text{ credits}\)</span>) for the excess
+usage.</li>
+</ol>
+<p>This allows workloads in Unlimited mode to handle unexpected,
+prolonged traffic spikes without experiencing performance degradation,
+while keeping costs low during normal operating periods when average CPU
+utilization stays at or below the baseline.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-amazon-ec-2-t-series-cpu-credits-work';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Which Virtualization Technologies Have Powered Amazon EC2? - ec2</title>
+    <meta name="description" content="Amazon Elastic Compute Cloud has transitioned through several major virtualization architectures since its initial beta launch in 2006. Starting with a heavily customized version of the Xen hypervisor utilizing paravirtualization, Amazon Web Services late">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/which-virtualization-technologies-have-powered-amazon-ec-2">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Which Virtualization Technologies Have Powered Amazon EC2? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/which-virtualization-technologies-have-powered-amazon-ec-2" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Elastic Compute Cloud has transitioned through several major virtualization architectures since its initial beta launch in 2006. Starting with a heavily customized version of the Xen hypervisor utilizing paravirtualization, Amazon Web Services late" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="which-virtualization-technologies-have-powered-amazon-ec2">Which
+Virtualization Technologies Have Powered Amazon EC2?</h1>
+<p>Amazon Elastic Compute Cloud has transitioned through several major
+virtualization architectures since its initial beta launch in 2006.
+Starting with a heavily customized version of the Xen hypervisor
+utilizing paravirtualization, Amazon Web Services later adopted
+hardware-assisted virtualization to improve performance and support
+broader operating systems. In 2017, Amazon introduced the AWS Nitro
+System, which offloaded virtualization management, networking, and
+storage functions to dedicated hardware cards alongside a lightweight
+KVM-based hypervisor. This evolution enabled modern virtualized
+instances, bare-metal instances, and specialized micro-virtualization
+architectures that power cloud computing workloads today.</p>
+<h2 id="the-early-era-xen-paravirtualization-pv">The Early Era: Xen
+Paravirtualization (PV)</h2>
+<p>When Amazon EC2 launched in August 2006, hardware-assisted
+virtualization extensions from CPU manufacturers (such as Intel VT-x and
+AMD-V) were either brand new, unavailable at scale, or carried
+significant performance penalties. To slice physical servers into
+isolated virtual machines efficiently, AWS built its initial
+infrastructure on the open-source Xen hypervisor using
+Paravirtualization (PV).</p>
+<p>In a traditional x86 architecture, processor privilege levels are
+divided into four protection rings, numbered from <span
+class="math inline">\(0\)</span> (most privileged) to <span
+class="math inline">\(3\)</span> (least privileged):</p>
+<p><span class="math display">\[\text{Ring } 0 \text{ (Kernel)} &gt;
+\text{Ring } 1 &gt; \text{Ring } 2 &gt; \text{Ring } 3 \text{ (User
+Space)}\]</span></p>
+<p>Under Xen PV, the Xen hypervisor itself ran in <span
+class="math inline">\(\text{Ring } 0\)</span> to maintain total control
+over the physical hardware. Because the guest operating system kernel
+could no longer run in <span class="math inline">\(\text{Ring }
+0\)</span>, its kernel was modified to run in <span
+class="math inline">\(\text{Ring } 1\)</span> (or <span
+class="math inline">\(\text{Ring } 3\)</span> on 64-bit x86
+architectures), while user applications remained in <span
+class="math inline">\(\text{Ring } 3\)</span>.</p>
+<p>Key characteristics of Xen Paravirtualization on EC2 included:</p>
+<ul>
+<li><strong>Modified Guest Kernels:</strong> Guest operating systems had
+to be explicitly aware that they were running in a virtualized
+environment. Standard operating systems could not boot unmodified;
+instead, they relied on special kernel builds (originally managed via
+Amazon Kernel Images, or AKIs, and later loaded via
+<code>PvGrub</code>).</li>
+<li><strong>Hypercalls:</strong> Instead of executing privileged CPU
+instructions that would trap and fail outside of <span
+class="math inline">\(\text{Ring } 0\)</span>, the modified guest kernel
+made direct synchronous software calls—known as hypercalls—directly to
+the Xen hypervisor to handle memory management, page table updates, and
+I/O operations.</li>
+<li><strong>Domain 0 (Dom0) Bottlenecks:</strong> In the Xen
+architecture, a privileged control domain known as <code>Dom0</code> ran
+alongside guest instances (<code>DomU</code>). Every network packet and
+storage request from a guest instance had to pass through
+<code>Dom0</code> software emulation and routing layers before reaching
+physical hardware, which introduced jitter and consumed host CPU
+cycles.</li>
+</ul>
+<h2 id="transition-to-xen-hardware-virtual-machine-hvm">Transition to
+Xen Hardware Virtual Machine (HVM)</h2>
+<p>As Intel and AMD matured their hardware virtualization
+extensions—specifically Intel VT-x with Extended Page Tables (EPT) and
+AMD-V with Rapid Virtualization Indexing (RVI)—AWS introduced Hardware
+Virtual Machine (HVM) instances.</p>
+<p>Xen HVM allowed guest operating systems to run completely unmodified,
+as if they were executing on bare-metal hardware. Processors introduced
+a new privilege mode altogether: root mode for the hypervisor and
+non-root mode for the guest virtual machines, allowing the guest OS
+kernel to reside in its native <span class="math inline">\(\text{Ring }
+0\)</span> within non-root mode.</p>
+<p>The transition from PV to HVM occurred in stages:</p>
+<ol type="1">
+<li><strong>Pure HVM:</strong> Allowed unmodified operating systems such
+as Microsoft Windows Server to run on EC2, alongside standard Linux
+distributions using their native bootloaders. However, early HVM relied
+on emulated hardware for disk and network controllers, which was slower
+than paravirtualized I/O.</li>
+<li><strong>PV on HVM:</strong> To combine the CPU and memory benefits
+of hardware virtualization with the I/O speed of paravirtualization, AWS
+adopted "PV on HVM" drivers. Guest operating systems ran unmodified in
+hardware-assisted mode but loaded specialized Xen paravirtualized
+drivers for network and storage access, bypassing slow hardware
+emulation.</li>
+<li><strong>SR-IOV and Enhanced Networking:</strong> As instance sizes
+grew, passing network and storage traffic through <code>Dom0</code>
+remained a latency bottleneck. AWS began integrating Single Root I/O
+Virtualization (SR-IOV), allowing guest instances to bypass
+<code>Dom0</code> for data plane operations and communicate directly
+with physical network interface cards (NICs).</li>
+</ol>
+<h2 id="the-annapurna-labs-acquisition-and-the-road-to-nitro">The
+Annapurna Labs Acquisition and the Road to Nitro</h2>
+<p>Despite optimizations to Xen HVM, the fundamental architecture still
+required the host CPU and system RAM to run <code>Dom0</code> management
+software, software-defined networking (VPC encapsulation), and storage
+encryption. For a host server with <span
+class="math inline">\(N\)</span> physical CPU cores, a noticeable
+fraction of compute and memory had to be reserved for the hypervisor and
+control plane rather than sold to customers:</p>
+<p><span class="math display">\[C_{\text{available}} = C_{\text{total}}
+- C_{\text{Dom0}} - C_{\text{hypervisor}}\]</span></p>
+<p>In 2013, AWS began offloading networking tasks to custom hardware,
+culminating in the January 2015 acquisition of Annapurna Labs, an
+Israeli microelectronics company. This acquisition laid the groundwork
+for a complete architectural overhaul of EC2 virtualization: moving the
+control plane, I/O virtualization, and security monitoring off the main
+server motherboard and onto dedicated Application-Specific Integrated
+Circuits (ASICs).</p>
+<h2 id="the-aws-nitro-system-and-the-kvm-hypervisor">The AWS Nitro
+System and the KVM Hypervisor</h2>
+<p>Officially unveiled in November 2017 with the launch of the C5
+instance family, the AWS Nitro System replaced the legacy Xen
+architecture for all new EC2 instance generations. Rather than relying
+on a heavy software layer running on the host processor, the Nitro
+System breaks virtualization down into three modular hardware and
+firmware components:</p>
+<h3 id="1-nitro-cards">1. Nitro Cards</h3>
+<p>Dedicated PCIe hardware cards powered by custom Annapurna Labs ASICs
+handle all I/O functions. Separate Nitro Cards manage Amazon Virtual
+Private Cloud (VPC) networking, Amazon Elastic Block Store (EBS) volume
+attachment and encryption, local NVMe instance storage, and system
+control. To the main host CPU, these cards present themselves simply as
+standard PCIe devices (using NVMe and Elastic Network Adapter [ENA]
+interfaces) via SR-IOV.</p>
+<h3 id="2-nitro-security-chip">2. Nitro Security Chip</h3>
+<p>Integrated directly onto the host motherboard, the Nitro Security
+Chip monitors and protects hardware resources. It establishes a hardware
+root of trust, verifies firmware integrity at boot, and blocks
+unauthorized access or modification to non-volatile memory from software
+running on the host CPU.</p>
+<h3 id="3-the-nitro-hypervisor-kvm-based">3. The Nitro Hypervisor
+(KVM-based)</h3>
+<p>Because networking, storage, and management tasks are handled
+entirely by the dedicated Nitro Cards, <code>Dom0</code> is eliminated.
+In place of Xen, AWS implemented the Nitro Hypervisor, which is built on
+core Linux Kernel-based Virtual Machine (KVM) technology.</p>
+<p>Unlike standard general-purpose KVM deployments, the Nitro Hypervisor
+is stripped down to a minimal firmware-like footprint. It does not
+include a general-purpose operating system, networking stack, or device
+drivers, and it never initiates network connections. Its sole
+responsibility is partitioning the host CPU and physical memory (<span
+class="math inline">\(\text{RAM}\)</span>) among guest instances. As a
+result, nearly <span class="math inline">\(100\%\)</span> of the host
+server's compute and memory resources are delivered directly to customer
+instances, with performance indistinguishable from bare metal.</p>
+<h2 id="bare-metal-instances-metal">Bare Metal Instances
+(<code>*.metal</code>)</h2>
+<p>A direct consequence of shifting virtualization management and I/O to
+Nitro Cards is the ability to offer EC2 Bare Metal instances (such as
+<code>i3.metal</code>, <code>c5.metal</code>, and
+<code>m7i.metal</code>).</p>
+<p>Because the Nitro Cards and Nitro Security Chip control boot
+orchestration, EBS storage, and VPC networking independently of the host
+CPU, AWS can boot an instance without loading the Nitro Hypervisor at
+all. The customer's operating system boots directly on the physical
+processor and memory, retaining full access to hardware performance
+counters and Intel VT-x or AMD-V extensions. This enables customers to
+run their own hypervisors (such as VMware ESXi or KVM) or
+licensing-restricted workloads directly on EC2 hardware while still
+utilizing cloud-native EBS volumes and VPC networking.</p>
+<h2 id="specialized-virtualization-on-modern-ec2">Specialized
+Virtualization on Modern EC2</h2>
+<p>Beyond standard x86 and Arm (AWS Graviton) virtual machines, the
+Nitro foundation has enabled specialized virtualization models for
+specific workloads:</p>
+<h3 id="mac-instances">Mac Instances</h3>
+<p>Introduced in 2020, EC2 Mac instances run on physical Apple Mac mini
+hardware (featuring Intel or Apple Silicon M-series processors)
+connected to the AWS Nitro System via high-speed Thunderbolt interfaces.
+The Nitro Controller manages the physical Mac as a bare-metal host,
+providing it with EBS storage and VPC networking while running macOS
+natively or through Apple’s native Virtualization framework.</p>
+<h3 id="nitro-enclaves">Nitro Enclaves</h3>
+<p>To support workloads processing highly sensitive data (such as
+cryptographic keys or personally identifiable information), AWS
+introduced Nitro Enclaves. Using the same Nitro Hypervisor technology
+that isolates EC2 instances from one another, a customer can carve out
+CPU cores and memory from an existing EC2 instance to create an
+isolated, hardened virtual machine. An enclave has no persistent
+storage, no interactive shell access, and no external
+networking—communicating with its parent instance solely over a local
+virtual socket (<code>vsock</code>).</p>
+<h3 id="firecracker-microvms">Firecracker MicroVMs</h3>
+<p>While not used directly to boot standard customer EC2 instances, AWS
+developed Firecracker in 2018 as an open-source Virtual Machine Monitor
+(VMM) written in Rust that utilizes KVM. Running atop EC2
+<code>.metal</code> instances, Firecracker creates lightweight microVMs
+in milliseconds with a memory overhead of less than <span
+class="math inline">\(5\text{ MiB}\)</span> per microVM. This
+specialized layer powers AWS serverless compute services, including AWS
+Lambda and AWS Fargate, combining the multi-tenant hardware isolation of
+KVM virtualization with the rapid startup speed of containers.</p>
+<h2 id="summary-of-ec2-virtualization-generations">Summary of EC2
+Virtualization Generations</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Era</th>
+<th style="text-align: left;">Virtualization Technology</th>
+<th style="text-align: left;">Hypervisor Base</th>
+<th style="text-align: left;">Key Architectural Traits</th>
+<th style="text-align: left;">Example Instance Families</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>2006 – 2011</strong></td>
+<td style="text-align: left;">Xen Paravirtualization (PV)</td>
+<td style="text-align: left;">Xen</td>
+<td style="text-align: left;">Modified Linux kernels, software
+hypercalls, <code>Dom0</code> handles all I/O</td>
+<td style="text-align: left;">M1, C1, M2, T1</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>2010 – 2017</strong></td>
+<td style="text-align: left;">Xen HVM</td>
+<td style="text-align: left;">Xen</td>
+<td style="text-align: left;">Hardware-assisted CPU/MMU (VT-x/AMD-V),
+unmodified OS support, SR-IOV networking</td>
+<td style="text-align: left;">CC1, M3, C3, R3, M4, C4, R4, T2</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>2017 – Present</strong></td>
+<td style="text-align: left;">AWS Nitro System</td>
+<td style="text-align: left;">KVM (Nitro Hypervisor)</td>
+<td style="text-align: left;">Dedicated ASICs (Nitro Cards) for I/O and
+control, no <code>Dom0</code>, near-zero CPU overhead</td>
+<td style="text-align: left;">C5, M5, R5, T3, M6i, C6g, M7g, C7i,
+M8g</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>2017 – Present</strong></td>
+<td style="text-align: left;">Nitro Bare Metal</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">Nitro Cards manage I/O and boot; guest OS
+runs directly on physical host CPU</td>
+<td style="text-align: left;"><code>i3.metal</code>,
+<code>c5.metal</code>, <code>m6i.metal</code>, <code>mac1.metal</code>,
+<code>mac2-m2.metal</code></td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/which-virtualization-technologies-have-powered-amazon-ec-2';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

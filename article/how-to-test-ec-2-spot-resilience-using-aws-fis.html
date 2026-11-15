@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Test EC2 Spot Resilience Using AWS FIS? - ec2</title>
+    <meta name="description" content="Testing application resilience against unplanned Amazon EC2 Spot Instance terminations using AWS Fault Injection Service involves creating controlled chaos engineering experiments that simulate the exact two-minute interruption notice and subsequent insta">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-test-ec-2-spot-resilience-using-aws-fis">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Test EC2 Spot Resilience Using AWS FIS? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-test-ec-2-spot-resilience-using-aws-fis" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Testing application resilience against unplanned Amazon EC2 Spot Instance terminations using AWS Fault Injection Service involves creating controlled chaos engineering experiments that simulate the exact two-minute interruption notice and subsequent insta" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-test-ec2-spot-resilience-using-aws-fis">How to Test EC2
+Spot Resilience Using AWS FIS?</h1>
+<p>Testing application resilience against unplanned Amazon EC2 Spot
+Instance terminations using AWS Fault Injection Service involves
+creating controlled chaos engineering experiments that simulate the
+exact two-minute interruption notice and subsequent instance reclamation
+emitted by AWS. By configuring an AWS Fault Injection Service experiment
+template targeting specific Spot Instances with the
+send-spot-instance-interruptions action, engineering teams can validate
+that their workload orchestration layers, such as Amazon EKS, Auto
+Scaling groups, or custom instance termination handlers, gracefully
+drain connections, checkpoint state, and provision replacement capacity
+without degrading service availability.</p>
+<h2
+id="understanding-amazon-ec2-spot-interruptions-and-aws-fis">Understanding
+Amazon EC2 Spot Interruptions and AWS FIS</h2>
+<p>Amazon EC2 Spot Instances allow organizations to utilize spare AWS
+compute capacity at substantial discounts compared to On-Demand pricing.
+However, the fundamental trade-off of using Spot capacity is that Amazon
+EC2 can reclaim these instances at any time when capacity is needed back
+or when the Spot price exceeds the maximum configured price. When AWS
+reclaims a Spot Instance, it provides a two-minute warning known as a
+Spot Instance interruption notice before terminating, stopping, or
+hibernating the instance.</p>
+<p>Historically, testing how an application responds to this two-minute
+window was difficult because teams could not predict or force genuine
+capacity reclamations on demand. Calling a standard
+<code>TerminateInstances</code> API does not trigger the same metadata
+events or Amazon EventBridge notifications as a real Spot reclamation.
+AWS Fault Injection Service solves this problem by providing a native
+fault action called
+<code>aws:ec2:send-spot-instance-interruptions</code>. When triggered,
+this action initiates the authentic Spot interruption workflow,
+delivering the two-minute warning via Both the Instance Metadata Service
+and Amazon EventBridge, followed by the actual termination or stop
+action.</p>
+<h2
+id="prerequisites-for-running-spot-interruption-experiments">Prerequisites
+for Running Spot Interruption Experiments</h2>
+<p>Before executing a fault injection experiment on your EC2 Spot fleet,
+several architectural and security prerequisites must be in place to
+ensure the test is both realistic and safe.</p>
+<h3 id="target-spot-instances-and-tagging-strategy">Target Spot
+Instances and Tagging Strategy</h3>
+<p>The <code>aws:ec2:send-spot-instance-interruptions</code> action only
+works on running EC2 Spot Instances. It cannot be applied to On-Demand
+or Reserved Instances. To prevent accidental disruption of non-test
+workloads, you should apply dedicated resource tags to your target Spot
+Instances, such as <code>Environment=ChaosTesting</code> or
+<code>FIS-Target=True</code>. If your Spot Instances are managed by an
+EC2 Auto Scaling group or an Amazon EKS Managed Node Group, ensure that
+tag propagation to launched instances is enabled.</p>
+<h3 id="interruption-handling-software">Interruption Handling
+Software</h3>
+<p>To observe a meaningful result, your instances or cluster must be
+running software designed to detect and react to Spot interruption
+signals. Common mechanisms include:</p>
+<ul>
+<li><strong>AWS Node Termination Handler (NTH):</strong> Deployed as a
+DaemonSet on Kubernetes clusters (such as Amazon EKS) to poll the
+Instance Metadata Service or listen to EventBridge events via Amazon
+SQS, cordoning the node and draining pods when an interruption
+occurs.</li>
+<li><strong>Amazon EC2 Auto Scaling Capacity Rebalancing:</strong> A
+feature that proactively launches a replacement Spot Instance when an
+existing instance emits a rebalance recommendation or interruption
+notice.</li>
+<li><strong>Custom Polling Scripts or EventBridge Rules:</strong>
+Application-specific daemons that query
+<code>http://169.254.169.254/latest/meta-data/spot/instance-action</code>
+every five seconds or consume
+<code>EC2 Spot Instance Interruption Warning</code> events from
+EventBridge to flush caches, close database connections, or upload
+logs.</li>
+</ul>
+<h3 id="aws-iam-role-for-fault-injection-service">AWS IAM Role for Fault
+Injection Service</h3>
+<p>AWS Fault Injection Service requires an IAM role with permissions to
+inspect target EC2 instances and inject the Spot interruption fault.
+First, create a trust policy that allows <code>fis.amazonaws.com</code>
+to assume the role:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;2012-10-17&quot;</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Statement&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Principal&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;Service&quot;</span><span class="fu">:</span> <span class="st">&quot;fis.amazonaws.com&quot;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="st">&quot;sts:AssumeRole&quot;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Next, attach a permissions policy granting the role authority to
+describe instances and send Spot interruptions:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;2012-10-17&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Statement&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;AllowDescribeInstancesForTargeting&quot;</span><span class="fu">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;*&quot;</span><span class="fu">,</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;ec2:DescribeInstances&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;AllowSpotInstanceInterruption&quot;</span><span class="fu">,</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;arn:aws:ec2:*:*:instance/*&quot;</span><span class="fu">,</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;ec2:SendSpotInstanceInterruptions&quot;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;Condition&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;StringEquals&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;aws:ResourceTag/FIS-Target&quot;</span><span class="fu">:</span> <span class="st">&quot;True&quot;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2
+id="designing-the-resilience-hypothesis-and-steady-state-metrics">Designing
+the Resilience Hypothesis and Steady-State Metrics</h2>
+<p>Chaos engineering requires a well-defined hypothesis before injecting
+faults. When testing Spot resilience, your hypothesis generally states
+that if a percentage of Spot Instances receive an interruption notice,
+the application will maintain its service-level objectives without
+dropping in-flight client requests.</p>
+<p>You can quantify your availability and error budget during the
+experiment using standard reliability formulas. For instance, request
+success rate <span class="math inline">\(R_{\text{success}}\)</span>
+over the experiment window is defined as:</p>
+<p><span class="math display">\[R_{\text{success}} = \left( 1 -
+\frac{N_{\text{5xx}}}{N_{\text{total}}} \right) \times 100\]</span></p>
+<p>where <span class="math inline">\(N_{\text{5xx}}\)</span> represents
+the count of server-side HTTP error responses and <span
+class="math inline">\(N_{\text{total}}\)</span> represents the total
+requests processed by the load balancer.</p>
+<p>Furthermore, to ensure that your graceful shutdown logic finishes
+before the hard termination deadline, the total drain time <span
+class="math inline">\(T_{\text{drain}}\)</span> must satisfy the
+inequality:</p>
+<p><span class="math display">\[T_{\text{detect}} +
+T_{\text{deregister}} + T_{\text{inflight}} &lt; 120\text{
+seconds}\]</span></p>
+<p>where <span class="math inline">\(T_{\text{detect}}\)</span> is the
+latency to detect the notice, <span
+class="math inline">\(T_{\text{deregister}}\)</span> is the time
+required to stop new traffic routing at the load balancer, and <span
+class="math inline">\(T_{\text{inflight}}\)</span> is the time taken to
+complete active transactions.</p>
+<p>To enforce safety during the test, create an Amazon CloudWatch Alarm
+that monitors <span class="math inline">\(R_{\text{success}}\)</span> or
+target group healthy host counts. This alarm will serve as the
+<strong>Stop Condition</strong> in AWS FIS, automatically aborting the
+experiment if application health degrades beyond acceptable
+thresholds.</p>
+<h2
+id="step-by-step-guide-to-creating-the-aws-fis-experiment-template">Step-by-Step
+Guide to Creating the AWS FIS Experiment Template</h2>
+<p>You can configure the experiment template using the AWS Management
+Console, AWS CloudFormation, Terraform, or the AWS CLI. Below is the
+complete workflow for building and executing the template using the AWS
+CLI.</p>
+<h3 id="1-define-the-experiment-template-json">1. Define the Experiment
+Template JSON</h3>
+<p>Create a file named <code>spot-interruption-template.json</code>.
+This configuration defines the target selection criteria, the
+<code>aws:ec2:send-spot-instance-interruptions</code> action, and the
+CloudWatch stop condition.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Simulate EC2 Spot Instance interruptions to verify graceful draining and auto-recovery&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;stopConditions&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;aws:cloudwatch:alarm&quot;</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;arn:aws:cloudwatch:us-east-1:123456789012:alarm:HighALB5xxErrorRate&quot;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targets&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;SpotInstancesTarget&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;resourceType&quot;</span><span class="fu">:</span> <span class="st">&quot;aws:ec2:spot-instance&quot;</span><span class="fu">,</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;resourceTags&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;FIS-Target&quot;</span><span class="fu">:</span> <span class="st">&quot;True&quot;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;filters&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;State.Name&quot;</span><span class="fu">,</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;values&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;running&quot;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>          <span class="ot">]</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;selectionMode&quot;</span><span class="fu">:</span> <span class="st">&quot;PERCENT(50)&quot;</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;actions&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;InterruptSpotInstances&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;actionId&quot;</span><span class="fu">:</span> <span class="st">&quot;aws:ec2:send-spot-instance-interruptions&quot;</span><span class="fu">,</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Trigger two-minute warning and terminate selected Spot Instances&quot;</span><span class="fu">,</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;parameters&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;durationBeforeInterruption&quot;</span><span class="fu">:</span> <span class="st">&quot;PT2M&quot;</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targets&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;SpotInstances&quot;</span><span class="fu">:</span> <span class="st">&quot;SpotInstancesTarget&quot;</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;roleArn&quot;</span><span class="fu">:</span> <span class="st">&quot;arn:aws:iam::123456789012:role/FISSpotExperimentRole&quot;</span><span class="fu">,</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tags&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Name&quot;</span><span class="fu">:</span> <span class="st">&quot;Spot-Resilience-Test&quot;</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="2-understanding-key-template-parameters">2. Understanding Key
+Template Parameters</h3>
+<ul>
+<li><strong><code>resourceType</code>:</strong> Must be set to
+<code>aws:ec2:spot-instance</code> rather than the generic
+<code>aws:ec2:instance</code> type.</li>
+<li><strong><code>selectionMode</code>:</strong> Controls the blast
+radius of the experiment. You can specify <code>ALL</code> to interrupt
+every matching instance, <code>COUNT(n)</code> to interrupt a fixed
+number of instances (e.g., <code>COUNT(2)</code>), or
+<code>PERCENT(n)</code> to interrupt a specific percentage of matching
+instances (e.g., <code>PERCENT(50)</code>).</li>
+<li><strong><code>durationBeforeInterruption</code>:</strong> Specified
+in ISO 8601 duration format. It defines how long AWS FIS waits between
+initiating the action and triggering the actual reclamation. For
+example, setting <code>PT2M</code> means the interruption notice is sent
+immediately when the action starts, and the instance is terminated two
+minutes later. If you set <code>PT5M</code>, AWS FIS waits three minutes
+before emitting the two-minute interruption notice, terminating the
+instance at the five-minute mark. The minimum supported value is
+<code>PT2M</code>.</li>
+</ul>
+<h3 id="3-create-the-template-via-aws-cli">3. Create the Template via
+AWS CLI</h3>
+<p>Run the following command to register the experiment template in AWS
+Fault Injection Service:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> fis create-experiment-template <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--cli-input-json</span> file://spot-interruption-template.json <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--region</span> us-east-1</span></code></pre></div>
+<p>Record the <code>id</code> field returned in the JSON output (for
+example, <code>EXT1234567890abcdef</code>), as you will need it to start
+the experiment.</p>
+<h2
+id="executing-the-experiment-and-observing-system-behavior">Executing
+the Experiment and Observing System Behavior</h2>
+<p>Before starting the experiment, ensure that realistic synthetic
+traffic or load testing is running against your application so you can
+accurately measure whether in-flight connections are dropped.</p>
+<p>Start the experiment using the template ID:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> fis start-experiment <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--experiment-template-id</span> EXT1234567890abcdef <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--region</span> us-east-1</span></code></pre></div>
+<p>Once the experiment transitions to the <code>running</code> state,
+the following sequence of events takes place across your AWS
+environment:</p>
+<ol type="1">
+<li><strong>Emission of Rebalance and Interruption Signals:</strong> At
+the appropriate timestamp, AWS emits an
+<code>EC2 Instance Rebalance Recommendation</code> event and an
+<code>EC2 Spot Instance Interruption Warning</code> event to Amazon
+EventBridge. Simultaneously, the Instance Metadata Service (IMDSv2) on
+the targeted Spot Instances populates the
+<code>/latest/meta-data/spot/instance-action</code> and
+<code>/latest/meta-data/events/recommendations/rebalance</code>
+endpoints.</li>
+<li><strong>Detection by Termination Handlers:</strong> If you are
+verifying an instance-level script or Kubernetes node handler, you can
+inspect what the instance sees during the two-minute window by querying
+IMDSv2 directly from the instance:</li>
+</ol>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="va">TOKEN</span><span class="op">=</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-X</span> PUT <span class="st">&quot;http://169.254.169.254/latest/api/token&quot;</span> <span class="at">-H</span> <span class="st">&quot;X-aws-ec2-metadata-token-ttl-seconds: 21600&quot;</span> <span class="at">-s</span><span class="va">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-H</span> <span class="st">&quot;X-aws-ec2-metadata-token: </span><span class="va">$TOKEN</span><span class="st">&quot;</span> <span class="at">-s</span> http://169.254.169.254/latest/meta-data/spot/instance-action</span></code></pre></div>
+<p>This returns a JSON payload detailing the action
+(<code>terminate</code>, <code>stop</code>, or <code>hibernate</code>)
+and the exact UTC timestamp when the action will be executed:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;action&quot;</span><span class="fu">:</span> <span class="st">&quot;terminate&quot;</span><span class="fu">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;time&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-11-15T11:02:00Z&quot;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<ol start="3" type="1">
+<li><strong>Graceful Workload Draining:</strong> Your termination
+handler or orchestration agent intercepts the signal. On an Application
+Load Balancer (ALB) target group, the instance enters the
+<code>draining</code> state. Ensure your target group's
+<strong>Deregistration Delay</strong> (connection draining timeout) is
+configured to a value lower than 120 seconds (such as 60 or 90 seconds)
+so existing requests finish before the underlying EC2 instance is
+powered off.</li>
+<li><strong>Instance Termination and Replacement:</strong> Exactly two
+minutes after the warning notice is issued, EC2 terminates the targeted
+Spot Instances. Concurrently, your Auto Scaling group or Karpenter node
+provisioner detects the capacity drop (or acts early on the rebalance
+recommendation) and provisions replacement instances across diversified
+Spot pools.</li>
+</ol>
+<h2
+id="validating-results-and-remediating-common-bottlenecks">Validating
+Results and Remediating Common Bottlenecks</h2>
+<p>After the experiment reaches the <code>completed</code> state,
+analyze your observability dashboards, CloudWatch logs, and load
+balancer metrics to verify your resilience hypothesis:</p>
+<ul>
+<li><strong>Zero HTTP 502/504 Gateway Errors:</strong> Check your
+Application Load Balancer or API Gateway metrics. If
+<code>HTTPCode_ELB_502_Count</code> or
+<code>HTTPCode_ELB_504_Count</code> spiked during the two-minute window,
+your application continued accepting new requests after the interruption
+notice arrived, or its keep-alive timeout conflicted with the load
+balancer. Configure your web server's graceful shutdown hook to
+immediately fail its health check endpoint upon receiving a
+<code>SIGTERM</code> or Spot interruption notice, while keeping the main
+listener open briefly to finish active requests.</li>
+<li><strong>Pod Eviction and Scheduling Delays in Kubernetes:</strong>
+In Amazon EKS, if pods were forcefully killed (<code>SIGKILL</code>)
+when the node vanished, examine the
+<code>terminationGracePeriodSeconds</code> in your Pod specifications.
+If a pod is configured with a 180-second grace period, it will exceed
+the 120-second Spot reclamation window. Restrict
+<code>terminationGracePeriodSeconds</code> on Spot-eligible workloads to
+90 seconds or less, and implement <code>preStop</code> lifecycle hooks
+to handle connection cleanup cleanly.</li>
+<li><strong>Slow Replacement Provisioning:</strong> If your remaining
+capacity became overwhelmed after the targeted Spot Instances
+terminated, enable <strong>Capacity Rebalancing</strong> on your Auto
+Scaling group or use <strong>Karpenter</strong> with interruption queue
+handling enabled. Both mechanisms begin launching replacement nodes as
+soon as the interruption notice is published, overlapping the boot time
+of the new node with the two-minute drain window of the terminating
+node.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-test-ec-2-spot-resilience-using-aws-fis';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

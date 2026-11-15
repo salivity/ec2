@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What EC2 Capacity Reservation Attributes Must Match? - ec2</title>
+    <meta name="description" content="To utilize an existing Amazon EC2 On-Demand Capacity Reservation when launching a new instance, four core attributes must match exactly: the instance type, the operating system platform, the Availability Zone, and the tenancy. Additionally, if the Capacit">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-ec-2-capacity-reservation-attributes-must-match">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What EC2 Capacity Reservation Attributes Must Match? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-ec-2-capacity-reservation-attributes-must-match" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="To utilize an existing Amazon EC2 On-Demand Capacity Reservation when launching a new instance, four core attributes must match exactly: the instance type, the operating system platform, the Availability Zone, and the tenancy. Additionally, if the Capacit" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-ec2-capacity-reservation-attributes-must-match">What EC2
+Capacity Reservation Attributes Must Match?</h1>
+<p>To utilize an existing Amazon EC2 On-Demand Capacity Reservation when
+launching a new instance, four core attributes must match exactly: the
+instance type, the operating system platform, the Availability Zone, and
+the tenancy. Additionally, if the Capacity Reservation is configured as
+targeted rather than open, the instance launch request must explicitly
+specify the reservation ID or target a Capacity Reservation group. When
+all required criteria align and sufficient capacity is available, Amazon
+EC2 automatically applies the reservation to the new instance, ensuring
+compute availability and preventing duplicate billing for unused
+reserved capacity.</p>
+<h2 id="the-four-required-matching-attributes">The Four Required
+Matching Attributes</h2>
+<p>When you create an On-Demand Capacity Reservation, AWS sets aside
+specific hardware resources in a chosen data center. For a newly
+launched instance to consume those exact resources, its launch
+parameters must match the reservation parameters without exception.</p>
+<h3 id="1-instance-type">1. Instance Type</h3>
+<p>The instance type defines the hardware family, generation, and size
+of the virtual machine, such as <code>m5.xlarge</code> or
+<code>c6i.2xlarge</code>. Unlike Regional Reserved Instances or Compute
+Savings Plans, which offer instance size flexibility within the same
+family, On-Demand Capacity Reservations require an exact instance type
+match. For example, a reservation for one <code>c5.2xlarge</code>
+instance cannot be consumed by launching two <code>c5.xlarge</code>
+instances.</p>
+<h3 id="2-platform-operating-system">2. Platform (Operating System)</h3>
+<p>The software platform specified in the Amazon Machine Image (AMI)
+used to launch the instance must match the platform configured on the
+Capacity Reservation. AWS categorizes platforms into specific billing
+and licensing tiers, including:</p>
+<ul>
+<li>Linux/UNIX</li>
+<li>Red Hat Enterprise Linux (RHEL)</li>
+<li>SUSE Linux</li>
+<li>Windows</li>
+<li>Windows with SQL Server (Standard, Web, or Enterprise)</li>
+<li>Linux with SQL Server (Standard, Web, or Enterprise)</li>
+</ul>
+<p>If your Capacity Reservation is configured for standard
+<code>Linux/UNIX</code>, launching an instance with a
+<code>Red Hat Enterprise Linux</code> AMI will not match the
+reservation, even if the underlying hardware requirements are
+identical.</p>
+<h3 id="3-availability-zone">3. Availability Zone</h3>
+<p>Capacity Reservations are zonal resources rather than regional ones.
+You must launch the instance into the exact Availability Zone where the
+Capacity Reservation resides. To prevent discrepancies across different
+AWS accounts—where Availability Zone names like <code>us-east-1a</code>
+might map to different physical locations—it is best practice to verify
+the Availability Zone ID, such as <code>use1-az1</code>.</p>
+<h3 id="4-tenancy">4. Tenancy</h3>
+<p>The hardware isolation level of the instance must align with the
+reservation. Capacity Reservations support two tenancy options:</p>
+<ul>
+<li><strong>Default (<code>default</code>):</strong> The instance runs
+on shared hardware alongside instances from other AWS accounts.</li>
+<li><strong>Dedicated (<code>dedicated</code>):</strong> The instance
+runs on single-tenant hardware dedicated to your AWS account.</li>
+</ul>
+<p>Note that On-Demand Capacity Reservations are not supported on
+Dedicated Hosts (<code>host</code> tenancy), which use a separate
+host-level reservation model.</p>
+<h2 id="matching-criteria-open-vs-targeted-reservations">Matching
+Criteria: Open vs. Targeted Reservations</h2>
+<p>In addition to the four hardware and software attributes, every
+Capacity Reservation has an instance eligibility setting that dictates
+how instances match to it.</p>
+<h3 id="open-capacity-reservations">Open Capacity Reservations</h3>
+<p>When a Capacity Reservation is set to <code>open</code>, any new
+instance launched in your account (or shared with your account via AWS
+Resource Access Manager) that matches the four core attributes will
+automatically consume the reserved capacity. This happens provided the
+instance launch setting has its Capacity Reservation preference set to
+<code>open</code> (which is the default for EC2 launches).</p>
+<h3 id="targeted-capacity-reservations">Targeted Capacity
+Reservations</h3>
+<p>When a Capacity Reservation is set to <code>targeted</code>, matching
+the four attributes is necessary but not sufficient. An instance with
+default launch settings will ignore a targeted reservation and launch
+into the public On-Demand pool instead. To consume a targeted
+reservation, the instance launch request must explicitly reference
+either the specific Capacity Reservation ARN/ID or a Capacity
+Reservation resource group containing that reservation. This
+configuration is ideal for reserving capacity strictly for
+mission-critical workloads while preventing non-critical workloads in
+the same Availability Zone from accidentally consuming it.</p>
+<h2 id="placement-group-considerations">Placement Group
+Considerations</h2>
+<p>By default, open Capacity Reservations do not restrict placement
+groups. However, if you configure a Capacity Reservation to be tied to a
+specific cluster placement group, only instances launched into that
+exact cluster placement group can use the reserved capacity. Conversely,
+if an instance is launched into a cluster placement group, it will only
+match an open Capacity Reservation that either specifies the same
+placement group or has no placement group restriction and happens to
+have hardware aligned with the group's topology.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-ec-2-capacity-reservation-attributes-must-match';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

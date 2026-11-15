@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Share a Private EC2 AMI with Another AWS Account? - ec2</title>
+    <meta name="description" content="Sharing a privately created Amazon EC2 AMI with another AWS account requires modifying the AMI launch permissions to grant explicit access to the target 12-digit AWS account ID and configuring permissions for the underlying EBS snapshots and customer-mana">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-share-a-private-ec-2-ami-with-another-aws-account">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Share a Private EC2 AMI with Another AWS Account? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-share-a-private-ec-2-ami-with-another-aws-account" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Sharing a privately created Amazon EC2 AMI with another AWS account requires modifying the AMI launch permissions to grant explicit access to the target 12-digit AWS account ID and configuring permissions for the underlying EBS snapshots and customer-mana" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-share-a-private-ec2-ami-with-another-aws-account">How to
+Share a Private EC2 AMI with Another AWS Account?</h1>
+<p>Sharing a privately created Amazon EC2 AMI with another AWS account
+requires modifying the AMI launch permissions to grant explicit access
+to the target 12-digit AWS account ID and configuring permissions for
+the underlying EBS snapshots and customer-managed KMS encryption keys.
+By scoping permissions exclusively to specific AWS account numbers
+rather than making the image public, organizations can securely
+distribute golden images across multi-account environments while
+maintaining strict access boundaries. This guide covers the
+prerequisites, encryption requirements, step-by-step instructions for
+the AWS Management Console and AWS CLI, and security best practices for
+cross-account AMI sharing.</p>
+<h2
+id="prerequisites-for-secure-cross-account-ami-sharing">Prerequisites
+for Secure Cross-Account AMI Sharing</h2>
+<p>Before sharing an Amazon Machine Image (AMI) with another account,
+verify the following details:</p>
+<ol type="1">
+<li><strong>Target AWS Account ID:</strong> You need the 12-digit AWS
+account ID of the recipient account.</li>
+<li><strong>Region Alignment:</strong> AMIs are regional resources.
+Cross-account sharing only grants access within the AWS Region where the
+AMI currently resides. If the recipient needs the AMI in a different
+Region, you must either copy the AMI to that Region before sharing or
+grant the recipient permissions to copy it themselves.</li>
+<li><strong>Encryption Key Type (Critical for Encrypted AMIs):</strong>
+If the AMI's backing Amazon EBS snapshots are encrypted using the
+default AWS-managed key (<code>aws/ebs</code>), you cannot share the AMI
+with another account. You must first copy the AMI and re-encrypt it with
+a customer-managed AWS KMS key.</li>
+</ol>
+<h2 id="preparing-encrypted-amis-and-kms-permissions">Preparing
+Encrypted AMIs and KMS Permissions</h2>
+<p>For security compliance, most production AMIs use encrypted EBS
+volumes. Sharing an encrypted AMI across AWS accounts requires granting
+the target account access to both the AMI launch permissions and the
+customer-managed KMS key used to encrypt the underlying EBS
+snapshots.</p>
+<h3 id="step-1-ensure-a-customer-managed-kms-key-is-used">Step 1: Ensure
+a Customer-Managed KMS Key is Used</h3>
+<p>If your private AMI was encrypted with the default
+<code>aws/ebs</code> KMS key, create a new customer-managed key (CMK) in
+AWS Key Management Service (KMS) and copy the AMI using that key:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 copy-image <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--source-region</span> us-east-1 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--source-image-id</span> ami-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--name</span> <span class="st">&quot;Encrypted-Golden-AMI-Shareable&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--encrypted</span> <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--kms-key-id</span> arn:aws:kms:us-east-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab</span></code></pre></div>
+<h3 id="step-2-update-the-kms-key-policy-for-the-target-account">Step 2:
+Update the KMS Key Policy for the Target Account</h3>
+<p>The source account (<code>111122223333</code>) must update the key
+policy of the customer-managed KMS key to allow the target account
+(<code>444455556666</code>) to perform cryptographic operations needed
+to launch instances or copy the AMI. Add the following statement to your
+KMS key policy:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;AllowTargetAccountToUseKMSKeyForAMI&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Principal&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;AWS&quot;</span><span class="fu">:</span> <span class="st">&quot;arn:aws:iam::444455556666:root&quot;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:Decrypt&quot;</span><span class="ot">,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:ReEncrypt*&quot;</span><span class="ot">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:GenerateDataKey*&quot;</span><span class="ot">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:CreateGrant&quot;</span><span class="ot">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;kms:DescribeKey&quot;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="st">&quot;*&quot;</span><span class="fu">,</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Condition&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;Bool&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;kms:GrantIsForAWSResource&quot;</span><span class="fu">:</span> <span class="st">&quot;true&quot;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Adding the <code>kms:GrantIsForAWSResource</code> condition restricts
+<code>kms:CreateGrant</code> so the target account can only create
+grants when integrated AWS services (like Amazon EC2/EBS) request them
+on its behalf.</p>
+<h3 id="step-3-configure-iam-permissions-in-the-target-account">Step 3:
+Configure IAM Permissions in the Target Account</h3>
+<p>Designating the target account's <code>root</code> principal in the
+source KMS key policy delegates authority to the target account's IAM
+administrators. An IAM user or role in the target account still needs an
+identity-based IAM policy permitting access to the source account's KMS
+key:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Version&quot;</span><span class="fu">:</span> <span class="st">&quot;2012-10-17&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;Statement&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;Sid&quot;</span><span class="fu">:</span> <span class="st">&quot;AllowUseOfSharedKMSKeyForEC2Launch&quot;</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;Effect&quot;</span><span class="fu">:</span> <span class="st">&quot;Allow&quot;</span><span class="fu">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;Action&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;kms:Decrypt&quot;</span><span class="ot">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;kms:ReEncrypt*&quot;</span><span class="ot">,</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;kms:GenerateDataKey*&quot;</span><span class="ot">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;kms:CreateGrant&quot;</span><span class="ot">,</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;kms:DescribeKey&quot;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;Resource&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;arn:aws:kms:us-east-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab&quot;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="sharing-the-ami-using-the-aws-management-console">Sharing the
+AMI Using the AWS Management Console</h2>
+<p>To share the AMI with a specific AWS account via the console:</p>
+<ol type="1">
+<li>Sign in to the AWS Management Console in the source account and open
+the <strong>Amazon EC2 console</strong>.</li>
+<li>In the left navigation pane, under <strong>Images</strong>, select
+<strong>AMIs</strong>.</li>
+<li>Choose the filter <strong>Owned by me</strong> and select the
+private AMI you want to share.</li>
+<li>Select the <strong>Permissions</strong> tab in the bottom detail
+pane and click <strong>Edit AMI permissions</strong>.</li>
+<li>Keep the AMI visibility set to <strong>Private</strong>.</li>
+<li>Under <strong>Shared accounts</strong>, choose <strong>Add account
+ID</strong>.</li>
+<li>Enter the 12-digit AWS account ID of the target account.</li>
+<li>If you want the target account to be able to copy the AMI to their
+own account or another Region, select the checkbox <strong>Add 'Create
+volume' permissions to the following associated snapshots when creating
+permissions</strong>.</li>
+<li>Click <strong>Save changes</strong>.</li>
+</ol>
+<h2 id="sharing-the-ami-using-the-aws-cli">Sharing the AMI Using the AWS
+CLI</h2>
+<p>You can automate secure AMI sharing using the
+<code>modify-image-attribute</code> command.</p>
+<h3 id="granting-launch-permissions">Granting Launch Permissions</h3>
+<p>Run the following command to allow account <code>444455556666</code>
+to launch EC2 instances from <code>ami-0123456789abcdef0</code>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-image-attribute <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--launch-permission</span> <span class="st">&quot;Add=[{UserId=444455556666}]&quot;</span></span></code></pre></div>
+<h3
+id="sharing-underlying-ebs-snapshot-permissions-required-to-copy-the-ami">Sharing
+Underlying EBS Snapshot Permissions (Required to Copy the AMI)</h3>
+<p>Launching an instance only requires AMI launch permissions (and KMS
+permissions if encrypted). However, if the target account needs to copy
+the AMI (<code>ec2:CopyImage</code>) to own an independent copy, you
+must also share the <code>createVolumePermission</code> on every EBS
+snapshot backing the AMI:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-snapshot-attribute <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--snapshot-id</span> snap-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--attribute</span> createVolumePermission <span class="dt">\</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--operation-type</span> add <span class="dt">\</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--user-ids</span> 444455556666</span></code></pre></div>
+<h3 id="verifying-and-revoking-shared-permissions">Verifying and
+Revoking Shared Permissions</h3>
+<p>To audit which accounts currently have access to your AMI:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-image-attribute <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--attribute</span> launchPermission</span></code></pre></div>
+<p>To revoke access from the target account when it is no longer
+needed:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-image-attribute <span class="dt">\</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--launch-permission</span> <span class="st">&quot;Remove=[{UserId=444455556666}]&quot;</span></span></code></pre></div>
+<h2 id="sharing-across-an-aws-organization">Sharing Across an AWS
+Organization</h2>
+<p>If you are sharing AMIs across multiple accounts within the same AWS
+Organization, you can share the AMI with an entire Organization ARN or
+Organizational Unit (OU) ARN instead of managing individual 12-digit
+account IDs:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 modify-image-attribute <span class="dt">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--launch-permission</span> <span class="st">&quot;Add=[{OrganizationArn=arn:aws:organizations::111122223333:organization/o-exampleorgid}]&quot;</span></span></code></pre></div>
+<h2 id="security-best-practices-for-sharing-private-amis">Security Best
+Practices for Sharing Private AMIs</h2>
+<ol type="1">
+<li><strong>Sanitize Sensitive Data Before Creating the AMI:</strong>
+Before creating an AMI to share, remove SSH
+<code>authorized_keys</code>, temporary credentials, shell command
+history (<code>.bash_history</code>), application secrets, and private
+certificates from the source instance.</li>
+<li><strong>Enable Block Public Access for AMIs:</strong> Enable
+<strong>Block public access for AMIs</strong> at the account level
+(<code>aws ec2 enable-image-block-public-access --image-block-public-access-state block-new-sharing</code>)
+to prevent accidental public exposure while still permitting explicit
+cross-account sharing.</li>
+<li><strong>Restrict Who Can Share AMIs via IAM Condition Keys:</strong>
+Use the <code>ec2:AddLaunchPermission</code> condition or Service
+Control Policies (SCPs) to ensure administrators cannot set
+<code>"Group": "all"</code> (public access) when modifying image
+attributes.</li>
+<li><strong>Automate with EC2 Image Builder:</strong> Use AWS EC2 Image
+Builder alongside AWS Resource Access Manager (AWS RAM) to build,
+harden, test, and distribute encrypted golden AMIs across accounts with
+auditable pipelines.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-share-a-private-ec-2-ami-with-another-aws-account';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

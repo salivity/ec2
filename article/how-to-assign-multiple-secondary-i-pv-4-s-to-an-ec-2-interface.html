@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Assign Multiple Secondary IPv4s to an EC2 Interface? - ec2</title>
+    <meta name="description" content="Assigning multiple secondary private IPv4 addresses to a single elastic network interface on an Amazon EC2 instance is accomplished through the AWS Management Console, the AWS Command Line Interface, or the Amazon EC2 API. Once the addresses are allocated">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-assign-multiple-secondary-i-pv-4-s-to-an-ec-2-interface">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Assign Multiple Secondary IPv4s to an EC2 Interface? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-assign-multiple-secondary-i-pv-4-s-to-an-ec-2-interface" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Assigning multiple secondary private IPv4 addresses to a single elastic network interface on an Amazon EC2 instance is accomplished through the AWS Management Console, the AWS Command Line Interface, or the Amazon EC2 API. Once the addresses are allocated" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-assign-multiple-secondary-ipv4s-to-an-ec2-interface">How
+to Assign Multiple Secondary IPv4s to an EC2 Interface?</h1>
+<p>Assigning multiple secondary private IPv4 addresses to a single
+elastic network interface on an Amazon EC2 instance is accomplished
+through the AWS Management Console, the AWS Command Line Interface, or
+the Amazon EC2 API. Once the addresses are allocated at the AWS level,
+modern operating systems carrying the elastic network interface
+configuration service configure the addresses automatically, whereas
+older operating systems require manual network configuration inside the
+guest environment. This article walks through the instance limits,
+allocation steps, and operating system verification required to bind
+multiple private IPv4 addresses to a single network interface.</p>
+<h2 id="prerequisites-and-instance-type-limits">Prerequisites and
+Instance Type Limits</h2>
+<p>Before adding secondary private IPv4 addresses, confirm that your
+instance type supports the required number of IP addresses per Elastic
+Network Interface (ENI). Every EC2 instance family imposes a specific
+quota on both the maximum number of network interfaces that can be
+attached and the maximum number of private IPv4 addresses allowed per
+interface.</p>
+<p>If an instance type supports <span class="math inline">\(N\)</span>
+total private IPv4 addresses on a single interface, one address is
+designated as the primary private IPv4 address, leaving <span
+class="math inline">\(N - 1\)</span> slots available for secondary
+private IPv4 addresses. Additionally, all secondary IPv4 addresses
+assigned to an ENI must come from the CIDR block of the subnet to which
+that ENI is attached.</p>
+<p>You can check the maximum private IPv4 capacity for a given instance
+type using the AWS CLI:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-instance-types <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-types</span> t3.medium <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">&quot;InstanceTypes[*].NetworkInfo.{MaxInterfaces:MaximumNetworkInterfaces,IPv4PerInterface:Ipv4AddressesPerInterface}&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output</span> table</span></code></pre></div>
+<h2 id="method-1-using-the-aws-management-console">Method 1: Using the
+AWS Management Console</h2>
+<p>You can assign secondary private IPv4 addresses either during the
+launch of a new EC2 instance or to an existing network interface
+attached to a running or stopped instance.</p>
+<h3 id="assigning-to-an-existing-instance">Assigning to an Existing
+Instance</h3>
+<ol type="1">
+<li>Sign in to the AWS Management Console and open the Amazon EC2
+console.</li>
+<li>In the left navigation pane, choose <strong>Network
+Interfaces</strong> under the <strong>Network &amp; Security</strong>
+section (or select <strong>Instances</strong>, choose your instance,
+open the <strong>Networking</strong> tab, and select the target Network
+Interface ID).</li>
+<li>Select the Elastic Network Interface (ENI) to which you want to add
+secondary IPv4 addresses.</li>
+<li>Click the <strong>Actions</strong> dropdown menu and select
+<strong>Manage IP addresses</strong>.</li>
+<li>Expand the details for the target network interface.</li>
+<li>Under <strong>IPv4 Addresses</strong>, click <strong>Assign new IP
+address</strong>.</li>
+<li>Leave <strong>Auto-assign</strong> selected to let AWS pick an
+available address from the subnet, or enter a specific IPv4 address that
+falls within the subnet's CIDR range. Repeat this step to add additional
+secondary IPv4 addresses up to your instance limit.</li>
+<li>Click <strong>Save</strong> to apply the changes.</li>
+</ol>
+<h2 id="method-2-using-the-aws-cli">Method 2: Using the AWS CLI</h2>
+<p>The <code>assign-private-ip-addresses</code> command enables fast
+assignment of either automatically selected or explicitly specified
+secondary private IPv4 addresses to an existing Elastic Network
+Interface.</p>
+<h3 id="auto-assigning-multiple-secondary-ipv4-addresses">Auto-Assigning
+Multiple Secondary IPv4 Addresses</h3>
+<p>To let Amazon VPC automatically select and assign a specific count of
+available IPv4 addresses from the subnet range, use the
+<code>--secondary-private-ip-address-count</code> parameter:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 assign-private-ip-addresses <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--network-interface-id</span> eni-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--secondary-private-ip-address-count</span> 2</span></code></pre></div>
+<h3 id="assigning-specific-secondary-ipv4-addresses">Assigning Specific
+Secondary IPv4 Addresses</h3>
+<p>To bind specific IPv4 addresses from the subnet CIDR range, pass them
+as a space-separated list to the <code>--private-ip-addresses</code>
+parameter:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 assign-private-ip-addresses <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--network-interface-id</span> eni-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--private-ip-addresses</span> 10.0.1.25 10.0.1.26</span></code></pre></div>
+<h3 id="allowing-ip-reassignment-across-interfaces">Allowing IP
+Reassignment Across Interfaces</h3>
+<p>If you are migrating a secondary private IPv4 address from another
+network interface in the same subnet for failover purposes, include the
+<code>--allow-reassignment</code> flag:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 assign-private-ip-addresses <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--network-interface-id</span> eni-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--private-ip-addresses</span> 10.0.1.25 <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--allow-reassignment</span></span></code></pre></div>
+<h2 id="method-3-configuring-within-the-guest-operating-system">Method
+3: Configuring Within the Guest Operating System</h2>
+<p>When you attach a secondary private IPv4 address in the AWS control
+plane, the instance's operating system must recognize the new address on
+its local network adapter.</p>
+<h3 id="automatic-configuration-on-modern-linux-amis">Automatic
+Configuration on Modern Linux AMIs</h3>
+<p>Amazon Linux 2023, Amazon Linux 2, and modern Ubuntu or RHEL AMIs
+include the <code>ec2-net-utils</code> or
+<code>amazon-ec2-net-utils</code> package (or
+<code>systemd-networkd</code> rules integrated with EC2 instance
+metadata). These utilities query the Instance Metadata Service (IMDS)
+and automatically configure newly assigned secondary IPv4 addresses on
+the primary interface without requiring manual intervention or a
+reboot.</p>
+<p>Verify that the operating system recognizes the secondary addresses
+by running:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> addr show dev ens5</span></code></pre></div>
+<p>(Replace <code>ens5</code> with <code>eth0</code> or your specific
+interface name if different). You will see multiple <code>inet</code>
+entries listed under the same network interface.</p>
+<h3
+id="manual-configuration-on-linux-if-automatic-detection-is-disabled">Manual
+Configuration on Linux (If Automatic Detection Is Disabled)</h3>
+<p>If your Linux distribution does not automatically pull secondary IPs
+from IMDS, you can bind the secondary IPv4 addresses temporarily using
+<code>iproute2</code> or permanently via your network manager.</p>
+<p>To add the addresses immediately for the current session:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> ip addr add 10.0.1.25/24 dev ens5</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> ip addr add 10.0.1.26/24 dev ens5</span></code></pre></div>
+<p>To make the configuration persistent on systems using Netplan (such
+as Ubuntu), create or edit
+<code>/etc/netplan/60-secondary-ips.yaml</code>:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">network</span><span class="kw">:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">ethernets</span><span class="kw">:</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ens5</span><span class="kw">:</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">addresses</span><span class="kw">:</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> 10.0.1.25/24</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> 10.0.1.26/24</span></span></code></pre></div>
+<p>Apply the Netplan configuration:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> netplan apply</span></code></pre></div>
+<h3 id="manual-configuration-on-windows-server">Manual Configuration on
+Windows Server</h3>
+<p>On Windows Server instances where EC2Launch or EC2Config is not
+configured to manage secondary IPs automatically, configure the adapter
+inside the guest OS:</p>
+<ol type="1">
+<li>Query the subnet mask and default gateway using
+<code>ipconfig /all</code> in PowerShell or Command Prompt.</li>
+<li>Open <strong>Control Panel</strong>, navigate to <strong>Network and
+Sharing Center</strong>, and click <strong>Change adapter
+settings</strong>.</li>
+<li>Right-click the active network adapter and select
+<strong>Properties</strong>.</li>
+<li>Select <strong>Internet Protocol Version 4 (TCP/IPv4)</strong> and
+click <strong>Properties</strong>.</li>
+<li>Select <strong>Use the following IP address</strong>, enter the
+primary private IPv4 address, subnet mask, and default gateway, as well
+as the VPC DNS server address.</li>
+<li>Click <strong>Advanced</strong> at the bottom of the dialog
+box.</li>
+<li>Under the <strong>IP addresses</strong> section in the <strong>IP
+Settings</strong> tab, click <strong>Add</strong> and enter each
+secondary private IPv4 address along with the subnet mask.</li>
+<li>Click <strong>OK</strong> on all dialog boxes to apply the
+settings.</li>
+</ol>
+<p>Alternatively, you can add secondary IPv4 addresses via PowerShell
+once the interface is set to static addressing:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>New-NetIPAddress <span class="op">-</span>InterfaceAlias <span class="st">&quot;Ethernet&quot;</span> <span class="op">-</span>IPAddress <span class="dv">10.0</span><span class="op">.</span><span class="dv">1.25</span> <span class="op">-</span>PrefixLength <span class="dv">24</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="dt">New</span><span class="op">-</span>NetIPAddress <span class="op">-</span>InterfaceAlias <span class="st">&quot;Ethernet&quot;</span> <span class="op">-</span>IPAddress <span class="dv">10.0</span><span class="op">.</span><span class="dv">1.26</span> <span class="op">-</span>PrefixLength <span class="dv">24</span></span></code></pre></div>
+<h2 id="unassigning-secondary-private-ipv4-addresses">Unassigning
+Secondary Private IPv4 Addresses</h2>
+<p>If you no longer need a secondary private IPv4 address on an Elastic
+Network Interface, remove it using the AWS CLI:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 unassign-private-ip-addresses <span class="dt">\</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--network-interface-id</span> eni-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--private-ip-addresses</span> 10.0.1.25 10.0.1.26</span></code></pre></div>
+<p>If you manually configured the addresses inside the operating system,
+remove them from your OS network configuration files prior to or
+immediately after unassigning them from the ENI to avoid routing
+issues.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-assign-multiple-secondary-i-pv-4-s-to-an-ec-2-interface';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

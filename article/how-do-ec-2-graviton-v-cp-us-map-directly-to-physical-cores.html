@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do EC2 Graviton vCPUs Map Directly to Physical Cores? - ec2</title>
+    <meta name="description" content="When each virtual CPU on an Amazon EC2 Graviton instance maps directly to a dedicated physical processor core without simultaneous multithreading, workloads gain predictable performance, dedicated cache resources, and enhanced hardware-level security isol">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-ec-2-graviton-v-cp-us-map-directly-to-physical-cores">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do EC2 Graviton vCPUs Map Directly to Physical Cores? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-ec-2-graviton-v-cp-us-map-directly-to-physical-cores" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="When each virtual CPU on an Amazon EC2 Graviton instance maps directly to a dedicated physical processor core without simultaneous multithreading, workloads gain predictable performance, dedicated cache resources, and enhanced hardware-level security isol" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-ec2-graviton-vcpus-map-directly-to-physical-cores">How Do
+EC2 Graviton vCPUs Map Directly to Physical Cores?</h1>
+<p>When each virtual CPU on an Amazon EC2 Graviton instance maps
+directly to a dedicated physical processor core without simultaneous
+multithreading, workloads gain predictable performance, dedicated cache
+resources, and enhanced hardware-level security isolation. Unlike
+traditional x86 processors that split a single physical core into two
+logical threads, AWS Graviton processors allocate an entire physical Arm
+Neoverse core to each vCPU. This architecture eliminates thread-level
+resource contention on the same core, resulting in linear scalability,
+lower tail latency, and improved energy efficiency for cloud-native
+applications, databases, and microservices.</p>
+<h2
+id="understanding-traditional-x86-simultaneous-multithreading-vs-graviton-physical-cores">Understanding
+Traditional x86 Simultaneous Multithreading vs Graviton Physical
+Cores</h2>
+<p>In most x86-based Amazon EC2 instances powered by Intel Xeon or AMD
+EPYC processors, Simultaneous Multithreading (SMT)—commonly known as
+Hyper-Threading on Intel platforms—is enabled by default. Under an SMT
+architecture, a single physical CPU core exposes two logical execution
+threads to the operating system. In the context of EC2, each of these
+logical threads is provisioned as a single vCPU:</p>
+<p><span class="math display">\[\text{vCPUs}_{\text{x86}} = 2 \times
+\text{Physical Cores}\]</span></p>
+<p>While SMT improves overall throughput when threads are stalled
+waiting on memory fetches, both vCPUs on the same physical core must
+share critical internal execution units, including the Arithmetic Logic
+Units (ALUs), Floating Point Units (FPUs), and L1 and L2 CPU caches.</p>
+<p>By contrast, AWS Graviton processors (Graviton, Graviton2, Graviton3,
+and Graviton4) do not use SMT. Every vCPU on a Graviton instance
+corresponds to a complete, independent physical core:</p>
+<p><span class="math display">\[\text{vCPUs}_{\text{Graviton}} = 1
+\times \text{Physical Cores}\]</span></p>
+<p>Because there are no sibling threads competing for execution
+pipelines inside the core, each vCPU operates as a self-contained
+processing unit.</p>
+<h2 id="elimination-of-intra-core-resource-contention">Elimination of
+Intra-Core Resource Contention</h2>
+<p>When two threads share a physical core under SMT, a compute-intensive
+workload running on one thread directly degrades the performance of the
+sibling thread. This phenomenon, often referred to as the noisy neighbor
+effect at the microarchitectural level, causes unpredictable instruction
+execution times.</p>
+<p>With Graviton's 1:1 vCPU-to-physical-core mapping, every vCPU has
+exclusive access to its own:</p>
+<ul>
+<li>Instruction fetch and decode pipelines</li>
+<li>Integer and vector execution units (including Neon and SVE
+units)</li>
+<li>Branch prediction buffers and Translation Lookaside Buffers
+(TLBs)</li>
+</ul>
+<p>Because a vCPU never waits for a sibling thread to release an
+execution pipeline, CPU utilization metrics reported by the operating
+system accurately reflect actual hardware capacity. On SMT-enabled
+instances, moving from <span class="math inline">\(50\%\)</span> to
+<span class="math inline">\(100\%\)</span> CPU utilization often yields
+only a <span class="math inline">\(15\%\)</span> to <span
+class="math inline">\(30\%\)</span> increase in actual throughput
+because the second thread is scavenging unused cycles from the first. On
+Graviton instances, throughput scales almost linearly with CPU
+utilization all the way up to <span
+class="math inline">\(100\%\)</span>:</p>
+<p><span class="math display">\[T(u) \approx u \cdot T_{\max} \quad
+\text{for } u \in [0, 1]\]</span></p>
+<p>where <span class="math inline">\(T(u)\)</span> is the application
+throughput at utilization rate <span class="math inline">\(u\)</span>,
+and <span class="math inline">\(T_{\max}\)</span> is the maximum
+physical core throughput.</p>
+<h2 id="dedicated-cache-hierarchy-and-memory-bandwidth">Dedicated Cache
+Hierarchy and Memory Bandwidth</h2>
+<p>Memory latency is one of the primary bottlenecks in modern cloud
+workloads, particularly for in-memory caches like Redis, relational
+databases like PostgreSQL, and containerized microservices.</p>
+<p>On an x86 instance with SMT, two vCPUs share the same L1 instruction
+cache, L1 data cache, and L2 cache. If one thread executes a
+memory-intensive operation, it can evict cache lines belonging to the
+sibling thread, leading to higher cache miss rates and frequent fetches
+from slower L3 cache or main memory (DRAM).</p>
+<p>On EC2 Graviton instances, each vCPU receives dedicated L1 and L2
+caches:</p>
+<ul>
+<li><strong>Graviton2 and Graviton3:</strong> Each vCPU has a private
+<span class="math inline">\(64\text{ KB}\)</span> L1 instruction cache,
+a <span class="math inline">\(64\text{ KB}\)</span> L1 data cache, and a
+private <span class="math inline">\(1\text{ MB}\)</span> L2 cache.</li>
+<li><strong>Graviton4:</strong> Each vCPU doubles the private L2 cache
+to <span class="math inline">\(2\text{ MB}\)</span> per physical
+core.</li>
+</ul>
+<p>Having a dedicated L2 cache per vCPU significantly reduces cache
+thrashing and context-switch penalties. Workloads maintain higher cache
+hit ratios, keeping the average memory access time (<span
+class="math inline">\(T_{\text{avg}}\)</span>) low:</p>
+<p><span class="math display">\[T_{\text{avg}} = H_{\text{L1}}
+T_{\text{L1}} + (1 - H_{\text{L1}}) \left[ H_{\text{L2}} T_{\text{L2}} +
+(1 - H_{\text{L2}}) T_{\text{memory}} \right]\]</span></p>
+<p>where <span class="math inline">\(H_{\text{L1}}\)</span> and <span
+class="math inline">\(H_{\text{L2}}\)</span> represent the hit rates of
+the dedicated L1 and L2 caches, and <span
+class="math inline">\(T_{\text{L1}}\)</span>, <span
+class="math inline">\(T_{\text{L2}}\)</span>, and <span
+class="math inline">\(T_{\text{memory}}\)</span> represent their
+respective access latencies.</p>
+<h2 id="predictable-tail-latency-p99-and-p999">Predictable Tail Latency
+(P99 and P99.9)</h2>
+<p>For latency-sensitive applications such as high-frequency trading,
+real-time bidding, API gateways, and interactive web services, average
+latency is far less important than tail latency—specifically the 99th
+percentile (<span class="math inline">\(P_{99}\)</span>) and 99.9th
+percentile (<span class="math inline">\(P_{99.9}\)</span>) response
+times.</p>
+<p>In SMT architectures, tail latency spikes frequently occur when two
+demanding requests are scheduled onto sibling hyperthreads of the same
+physical core simultaneously. Both requests experience pipeline stalls
+and cache evictions, causing response times to jump even when overall
+cluster utilization is moderate.</p>
+<p>Because Graviton vCPUs are backed by independent physical cores, the
+variance in request service time (<span
+class="math inline">\(\sigma^2\)</span>) is substantially lower.
+Operating system schedulers (such as the Linux Completely Fair
+Scheduler) do not need complex topology-aware logic to avoid scheduling
+two heavy tasks onto sibling threads of the same core, because sibling
+threads do not exist. This results in a tighter latency distribution and
+significantly lower <span class="math inline">\(P_{99}\)</span> and
+<span class="math inline">\(P_{99.9}\)</span> latencies under high
+load.</p>
+<h2 id="enhanced-security-and-side-channel-isolation">Enhanced Security
+and Side-Channel Isolation</h2>
+<p>Simultaneous multithreading has historically introduced classes of
+microarchitectural side-channel vulnerabilities—such as
+Microarchitectural Data Sampling (MDS), L1 Terminal Fault (L1TF), and
+variants of Spectre—that exploit the sharing of execution units, caches,
+and buffers between two threads on the same core. Mitigating these
+vulnerabilities on x86 processors often requires kernel-level patches,
+microcode updates, or core scheduling techniques that flush buffers on
+context switches, introducing measurable performance overhead.</p>
+<p>When each vCPU maps directly to a physical core without SMT:</p>
+<ul>
+<li>Cross-thread side-channel attacks within a single core are
+eliminated by design because no two threads ever share core pipeline
+state simultaneously.</li>
+<li>Security-sensitive workloads do not need to disable half of their
+vCPUs (which happens when disabling Hyper-Threading on x86 instances) to
+achieve physical core isolation.</li>
+<li>Combined with always-on DRAM encryption and pointer authentication
+in newer Graviton generations, the lack of SMT provides strong hardware
+isolation without sacrificing compute density.</li>
+</ul>
+<h2 id="impact-on-instance-sizing-and-cost-optimization">Impact on
+Instance Sizing and Cost Optimization</h2>
+<p>When migrating workloads from x86 EC2 instances to Graviton
+instances, the 1:1 physical core mapping directly affects capacity
+planning and right-sizing:</p>
+<ol type="1">
+<li><strong>Higher Per-vCPU Throughput under Load:</strong> While a
+lightly loaded x86 vCPU may exhibit high single-thread burst clock
+speeds, a fully loaded Graviton instance delivers more consistent
+aggregate compute power per vCPU because its cores are not splitting
+execution cycles between two threads.</li>
+<li><strong>Headroom Buffer Reduction:</strong> Engineering teams often
+over-provision x86 instances, setting auto-scaling thresholds at <span
+class="math inline">\(50\%\)</span> or <span
+class="math inline">\(60\%\)</span> CPU utilization to prevent SMT
+contention from degrading tail latencies. With Graviton, teams can
+safely raise target CPU utilization thresholds to <span
+class="math inline">\(75\%\)</span> or <span
+class="math inline">\(80\%\)</span> without experiencing sudden latency
+cliffs, reducing the total number of instances required.</li>
+<li><strong>Software Licensing Efficiency:</strong> For commercial
+software licensed per vCPU, having a full physical core behind every
+vCPU ensures maximum compute work is extracted from each licensed unit,
+rather than paying for logical threads that only offer fractional
+performance gains.</li>
+</ol></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-ec-2-graviton-v-cp-us-map-directly-to-physical-cores';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

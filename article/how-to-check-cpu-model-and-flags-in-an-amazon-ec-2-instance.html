@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Check CPU Model and Flags in an Amazon EC2 Instance? - ec2</title>
+    <meta name="description" content="Verifying the exact processor model and available instruction set flags inside a running Amazon EC2 instance is essential for performance tuning, software compatibility, and compiling optimized code. Because certain EC2 instance families can be backed by">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-check-cpu-model-and-flags-in-an-amazon-ec-2-instance">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Check CPU Model and Flags in an Amazon EC2 Instance? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-check-cpu-model-and-flags-in-an-amazon-ec-2-instance" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Verifying the exact processor model and available instruction set flags inside a running Amazon EC2 instance is essential for performance tuning, software compatibility, and compiling optimized code. Because certain EC2 instance families can be backed by" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-to-check-cpu-model-and-flags-in-an-amazon-ec2-instance">How
+to Check CPU Model and Flags in an Amazon EC2 Instance?</h1>
+<p>Verifying the exact processor model and available instruction set
+flags inside a running Amazon EC2 instance is essential for performance
+tuning, software compatibility, and compiling optimized code. Because
+certain EC2 instance families can be backed by slightly different
+generations of Intel Xeon, AMD EPYC, or AWS Graviton processors,
+inspecting the guest operating system directly ensures you know the
+exact hardware allocated to your virtual machine. On Linux instances,
+you can retrieve this information using built-in utilities like lscpu
+and the procfs virtual filesystem, while Windows instances provide these
+details through PowerShell and WMI queries.</p>
+<h2 id="checking-cpu-details-on-linux-ec2-instances">Checking CPU
+Details on Linux EC2 Instances</h2>
+<p>Linux provides immediate access to processor hardware details and
+instruction flags exposed by the AWS Nitro or Xen hypervisor.</p>
+<h3 id="using-the-lscpu-command">Using the lscpu Command</h3>
+<p>The <code>lscpu</code> utility gathers CPU architecture information
+from <code>sysfs</code> and <code>/proc/cpuinfo</code> and presents it
+in a clean, human-readable format. Run the following command in your
+terminal:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">lscpu</span></span></code></pre></div>
+<p>Key fields to inspect in the output include:</p>
+<ul>
+<li><strong>Architecture:</strong> Indicates whether you are running on
+<code>x86_64</code> (Intel/AMD) or <code>aarch64</code> (AWS
+Graviton).</li>
+<li><strong>Vendor ID:</strong> Shows <code>GenuineIntel</code>,
+<code>AuthenticAMD</code>, or <code>ARM</code>.</li>
+<li><strong>Model name:</strong> Displays the exact processor model
+string (for example,
+<code>Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz</code> or
+<code>AMD EPYC 7R13 Processor</code>).</li>
+<li><strong>Flags:</strong> Lists all supported CPU instruction set
+extensions (labelled as <code>Flags</code> on x86_64 and
+<code>Flags</code> or <code>Features</code> on ARM).</li>
+</ul>
+<p>To filter only the model name and flags with <code>lscpu</code>,
+run:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">lscpu</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">&quot;Model name|Flags&quot;</span></span></code></pre></div>
+<h3 id="inspecting-proccpuinfo-directly">Inspecting /proc/cpuinfo
+Directly</h3>
+<p>For scripting or inspecting per-core details, you can query
+<code>/proc/cpuinfo</code> directly. To view the processor model name of
+the first logical core:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-m</span> 1 <span class="st">&quot;model name&quot;</span> /proc/cpuinfo</span></code></pre></div>
+<p>Note that on AWS Graviton (ARM64) instances,
+<code>/proc/cpuinfo</code> does not always include a
+<code>model name</code> line. Instead, it reports
+<code>CPU implementer</code>, <code>CPU architecture</code>,
+<code>CPU variant</code>, and <code>CPU part</code> hex codes, making
+<code>lscpu</code> or <code>dmidecode</code> more descriptive for
+Graviton model identification.</p>
+<p>To list all instruction set flags on an x86_64 instance from
+<code>/proc/cpuinfo</code>:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-m</span> 1 <span class="st">&quot;^flags&quot;</span> /proc/cpuinfo</span></code></pre></div>
+<p>On AWS Graviton (ARM64) instances, instruction set extensions are
+listed under <code>Features</code> rather than <code>flags</code>:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-m</span> 1 <span class="st">&quot;^Features&quot;</span> /proc/cpuinfo</span></code></pre></div>
+<h3 id="checking-for-specific-instruction-set-flags">Checking for
+Specific Instruction Set Flags</h3>
+<p>When verifying support for workloads that require vector extensions
+(such as <code>avx2</code>, <code>avx512f</code>, <code>vnni</code> on
+x86, or <code>sve</code>, <code>asimd</code>, <code>crc32</code> on
+Graviton), you can test for a specific flag programmatically:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-qw</span> <span class="st">&quot;avx512f&quot;</span> /proc/cpuinfo <span class="kw">&amp;&amp;</span> <span class="bu">echo</span> <span class="st">&quot;Supported&quot;</span> <span class="kw">||</span> <span class="bu">echo</span> <span class="st">&quot;Not Supported&quot;</span></span></code></pre></div>
+<h3 id="using-dmidecode-for-smbios-processor-information">Using
+dmidecode for SMBIOS Processor Information</h3>
+<p>On Nitro-based EC2 instances and bare metal instances
+(<code>*.metal</code>), you can also read the SMBIOS processor table
+using <code>dmidecode</code>:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dmidecode <span class="at">-t</span> processor</span></code></pre></div>
+<p>This outputs the socket designation, manufacturer, processor version,
+and clock speed reported by the instance firmware.</p>
+<h2 id="checking-cpu-details-on-windows-ec2-instances">Checking CPU
+Details on Windows EC2 Instances</h2>
+<p>If you are running a Windows Server AMI on Amazon EC2, you can
+inspect the processor model and instruction capabilities using
+PowerShell or core system utilities.</p>
+<h3 id="querying-processor-model-with-powershell">Querying Processor
+Model with PowerShell</h3>
+<p>Open PowerShell and run the following command to retrieve the exact
+processor name, manufacturer, and clock speed:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-CimInstance</span> <span class="op">-</span>ClassName Win32_Processor <span class="op">|</span> <span class="fu">Select-Object</span> Name<span class="op">,</span> Manufacturer<span class="op">,</span> Caption<span class="op">,</span> MaxClockSpeed<span class="op">,</span> NumberOfCores<span class="op">,</span> NumberOfLogicalProcessors</span></code></pre></div>
+<h3 id="verifying-instruction-set-flags-on-windows">Verifying
+Instruction Set Flags on Windows</h3>
+<p>Windows does not expose a single flat text list of all CPUID flags
+via WMI, but you can query specific instruction set support using the
+<code>[System.Environment]</code> API,
+<code>IsProcessorFeaturePresent</code> Win32 API, or Sysinternals
+Coreinfo.</p>
+<p>For a full breakdown of every CPUID flag (such as SSE4.2, AVX2,
+AVX-512, AES, and SHA), download and run <strong>Sysinternals
+Coreinfo</strong> from an elevated Command Prompt or PowerShell
+window:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">.</span>\Coreinfo64<span class="op">.</span><span class="fu">exe</span> <span class="op">-</span>f</span></code></pre></div>
+<p>An asterisk (<code>*</code>) next to a feature indicates that the
+instruction set is supported and enabled on your EC2 instance, while a
+hyphen (<code>-</code>) indicates that it is not available.</p>
+<p>Alternatively, you can check specific processor features natively in
+PowerShell by invoking the Windows kernel API
+<code>IsProcessorFeaturePresent</code>:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Add-Type</span> <span class="op">-</span>MemberDefinition <span class="vs">@&#39;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="vs">[DllImport(&quot;kernel32.dll&quot;)]</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="vs">public static extern bool IsProcessorFeaturePresent(uint ProcessorFeature);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="vs">&#39;@</span> <span class="op">-</span>Name <span class="st">&quot;Kernel32&quot;</span> <span class="op">-</span>Namespace <span class="st">&quot;Win32&quot;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Feature codes: 10 = SSE2, 38 = AVX, 39 = AVX2, 40 = AVX512F</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>Win32<span class="op">.</span><span class="fu">Kernel32</span><span class="op">]::</span>IsProcessorFeaturePresent<span class="op">(</span><span class="dv">39</span><span class="op">)</span></span></code></pre></div>
+<h2 id="identifying-compiler-optimization-targets">Identifying Compiler
+Optimization Targets</h2>
+<p>If your goal in checking the CPU model and flags is to compile
+software optimized for the exact EC2 host processor, GCC and Clang can
+automatically detect the virtualized host CPU architecture and
+flags:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gcc</span> <span class="at">-march</span><span class="op">=</span>native <span class="at">-Q</span> <span class="at">--help</span><span class="op">=</span>target <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">&quot;^\s+-march=|^\s+-mtune=&quot;</span></span></code></pre></div>
+<p>This command reveals the internal architecture codename (such as
+<code>icelake-server</code>, <code>sapphirerapids</code>,
+<code>znver3</code>, or <code>neoverse-v1</code>) and the exact
+instruction set flags that the compiler enables on that specific EC2
+instance.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-check-cpu-model-and-flags-in-an-amazon-ec-2-instance';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

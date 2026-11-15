@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Is an EC2 Spot Instance and How Are Discounts Set? - ec2</title>
+    <meta name="description" content="An Amazon EC2 Spot Instance is a purchasing option in Amazon Web Services that allows users to utilize spare compute capacity in the AWS cloud at steep discounts of up to ninety percent compared to standard On-Demand rates. This article explores the archi">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-an-ec-2-spot-instance-and-how-are-discounts-set">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Is an EC2 Spot Instance and How Are Discounts Set? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-an-ec-2-spot-instance-and-how-are-discounts-set" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon EC2 Spot Instance is a purchasing option in Amazon Web Services that allows users to utilize spare compute capacity in the AWS cloud at steep discounts of up to ninety percent compared to standard On-Demand rates. This article explores the archi" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-is-an-ec2-spot-instance-and-how-are-discounts-set">What Is
+an EC2 Spot Instance and How Are Discounts Set?</h1>
+<p>An Amazon EC2 Spot Instance is a purchasing option in Amazon Web
+Services that allows users to utilize spare compute capacity in the AWS
+cloud at steep discounts of up to ninety percent compared to standard
+On-Demand rates. This article explores the architecture of EC2 Spot
+Instances, the trade-offs involving two-minute interruption notices when
+AWS reclaims capacity, the long-term supply and demand algorithms that
+govern Spot pricing, and the exact mathematical methods used to
+calculate cost savings relative to On-Demand pricing.</p>
+<h2 id="understanding-amazon-ec2-spot-instances">Understanding Amazon
+EC2 Spot Instances</h2>
+<p>Amazon Elastic Compute Cloud (EC2) must maintain significant spare
+hardware capacity across all its global regions and Availability Zones
+to ensure that customers can launch On-Demand Instances whenever sudden
+traffic spikes occur. Rather than letting those idle servers sit unused,
+AWS offers this excess compute capacity as Spot Instances.</p>
+<p>Functionally, a Spot Instance runs on the exact same physical
+infrastructure and offers identical performance, security, and
+configuration capabilities as an On-Demand or Reserved Instance. The
+critical distinction lies in the availability contract:</p>
+<ul>
+<li><strong>On-Demand Instances:</strong> You pay a fixed hourly or
+per-second rate and retain control of the instance until you explicitly
+terminate it.</li>
+<li><strong>Spot Instances:</strong> You pay a discounted, variable rate
+for unused capacity, but AWS can reclaim the instance at any time if
+capacity runs low for On-Demand or Reserved Instance customers.</li>
+</ul>
+<p>When AWS needs to reclaim a Spot Instance, it issues a Spot Instance
+interruption notice exactly two minutes before terminating, stopping, or
+hibernating the instance. This two-minute window is broadcast via Amazon
+EventBridge and is also accessible directly from the instance metadata
+service at
+<code>http://169.254.169.254/latest/meta-data/spot/instance-action</code>.</p>
+<h2 id="capacity-pools-as-the-unit-of-allocation">Capacity Pools as the
+Unit of Allocation</h2>
+<p>To understand how Spot Instances are allocated and priced, you must
+understand <strong>Spot capacity pools</strong>. A Spot capacity pool is
+a set of unused EC2 instances that share the same:</p>
+<ol type="1">
+<li><strong>Instance Type</strong> (for example, <code>c6i.xlarge</code>
+or <code>m5.2xlarge</code>)</li>
+<li><strong>Operating System</strong> (Linux/UNIX, Windows, Red Hat
+Enterprise Linux, or SUSE Linux)</li>
+<li><strong>Availability Zone</strong> (for example,
+<code>us-east-1a</code> vs. <code>us-east-1b</code>)</li>
+</ol>
+<p>Each Spot capacity pool operates independently. For example, a
+<code>c6i.xlarge</code> running Linux in <code>us-east-1a</code> belongs
+to a completely separate capacity pool than a <code>c6i.xlarge</code>
+running Linux in <code>us-east-1b</code>. Both its spare capacity levels
+and its hourly Spot price fluctuate independently based on the specific
+supply and demand within that exact pool.</p>
+<h2 id="how-spot-pricing-and-discounts-are-determined">How Spot Pricing
+and Discounts Are Determined</h2>
+<p>Historically, prior to late 2017, EC2 Spot pricing operated like a
+real-time auction where customers placed competitive bids and prices
+spiked unpredictably whenever immediate demand exceeded supply. If the
+market price rose above a customer's maximum bid, their instance was
+terminated.</p>
+<p>Under the modern EC2 Spot pricing model, <strong>Spot prices are set
+by Amazon EC2 and adjust gradually based on long-term trends in supply
+and demand</strong> for spare capacity within each specific Spot
+capacity pool, rather than real-time bidding wars.</p>
+<h3 id="key-factors-driving-the-spot-price">Key Factors Driving the Spot
+Price</h3>
+<ol type="1">
+<li><strong>Long-Term Pool Supply and Demand:</strong> AWS evaluates
+historical and gradual shifts in how much spare capacity exists in an
+Availability Zone for a given instance family and how heavily customers
+are requesting that pool. Prices change slowly over days or weeks rather
+than minutes, providing predictable cost structures.</li>
+<li><strong>No Bidding Required:</strong> While you can still specify a
+maximum price you are willing to pay (capped at the On-Demand price by
+default), you never pay your maximum specified limit. Instead, every
+customer running in the same Spot capacity pool pays the exact same
+current Spot price in effect for that hour or second.</li>
+<li><strong>Capacity Reclaims Over Price Spikes:</strong> In the current
+pricing model, interruptions almost never occur because the price
+crossed a threshold. Instead, interruptions happen strictly when AWS
+runs out of spare physical hardware in that pool because On-Demand or
+Reserved Instance demand surged.</li>
+<li><strong>Generation and Regional Maturity:</strong> Older-generation
+instance types or regions with massive infrastructure footprints often
+have deeper reserves of spare capacity, leading to deeper and more
+stable Spot discounts (frequently reaching <span
+class="math inline">\(70\%\)</span> to <span
+class="math inline">\(90\%\)</span> off On-Demand). Newer or specialized
+GPU instances with high demand and tight supply typically exhibit
+smaller discounts (such as <span class="math inline">\(30\%\)</span> to
+<span class="math inline">\(50\%\)</span> off On-Demand).</li>
+</ol>
+<h2 id="mathematical-formulation-of-the-spot-discount">Mathematical
+Formulation of the Spot Discount</h2>
+<p>Let <span class="math inline">\(P_{\text{OD}}\)</span> represent the
+fixed hourly On-Demand price for a given instance type and operating
+system in a region, and let <span
+class="math inline">\(P_{\text{Spot}}(p, t)\)</span> represent the Spot
+price for a specific capacity pool <span
+class="math inline">\(p\)</span> at time <span
+class="math inline">\(t\)</span>.</p>
+<p>The instantaneous Spot discount percentage <span
+class="math inline">\(D(p, t)\)</span> relative to On-Demand pricing is
+calculated as:</p>
+<p><span class="math display">\[D(p, t) = \left( \frac{P_{\text{OD}} -
+P_{\text{Spot}}(p, t)}{P_{\text{OD}}} \right) \times 100\%\]</span></p>
+<p>Equivalently, this can be expressed as:</p>
+<p><span class="math display">\[D(p, t) = \left( 1 -
+\frac{P_{\text{Spot}}(p, t)}{P_{\text{OD}}} \right) \times
+100\%\]</span></p>
+<p>Conversely, if you know the current advertised discount percentage
+<span class="math inline">\(D(p, t)\)</span> for a pool, the effective
+hourly rate <span class="math inline">\(P_{\text{Spot}}(p, t)\)</span>
+is:</p>
+<p><span class="math display">\[P_{\text{Spot}}(p, t) = P_{\text{OD}}
+\times \left( 1 - \frac{D(p, t)}{100} \right)\]</span></p>
+<h3 id="calculating-total-workload-cost-and-savings">Calculating Total
+Workload Cost and Savings</h3>
+<p>For Linux and Ubuntu instances, EC2 Spot Instances are billed in
+one-second increments with a <span
+class="math inline">\(60\text{-second}\)</span> minimum. Suppose a fleet
+runs <span class="math inline">\(N\)</span> instances across <span
+class="math inline">\(K\)</span> distinct capacity pools over a workload
+duration, where instance <span class="math inline">\(i\)</span> in pool
+<span class="math inline">\(p_i\)</span> runs for <span
+class="math inline">\(T_i\)</span> seconds (where <span
+class="math inline">\(T_i \ge 60\)</span>). Assuming the gradual Spot
+price <span class="math inline">\(P_{\text{Spot}}(p_i)\)</span> remains
+constant during the job execution, the total Spot cost <span
+class="math inline">\(C_{\text{Spot}}\)</span> is:</p>
+<p><span class="math display">\[C_{\text{Spot}} = \sum_{i=1}^{N}
+P_{\text{Spot}}(p_i) \times \left( \frac{T_i}{3600} \right)\]</span></p>
+<p>The equivalent On-Demand cost <span
+class="math inline">\(C_{\text{OD}}\)</span> for the exact same runtime
+is:</p>
+<p><span class="math display">\[C_{\text{OD}} = \sum_{i=1}^{N}
+P_{\text{OD}}(p_i) \times \left( \frac{T_i}{3600} \right)\]</span></p>
+<p>The net monetary savings <span class="math inline">\(S\)</span>
+achieved by utilizing Spot capacity is therefore:</p>
+<p><span class="math display">\[S = C_{\text{OD}} - C_{\text{Spot}} =
+\sum_{i=1}^{N} \left( P_{\text{OD}}(p_i) - P_{\text{Spot}}(p_i) \right)
+\times \left( \frac{T_i}{3600} \right)\]</span></p>
+<h3 id="numerical-example">Numerical Example</h3>
+<p>Consider a general-purpose <code>m6i.xlarge</code> Linux instance in
+<code>us-east-1</code> with an On-Demand price of:</p>
+<p><span class="math display">\[P_{\text{OD}} = \$0.192 \text{ per
+hour}\]</span></p>
+<p>Suppose the current Spot prices across three Availability Zones in
+that region are:</p>
+<ul>
+<li><code>us-east-1a</code>: <span class="math inline">\(P_{\text{Spot}}
+= \$0.0672 \text{ per hour}\)</span></li>
+<li><code>us-east-1b</code>: <span class="math inline">\(P_{\text{Spot}}
+= \$0.0576 \text{ per hour}\)</span></li>
+<li><code>us-east-1c</code>: <span class="math inline">\(P_{\text{Spot}}
+= \$0.0768 \text{ per hour}\)</span></li>
+</ul>
+<p>Using the discount formula for <code>us-east-1b</code>:</p>
+<p><span class="math display">\[D(\text{us-east-1b}) = \left( 1 -
+\frac{0.0576}{0.192} \right) \times 100\% = (1 - 0.30) \times 100\% =
+70\%\]</span></p>
+<p>If you run a distributed data processing cluster of <span
+class="math inline">\(N = 50\)</span> instances in
+<code>us-east-1b</code> for <span class="math inline">\(10\text{
+hours}\)</span> (<span class="math inline">\(36000\text{
+seconds}\)</span>):</p>
+<p><span class="math display">\[C_{\text{OD}} = 50 \times \$0.192 \times
+10 = \$96.00\]</span></p>
+<p><span class="math display">\[C_{\text{Spot}} = 50 \times \$0.0576
+\times 10 = \$28.80\]</span></p>
+<p><span class="math display">\[S = \$96.00 - \$28.80 =
+\$67.20\]</span></p>
+<p>Note that if AWS interrupts a Spot Instance during the very first
+hour because of a capacity reclaim, AWS does not charge for that partial
+hour of usage prior to termination (though if you stop or terminate the
+instance yourself, standard per-second billing applies).</p>
+<h2
+id="best-practices-for-maximizing-spot-discounts-and-availability">Best
+Practices for Maximizing Spot Discounts and Availability</h2>
+<p>Because both prices and interruption rates vary across capacity
+pools, relying on a single instance type in a single Availability Zone
+increases the risk of workload interruption. AWS recommends the
+following architectural strategies:</p>
+<ul>
+<li><strong>Instance Flexibility:</strong> Configure your Auto Scaling
+groups, Amazon EKS node groups, or EC2 Fleet to allow multiple
+compatible instance families and generations (for example,
+<code>m5.xlarge</code>, <code>m5a.xlarge</code>,
+<code>m6i.xlarge</code>, and <code>m6a.xlarge</code>).</li>
+<li><strong>Use the <code>price-capacity-optimized</code> Allocation
+Strategy:</strong> When launching Spot Instances via EC2 Auto Scaling or
+EC2 Fleet, select the <code>price-capacity-optimized</code> strategy.
+This instructs AWS to automatically identify the deepest capacity pools
+with the lowest interruption risk first, and then choose the pools
+offering the lowest Spot price among those highly available
+options.</li>
+<li><strong>Respond to Rebalance Recommendations:</strong> Before the
+mandatory two-minute interruption notice is issued, EC2 emits an
+<strong>EC2 Instance Rebalance Recommendation</strong> signal when a
+Spot Instance is at an elevated risk of interruption. Orchestration
+tools like Karpenter or AWS Node Termination Handler can listen for this
+early warning to proactively provision a replacement Spot Instance in a
+healthier pool and drain workloads gracefully before the two-minute
+clock even begins.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-an-ec-2-spot-instance-and-how-are-discounts-set';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

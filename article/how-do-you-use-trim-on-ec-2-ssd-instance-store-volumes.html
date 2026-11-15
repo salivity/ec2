@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Do You Use TRIM on EC2 SSD Instance Store Volumes? - ec2</title>
+    <meta name="description" content="Maintaining consistent write performance on solid-state drive backed Amazon EC2 instance store volumes requires informing the underlying storage hardware when data blocks are no longer in use. This article explains how the TRIM command and file system dis">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-you-use-trim-on-ec-2-ssd-instance-store-volumes">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How Do You Use TRIM on EC2 SSD Instance Store Volumes? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-you-use-trim-on-ec-2-ssd-instance-store-volumes" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Maintaining consistent write performance on solid-state drive backed Amazon EC2 instance store volumes requires informing the underlying storage hardware when data blocks are no longer in use. This article explains how the TRIM command and file system dis" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-you-use-trim-on-ec2-ssd-instance-store-volumes">How Do
+You Use TRIM on EC2 SSD Instance Store Volumes?</h1>
+<p>Maintaining consistent write performance on solid-state drive backed
+Amazon EC2 instance store volumes requires informing the underlying
+storage hardware when data blocks are no longer in use. This article
+explains how the TRIM command and file system discard operations work on
+EC2 SSD instance store volumes, how to verify instance and operating
+system support, and how to configure periodic or continuous TRIM using
+tools like fstrim, blkdiscard, and mount options to prevent write
+amplification and throughput degradation.</p>
+<h2
+id="understanding-ssd-write-performance-and-write-amplification">Understanding
+SSD Write Performance and Write Amplification</h2>
+<p>Solid-state drives store data in flash memory cells organized into
+pages and blocks. While an SSD can read and write data at the page level
+(typically 4 KB to 16 KB), it can only erase data at the much larger
+block level (often 128 to 512 pages). Furthermore, flash memory pages
+cannot be overwritten directly in place; the existing data must be
+erased before new data can be written to the same physical location.</p>
+<p>When you delete a file in your operating system, the file system only
+marks the corresponding logical blocks as free in its internal metadata
+tables. The underlying SSD controller has no intrinsic visibility into
+file system structures and continues to treat those physical pages as
+containing valid data. As the volume fills up with writes and deletions
+over time, the SSD controller runs out of pre-erased free blocks. To
+satisfy new write requests, the drive must perform internal garbage
+collection, reading valid pages out of a partially used block, writing
+them to a new location, and erasing the old block before writing the new
+data.</p>
+<p>This phenomenon is known as write amplification. The write
+amplification factor (<span class="math inline">\(WAF\)</span>) is
+expressed mathematically as:</p>
+<p><span class="math display">\[WAF = \frac{\text{Bytes Written to Flash
+Memory}}{\text{Bytes Written by the Host OS}}\]</span></p>
+<p>Without a mechanism to notify the SSD controller about deleted
+blocks, <span class="math inline">\(WAF\)</span> increases significantly
+as the drive approaches capacity, causing higher write latency and lower
+I/O operations per second (IOPS). The TRIM command (known as
+<code>UNMAP</code> in SCSI and
+<code>Dataset Management Deallocate</code> in NVMe) solves this problem
+by allowing the operating system to explicitly notify the SSD controller
+which data blocks are no longer needed. Once informed, the SSD
+controller can skip copying stale pages during garbage collection and
+erase blocks proactively during idle periods.</p>
+<h2 id="checking-trim-support-on-ec2-instance-store-volumes">Checking
+TRIM Support on EC2 Instance Store Volumes</h2>
+<p>Most modern Amazon EC2 instance families with SSD-backed instance
+store volumes—including NVMe-based instance stores (such as
+<code>i3</code>, <code>i3en</code>, <code>i4i</code>, <code>c5d</code>,
+<code>m5d</code>, and <code>r5d</code>) and older Xen-based SSD
+instances with hardware TRIM support—support discard operations.
+However, before running TRIM commands, you should verify that your
+specific Linux kernel and block device expose discard capabilities.</p>
+<p>You can check whether your instance store block devices support TRIM
+by running the <code>lsblk --discard</code> command:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">lsblk</span> <span class="at">--discard</span></span></code></pre></div>
+<p>Look at the <code>DISC-GRAN</code> (discard granularity) and
+<code>DISC-MAX</code> (discard maximum bytes) columns in the output:</p>
+<pre class="text"><code>NAME        DISC-ALN DISC-GRAN DISC-MAX DISC-ZERO
+nvme0n1            0      512B       2T         0
+└─nvme0n1p1        0      512B       2T         0
+nvme1n1            0        4K       2T         0</code></pre>
+<p>If <code>DISC-GRAN</code> and <code>DISC-MAX</code> show non-zero
+values (such as <code>512B</code> or <code>4K</code> for granularity,
+and <code>2T</code> or <code>4G</code> for maximum bytes), the block
+device supports TRIM operations. If both values are <code>0B</code>, the
+volume or virtualization layer does not support discard commands.</p>
+<h2 id="performing-a-full-volume-trim-before-formatting">Performing a
+Full Volume TRIM Before Formatting</h2>
+<p>When an EC2 instance launches, or before you repurpose an existing
+SSD instance store volume, issuing a full-device discard ensures that
+the SSD controller knows all blocks are free prior to creating a file
+system or RAID array.</p>
+<h3 id="using-blkdiscard">Using blkdiscard</h3>
+<p>For unmounted raw block devices, the <code>blkdiscard</code> utility
+discards all sectors on the drive. Be cautious, as this operation
+irreversibly destroys all existing data on the specified device:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> blkdiscard /dev/nvme1n1</span></code></pre></div>
+<h3 id="formatting-with-mkfs">Formatting with mkfs</h3>
+<p>Many file system creation utilities automatically send TRIM commands
+across the entire device during formatting. For <code>ext4</code>,
+<code>mkfs.ext4</code> enables discard by default. For <code>XFS</code>,
+<code>mkfs.xfs</code> also performs a discard by default. If you want to
+explicitly ensure discard occurs during formatting, or alternatively
+skip it if you have already run <code>blkdiscard</code>, you can pass
+specific flags:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Explicitly enable discard during ext4 formatting</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkfs.ext4 <span class="at">-E</span> discard /dev/nvme1n1</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Explicitly enable discard during XFS formatting (default behavior)</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkfs.xfs /f /dev/nvme1n1</span></code></pre></div>
+<h2 id="method-1-periodic-trim-with-fstrim-recommended">Method 1:
+Periodic TRIM with fstrim (Recommended)</h2>
+<p>For mounted file systems in production, running periodic batch TRIM
+operations is generally preferred over continuous TRIM. Periodic TRIM
+runs a scheduled job (typically weekly or daily) that scans the file
+system for all currently unallocated blocks and passes them to the SSD
+controller in large batches, minimizing impact on foreground I/O
+latency.</p>
+<h3 id="running-fstrim-manually">Running fstrim Manually</h3>
+<p>You can trigger an on-demand TRIM operation on any mounted file
+system using the <code>fstrim</code> command with the <code>-v</code>
+(verbose) flag:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> fstrim <span class="at">-v</span> /mnt/instance-store</span></code></pre></div>
+<p>The output reports the total number of bytes discarded:</p>
+<pre class="text"><code>/mnt/instance-store: 412.6 GiB (443023933440 bytes) trimmed</code></pre>
+<p>To trim all mounted file systems listed in <code>/etc/fstab</code>
+that support the discard operation, use the <code>-a</code> flag:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> fstrim <span class="at">-av</span></span></code></pre></div>
+<h3 id="automating-periodic-trim-with-systemd">Automating Periodic TRIM
+with systemd</h3>
+<p>Modern Linux distributions (including Amazon Linux 2, Amazon Linux
+2023, Ubuntu, and RHEL/CentOS) include a built-in <code>systemd</code>
+timer named <code>fstrim.timer</code> that automatically executes
+<code>fstrim.service</code> once a week on all supported file systems
+mounted from <code>/etc/fstab</code>.</p>
+<p>To check the status of the timer and enable it:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl enable <span class="at">--now</span> fstrim.timer</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl status fstrim.timer</span></code></pre></div>
+<p>If your instance store experiences heavy write and delete churn
+throughout the day, a weekly schedule may not be frequent enough to
+prevent write amplification. You can override the
+<code>fstrim.timer</code> schedule to run daily or hourly by creating a
+drop-in configuration file:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mkdir <span class="at">-p</span> /etc/systemd/system/fstrim.timer.d</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="op">&lt;&lt; &#39;EOF&#39;</span> <span class="kw">|</span> <span class="fu">sudo</span> tee /etc/systemd/system/fstrim.timer.d/override.conf</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="st">[Timer]</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="st">OnCalendar=</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="st">OnCalendar=daily</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl daemon-reload</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl restart fstrim.timer</span></code></pre></div>
+<p>Note that <code>fstrim -a</code> only processes file systems that are
+present in <code>/etc/fstab</code>. If you mount your ephemeral EC2
+instance store volumes dynamically via a boot script without adding
+entries to <code>/etc/fstab</code>, you should either add them to
+<code>/etc/fstab</code> (using the <code>nofail</code> option so
+instance stop/start cycles or missing ephemeral drives do not halt boot)
+or create a dedicated cron job targeting the specific mount point:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example /etc/cron.daily/trim-instance-store</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/sh</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">/sbin/fstrim</span> <span class="at">-v</span> /mnt/instance-store <span class="op">&gt;&gt;</span> /var/log/fstrim.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span></code></pre></div>
+<h2 id="method-2-continuous-trim-via-mount-options">Method 2: Continuous
+TRIM via Mount Options</h2>
+<p>Instead of waiting for a scheduled batch job, you can configure the
+Linux file system to issue TRIM commands immediately whenever files are
+deleted by mounting the file system with the <code>discard</code>
+option.</p>
+<h3 id="mounting-manually-with-discard">Mounting Manually with
+Discard</h3>
+<p>To mount an <code>ext4</code> or <code>XFS</code> volume with
+continuous TRIM enabled:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mount <span class="at">-o</span> defaults,noatime,discard /dev/nvme1n1 /mnt/instance-store</span></code></pre></div>
+<h3 id="configuring-persistent-mounts-in-etcfstab">Configuring
+Persistent Mounts in /etc/fstab</h3>
+<p>To ensure the setting persists across reboots, add the
+<code>discard</code> and <code>nofail</code> options to
+<code>/etc/fstab</code>:</p>
+<pre class="text"><code>UUID=&lt;your-filesystem-uuid&gt;  /mnt/instance-store  xfs  defaults,noatime,discard,nofail  0  2</code></pre>
+<h3 id="trade-offs-between-periodic-and-continuous-trim">Trade-offs
+Between Periodic and Continuous TRIM</h3>
+<p>While continuous <code>discard</code> keeps free space reclaimed in
+real time, issuing synchronous TRIM commands during every file deletion
+can introduce latency spikes for workloads that delete many small files
+concurrently. On older SATA SSDs, queued TRIM was not always supported,
+forcing the drive to pause normal read/write queues to process the
+discard command. Although modern NVMe EC2 instance store volumes handle
+asynchronous <code>Dataset Management Deallocate</code> commands
+efficiently, Linux kernel documentation and AWS best practices still
+generally recommend periodic <code>fstrim</code> unless your workload
+deletes massive volumes of data continuously and saturates the drive
+faster than a periodic timer can run.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Periodic TRIM (<code>fstrim</code>)</th>
+<th style="text-align: left;">Continuous TRIM
+(<code>-o discard</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Execution Trigger</strong></td>
+<td style="text-align: left;">Scheduled (cron or <code>systemd</code>
+timer)</td>
+<td style="text-align: left;">Immediate upon file deletion</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Foreground I/O
+Impact</strong></td>
+<td style="text-align: left;">Minimal; batches deallocations during
+off-peak times</td>
+<td style="text-align: left;">Can add overhead during heavy small-file
+deletions</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Best Use Case</strong></td>
+<td style="text-align: left;">General databases, caching, logs, and
+high-IOPS workloads</td>
+<td style="text-align: left;">Workloads with rapid, massive file
+turnover that fill the disk between cron intervals</td>
+</tr>
+</tbody>
+</table>
+<h2 id="configuring-trim-with-lvm-and-software-raid-mdadm">Configuring
+TRIM with LVM and Software RAID (mdadm)</h2>
+<p>Because individual EC2 instance store volumes cannot be resized or
+combined at the AWS infrastructure level, administrators frequently
+stripe multiple instance store SSDs using Linux software RAID
+(<code>mdadm</code>) or Logical Volume Manager (LVM). For TRIM commands
+to reach the physical SSDs, every layer in the storage stack must pass
+discard requests down to the underlying devices.</p>
+<h3 id="software-raid-mdadm">Software RAID (mdadm)</h3>
+<p>Modern Linux kernels automatically pass discard requests through
+<code>RAID 0</code>, <code>RAID 1</code>, <code>RAID 10</code>, and
+<code>RAID 5/6</code> arrays created with <code>mdadm</code>, provided
+the underlying NVMe or SSD block devices report discard support. You can
+verify that the assembled <code>md</code> device supports discard by
+running <code>lsblk --discard</code> and confirming that
+<code>/dev/md0</code> displays non-zero <code>DISC-GRAN</code> and
+<code>DISC-MAX</code> values.</p>
+<h3 id="logical-volume-manager-lvm">Logical Volume Manager (LVM)</h3>
+<p>LVM passes <code>fstrim</code> and file system <code>discard</code>
+operations down to physical volumes automatically. However, if you
+remove or reduce a Logical Volume (<code>lvremove</code> or
+<code>lvreduce</code>) and want LVM itself to issue a discard command to
+the freed physical extents immediately, you must enable
+<code>issue_discards</code> in <code>/etc/lvm/lvm.conf</code>:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="dt">devices {</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="dt">    ...</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="dt">    issue_discards </span><span class="ot">=</span><span class="st"> </span><span class="dv">1</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="dt">}</span></span></code></pre></div>
+<p>After updating <code>/etc/lvm/lvm.conf</code>, rebuild your initial
+ramdisk (for example, <code>sudo dracut -f</code> or
+<code>sudo update-initramfs -u</code>) if LVM volumes are initialized
+early in the boot process.</p>
+<h2 id="combining-trim-with-ssd-over-provisioning">Combining TRIM with
+SSD Over-Provisioning</h2>
+<p>Even with regular TRIM operations, if a file system on an SSD
+instance store volume is filled close to 100% capacity, the SSD
+controller has very few free blocks available to absorb incoming writes
+and perform wear leveling without immediate garbage collection
+penalties.</p>
+<p>For write-intensive applications on EC2 instance store volumes, you
+can complement TRIM with host-level over-provisioning. By partitioning
+only 80% to 90% of the raw block device (after running
+<code>blkdiscard</code> on the entire drive) and leaving the remaining
+10% to 20% unallocated and unpartitioned, you guarantee a permanent pool
+of trimmed, free flash blocks that the SSD controller can use to sustain
+peak write throughput and low latency under heavy load.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-you-use-trim-on-ec-2-ssd-instance-store-volumes';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

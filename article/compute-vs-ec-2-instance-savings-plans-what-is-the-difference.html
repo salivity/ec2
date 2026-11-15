@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compute vs EC2 Instance Savings Plans: What Is the Difference? - ec2</title>
+    <meta name="description" content="Amazon Web Services offers both Compute Savings Plans and EC2 Instance Savings Plans to help organizations reduce their cloud computing bills in exchange for a one-year or three-year hourly spend commitment. The primary difference between the two pricing">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/compute-vs-ec-2-instance-savings-plans-what-is-the-difference">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Compute vs EC2 Instance Savings Plans: What Is the Difference? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/compute-vs-ec-2-instance-savings-plans-what-is-the-difference" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon Web Services offers both Compute Savings Plans and EC2 Instance Savings Plans to help organizations reduce their cloud computing bills in exchange for a one-year or three-year hourly spend commitment. The primary difference between the two pricing" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="compute-vs-ec2-instance-savings-plans-what-is-the-difference">Compute
+vs EC2 Instance Savings Plans: What Is the Difference?</h1>
+<p>Amazon Web Services offers both Compute Savings Plans and EC2
+Instance Savings Plans to help organizations reduce their cloud
+computing bills in exchange for a one-year or three-year hourly spend
+commitment. The primary difference between the two pricing models comes
+down to flexibility versus discount depth. Compute Savings Plans offer
+maximum flexibility by automatically applying discounts across Amazon
+EC2, AWS Fargate, and AWS Lambda regardless of instance family, size,
+operating system, or AWS Region, while offering discounts of up to 66
+percent. In contrast, EC2 Instance Savings Plans provide deeper
+discounts of up to 72 percent off On-Demand rates, but require you to
+commit to a specific EC2 instance family within a chosen AWS Region.</p>
+<h2 id="how-aws-savings-plans-work">How AWS Savings Plans Work</h2>
+<p>Savings Plans are a flexible pricing model that provides lower prices
+compared to On-Demand usage in exchange for a commitment to a consistent
+amount of compute usage, measured in dollars per hour, for a 1-year or
+3-year term. When you sign up for a Savings Plan, AWS charges you your
+committed hourly rate whether you use the compute capacity or not. Any
+usage up to your commitment is billed at the discounted Savings Plan
+rate, and any usage beyond your commitment is billed at standard
+On-Demand rates.</p>
+<p>If we let <span class="math inline">\(C\)</span> represent your
+hourly commitment in dollars, <span class="math inline">\(U\)</span>
+represent your eligible compute usage discounted at the Savings Plan
+rate, and <span class="math inline">\(O\)</span> represent any excess
+On-Demand usage, your total hourly compute cost <span
+class="math inline">\(T\)</span> can be expressed as:</p>
+<p><span class="math display">\[T = C + O\]</span></p>
+<p>Both plan types offer three payment options that affect the final
+discount percentage:</p>
+<ul>
+<li><strong>No Upfront:</strong> Requires no initial payment, and you
+are billed monthly based on your hourly commitment.</li>
+<li><strong>Partial Upfront:</strong> Requires paying at least half of
+the commitment upfront, with the remainder billed monthly, yielding a
+slightly better discount than No Upfront.</li>
+<li><strong>All Upfront:</strong> Requires paying the entire 1-year or
+3-year commitment in a single initial payment, providing the highest
+possible discount.</li>
+</ul>
+<h2 id="what-is-a-compute-savings-plan">What Is a Compute Savings
+Plan?</h2>
+<p>Compute Savings Plans provide the highest level of flexibility across
+AWS compute services and offer discounts of up to 66% compared to
+On-Demand prices. These plans automatically apply to your compute usage
+across multiple services and configurations without requiring manual
+intervention when your architecture changes.</p>
+<p>With a Compute Savings Plan, you can freely change:</p>
+<ul>
+<li><strong>Compute Service:</strong> Shift workloads between Amazon
+EC2, AWS Fargate (for Amazon ECS and Amazon EKS), and AWS Lambda.</li>
+<li><strong>AWS Region:</strong> Move workloads from one region to
+another (for example, migrating from <code>us-east-1</code> to
+<code>eu-west-1</code>).</li>
+<li><strong>Instance Family:</strong> Switch between instance families
+such as moving from general-purpose <code>m6i</code> instances to
+compute-optimized <code>c7g</code> instances.</li>
+<li><strong>Instance Size:</strong> Scale up or down between sizes (such
+as <code>large</code>, <code>xlarge</code>, or
+<code>2xlarge</code>).</li>
+<li><strong>Operating System:</strong> Change between Linux, Windows,
+RHEL, or SUSE.</li>
+<li><strong>Tenancy:</strong> Move between Shared (default), Dedicated
+Instances, and Dedicated Hosts.</li>
+</ul>
+<p>Because of this broad applicability, Compute Savings Plans are ideal
+for dynamic environments, multi-region architectures, and organizations
+modernizing their applications by migrating from EC2 virtual machines to
+serverless containers on Fargate or functions on Lambda.</p>
+<h2 id="what-is-an-ec2-instance-savings-plan">What Is an EC2 Instance
+Savings Plan?</h2>
+<p>EC2 Instance Savings Plans provide the lowest prices within the
+Savings Plans model, offering discounts of up to 72% compared to
+On-Demand rates. In exchange for this deeper discount, you commit to
+usage of individual instance families within a specific AWS Region (for
+example, committing to <code>m7i</code> usage in
+<code>us-west-2</code>).</p>
+<p>While you are locked into a specific region and instance family for
+the duration of the 1-year or 3-year term, EC2 Instance Savings Plans
+still provide flexibility within that boundary:</p>
+<ul>
+<li><strong>Instance Size:</strong> Your discount automatically applies
+across any instance size within the committed family (for example,
+moving from <code>c6i.xlarge</code> to <code>c6i.4xlarge</code>).</li>
+<li><strong>Operating System:</strong> You can switch between supported
+operating systems (such as switching from Windows to Linux) within the
+same instance family and continue receiving the discounted rate.</li>
+<li><strong>Tenancy:</strong> You can change between Shared and
+Dedicated tenancy within that family and region.</li>
+</ul>
+<p>Notice that EC2 Instance Savings Plans only apply to Amazon EC2
+usage; they do not cover AWS Fargate or AWS Lambda workloads.</p>
+<h2 id="side-by-side-comparison">Side-by-Side Comparison</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Compute Savings Plan</th>
+<th style="text-align: left;">EC2 Instance Savings Plan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Maximum Discount</strong></td>
+<td style="text-align: left;">Up to 66% off On-Demand</td>
+<td style="text-align: left;">Up to 72% off On-Demand</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Supported Services</strong></td>
+<td style="text-align: left;">Amazon EC2, AWS Fargate, AWS Lambda</td>
+<td style="text-align: left;">Amazon EC2 only</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Region Flexibility</strong></td>
+<td style="text-align: left;">Yes (any AWS Region)</td>
+<td style="text-align: left;">No (locked to one AWS Region)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Family
+Flexibility</strong></td>
+<td style="text-align: left;">Yes (any EC2 instance family)</td>
+<td style="text-align: left;">No (locked to one instance family)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Instance Size
+Flexibility</strong></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Operating System
+Flexibility</strong></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Tenancy Flexibility</strong></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Term Lengths</strong></td>
+<td style="text-align: left;">1-year or 3-year</td>
+<td style="text-align: left;">1-year or 3-year</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Payment Options</strong></td>
+<td style="text-align: left;">All Upfront, Partial Upfront, No
+Upfront</td>
+<td style="text-align: left;">All Upfront, Partial Upfront, No
+Upfront</td>
+</tr>
+</tbody>
+</table>
+<h2 id="when-to-choose-each-plan">When to Choose Each Plan</h2>
+<h3 id="choose-a-compute-savings-plan-when">Choose a Compute Savings
+Plan When:</h3>
+<ul>
+<li>You plan to migrate workloads from EC2 instances to AWS Fargate or
+AWS Lambda during the commitment term.</li>
+<li>You frequently adopt new EC2 instance generations (such as upgrading
+from <code>m5</code> to <code>m6i</code> or <code>m7g</code>) to take
+advantage of better price-performance ratios.</li>
+<li>Your architecture spans multiple AWS Regions or you anticipate
+shifting traffic between regions.</li>
+<li>You want a straightforward baseline commitment that covers your
+organization's global compute spend without worrying about stranded
+capacity in a single instance family.</li>
+</ul>
+<h3 id="choose-an-ec2-instance-savings-plan-when">Choose an EC2 Instance
+Savings Plan When:</h3>
+<ul>
+<li>You have steady-state, predictable EC2 workloads that will remain on
+a specific instance family and region for 1 to 3 years.</li>
+<li>Maximizing cost savings (reaching up to 72% discount) is a higher
+priority than architectural mobility.</li>
+<li>You need the ability to change instance sizes or operating systems
+within a known instance family without having to manually modify or
+exchange reservations.</li>
+</ul>
+<h2 id="combining-both-plans-in-a-hybrid-strategy">Combining Both Plans
+in a Hybrid Strategy</h2>
+<p>You do not have to choose exclusively between the two plans. Many
+organizations combine both models to optimize cost and flexibility. A
+common strategy is to purchase EC2 Instance Savings Plans to cover
+stable, predictable baseline workloads locked to specific instance
+families (such as long-running database hosts or core application
+clusters), and then layer a Compute Savings Plan on top to cover
+variable EC2 workloads, multi-region deployments, and serverless usage
+across Fargate and Lambda. When both plans are active in an account, AWS
+automatically applies the EC2 Instance Savings Plan first to eligible
+usage before applying the broader Compute Savings Plan to maximize your
+overall savings.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/compute-vs-ec-2-instance-savings-plans-what-is-the-difference';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

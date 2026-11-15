@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What is an Amazon EC2 Reserved Instance and how does it work? - ec2</title>
+    <meta name="description" content="An Amazon EC2 Reserved Instance is a billing discount model in Amazon Web Services that offers substantial cost savings of up to seventy two percent compared to standard On-Demand instance pricing in exchange for a one-year or three-year usage commitment.">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-reserved-instance-and-how-does-it-work">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What is an Amazon EC2 Reserved Instance and how does it work? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-reserved-instance-and-how-does-it-work" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon EC2 Reserved Instance is a billing discount model in Amazon Web Services that offers substantial cost savings of up to seventy two percent compared to standard On-Demand instance pricing in exchange for a one-year or three-year usage commitment." />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="what-is-an-amazon-ec2-reserved-instance-and-how-does-it-work">What
+is an Amazon EC2 Reserved Instance and how does it work?</h1>
+<p>An Amazon EC2 Reserved Instance is a billing discount model in Amazon
+Web Services that offers substantial cost savings of up to seventy two
+percent compared to standard On-Demand instance pricing in exchange for
+a one-year or three-year usage commitment. Rather than provisioning a
+distinct physical or virtual server, a Reserved Instance acts as an
+automated pricing coupon applied by the AWS billing system to matching
+running On-Demand instances in your account. By committing to a specific
+instance configuration and term length, organizations with steady-state
+or predictable workloads can significantly reduce their cloud computing
+expenses and optionally reserve compute capacity within a chosen
+Availability Zone.</p>
+<h2 id="understanding-the-billing-discount-mechanism">Understanding the
+Billing Discount Mechanism</h2>
+<p>A common misconception is that purchasing an Amazon EC2 Reserved
+Instance creates a new virtual machine. In reality, Reserved Instances
+exist purely at the billing layer. When you launch an EC2 instance, you
+always launch an On-Demand instance. Every hour, the AWS billing system
+evaluates the attributes of your running instances and compares them
+against the active Reserved Instances in your account or AWS
+Organization.</p>
+<p>When a running instance matches the attributes of a Reserved
+Instance, AWS automatically applies the discounted hourly rate instead
+of the standard On-Demand rate. Conversely, because you are committing
+to continuous utilization over the contract term, you are billed for the
+Reserved Instance whether or not you have a matching EC2 instance
+running.</p>
+<p>The effective hourly cost of a Reserved Instance can be expressed
+using the following formula:</p>
+<p><span class="math display">\[\text{Effective Hourly Rate} =
+\frac{\text{Upfront Payment}}{\text{Total Hours in Term}} +
+\text{Discounted Hourly Usage Fee}\]</span></p>
+<p>The total percentage saved compared to running an equivalent
+On-Demand instance over the same duration is calculated as:</p>
+<p><span class="math display">\[\text{Discount Percentage} = \left( 1 -
+\frac{\text{Total RI Cost}}{\text{On-Demand Hourly Rate} \times
+\text{Total Hours in Term}} \right) \times 100\%\]</span></p>
+<h2 id="core-attributes-of-a-reserved-instance">Core Attributes of a
+Reserved Instance</h2>
+<p>For the billing discount to apply, the running EC2 instance must
+match four core attributes defined at the time of the Reserved Instance
+purchase:</p>
+<ul>
+<li><strong>Instance Type:</strong> The specific family and size of the
+instance, such as <code>m5.large</code> or <code>c6i.xlarge</code>.</li>
+<li><strong>Platform Description:</strong> The operating system and
+software package, such as Linux/UNIX, Red Hat Enterprise Linux, SUSE
+Linux, or Windows Server (with or without SQL Server).</li>
+<li><strong>Tenancy:</strong> Whether the instance runs on shared
+hardware (<code>default</code> tenancy) or single-tenant hardware
+(<code>dedicated</code> tenancy).</li>
+<li><strong>Region or Availability Zone (Scope):</strong> The
+geographical scope where the discount applies.</li>
+</ul>
+<h2 id="regional-vs-zonal-scope-and-capacity-reservations">Regional vs.
+Zonal Scope and Capacity Reservations</h2>
+<p>When configuring a Reserved Instance, you must choose between a
+Regional scope and a Zonal scope, which changes both how the discount is
+applied and whether compute capacity is guaranteed:</p>
+<ul>
+<li><strong>Regional Reserved Instances:</strong> Apply the billing
+discount to matching usage across any Availability Zone within the
+specified AWS Region. Regional RIs do not provide a capacity
+reservation, meaning if an Availability Zone experiences capacity
+constraints, your ability to launch new instances is the same as
+standard On-Demand usage. However, Regional RIs provide instance size
+flexibility.</li>
+<li><strong>Zonal Reserved Instances:</strong> Locked to a single,
+specific Availability Zone. In addition to the billing discount, Zonal
+RIs provide an explicit capacity reservation. AWS guarantees that
+capacity will be available for you to launch the matching instance type
+in that specific Availability Zone whenever you need it. Zonal RIs do
+not offer instance size flexibility.</li>
+</ul>
+<h2 id="instance-size-flexibility">Instance Size Flexibility</h2>
+<p>Regional Reserved Instances running on the Linux/UNIX platform (with
+default tenancy) offer a feature called instance size flexibility. This
+allows the billing discount to automatically scale up or down to cover
+different sizes within the same instance family based on a normalization
+factor.</p>
+<p>Every instance size has an assigned normalization factor. For
+example, a <code>small</code> instance has a factor of <span
+class="math inline">\(1\)</span>, a <code>medium</code> has a factor of
+<span class="math inline">\(2\)</span>, a <code>large</code> has a
+factor of <span class="math inline">\(4\)</span>, and an
+<code>xlarge</code> has a factor of <span
+class="math inline">\(8\)</span>. The total normalized units provided by
+a reservation are determined by:</p>
+<p><span class="math display">\[\text{Total Normalized Units} =
+\text{Number of Instances} \times \text{Normalization
+Factor}\]</span></p>
+<p>If you purchase one <code>c5.xlarge</code> Regional Reserved Instance
+(which equals <span class="math inline">\(8\)</span> normalized units),
+the billing engine can apply that single discount to any of the
+following running simultaneously in the same Region:</p>
+<ul>
+<li>Two <code>c5.large</code> instances (<span class="math inline">\(2
+\times 4 = 8\)</span> units)</li>
+<li>Four <code>c5.medium</code> instances (<span class="math inline">\(4
+\times 2 = 8\)</span> units)</li>
+<li>One <code>c5.large</code> and two <code>c5.medium</code> instances
+(<span class="math inline">\(4 + (2 \times 2) = 8\)</span> units)</li>
+<li>Half of the usage of a single <code>c5.2xlarge</code> instance
+(<span class="math inline">\(16\)</span> units required, so <span
+class="math inline">\(50\%\)</span> runs at the RI rate and <span
+class="math inline">\(50\%\)</span> is billed at the On-Demand
+rate)</li>
+</ul>
+<h2 id="reserved-instance-offering-classes">Reserved Instance Offering
+Classes</h2>
+<p>AWS provides two primary offering classes for Reserved Instances,
+balancing discount depth against architectural agility:</p>
+<h3 id="standard-reserved-instances">Standard Reserved Instances</h3>
+<p>Standard RIs provide the highest possible discount (up to <span
+class="math inline">\(72\%\)</span> off On-Demand pricing). They are
+best suited for stable, steady-state workloads where the instance family
+and operating system will not change over the commitment period. While
+you cannot change the instance family or operating system of a Standard
+RI, you can modify the Availability Zone, scope (between Regional and
+Zonal), or instance size within the same family.</p>
+<h3 id="convertible-reserved-instances">Convertible Reserved
+Instances</h3>
+<p>Convertible RIs provide a slightly lower discount (up to <span
+class="math inline">\(66\%\)</span> off On-Demand pricing) in exchange
+for the ability to exchange the Reserved Instance during the term for
+another Convertible RI with different attributes. You can change the
+instance family, instance type, platform operating system, and tenancy,
+provided the new reservation is of equal or greater total monetary value
+than the remaining value of the original commitment.</p>
+<h2 id="term-commitments-and-payment-options">Term Commitments and
+Payment Options</h2>
+<p>The exact discount percentage you receive depends on two financial
+levers selected during purchase:</p>
+<h3 id="term-length">Term Length</h3>
+<ul>
+<li><strong>One-Year Term:</strong> Commits for <span
+class="math inline">\(31,536,000\text{ seconds}\)</span> (<span
+class="math inline">\(365\text{ days}\)</span>) and offers a moderate
+discount for medium-term visibility.</li>
+<li><strong>Three-Year Term:</strong> Commits for <span
+class="math inline">\(94,608,000\text{ seconds}\)</span> (<span
+class="math inline">\(1,095\text{ days}\)</span>) and provides the
+deepest available discount for long-term foundational
+infrastructure.</li>
+</ul>
+<h3 id="payment-options">Payment Options</h3>
+<ul>
+<li><strong>All Upfront:</strong> You pay for the entire one-year or
+three-year commitment in a single payment at the time of purchase. Your
+recurring monthly hourly usage fee becomes <span
+class="math inline">\(\$0.00\)</span>, yielding the maximum discount
+rate.</li>
+<li><strong>Partial Upfront:</strong> You pay a portion of the total
+commitment upfront and pay the remainder via a discounted hourly rate
+billed monthly over the term. This offers a mid-tier discount rate.</li>
+<li><strong>No Upfront:</strong> You pay <span
+class="math inline">\(\$0.00\)</span> at the time of purchase and
+instead commit to paying a discounted hourly rate every month for every
+hour in the term. While this yields the lowest discount of the three
+options, it preserves capital while still saving heavily over On-Demand
+pricing.</li>
+</ul>
+<h2 id="sharing-discounts-across-aws-organizations">Sharing Discounts
+Across AWS Organizations</h2>
+<p>When using Consolidated Billing in AWS Organizations, Reserved
+Instance billing discounts are shared across all member accounts by
+default. The AWS billing system first applies the Reserved Instance
+discount to matching running instances within the specific account that
+purchased the reservation. If the purchasing account does not have
+enough matching usage in a given hour to fully consume the reservation,
+any unused discount capacity automatically floats to other accounts in
+the same organization that are running matching instances, maximizing
+utilization and cost efficiency across the entire enterprise.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-reserved-instance-and-how-does-it-work';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

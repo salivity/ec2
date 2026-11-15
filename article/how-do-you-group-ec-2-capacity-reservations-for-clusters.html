@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How do you group EC2 Capacity Reservations for clusters? - ec2</title>
+    <meta name="description" content="Grouping multiple Amazon EC2 Capacity Reservations using AWS Resource Groups allows you to logically manage and target reserved compute capacity across different instance types and Availability Zones for cluster deployments. By combining individual Capaci">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-do-you-group-ec-2-capacity-reservations-for-clusters">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How do you group EC2 Capacity Reservations for clusters? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-do-you-group-ec-2-capacity-reservations-for-clusters" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Grouping multiple Amazon EC2 Capacity Reservations using AWS Resource Groups allows you to logically manage and target reserved compute capacity across different instance types and Availability Zones for cluster deployments. By combining individual Capaci" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="how-do-you-group-ec2-capacity-reservations-for-clusters">How do
+you group EC2 Capacity Reservations for clusters?</h1>
+<p>Grouping multiple Amazon EC2 Capacity Reservations using AWS Resource
+Groups allows you to logically manage and target reserved compute
+capacity across different instance types and Availability Zones for
+cluster deployments. By combining individual Capacity Reservations into
+a single resource group, you can configure Auto Scaling groups, EC2
+Fleet, or standalone instance launches to consume reserved capacity from
+the entire group automatically. This article covers the prerequisites,
+step-by-step AWS CLI commands to create and populate a Capacity
+Reservation group, and methods for launching cluster instances into the
+grouped capacity.</p>
+<h2 id="prerequisites-and-limitations">Prerequisites and
+Limitations</h2>
+<p>Before creating a Capacity Reservation resource group for cluster
+workloads, ensure your reservations and target deployments meet the
+following requirements:</p>
+<ul>
+<li><strong>AWS Resource Groups Integration</strong>: Capacity
+Reservation groups are built using the AWS Resource Groups service with
+a specific configuration type
+(<code>AWS::EC2::CapacityReservation</code>).</li>
+<li><strong>Eligibility Rules</strong>: You can add both
+<code>open</code> and <code>targeted</code> Capacity Reservations to a
+group. However, instances launched into the group must match the
+attributes (instance type, platform, tenancy, and Availability Zone) of
+at least one active reservation with available capacity in that
+group.</li>
+<li><strong>Cluster Placement Groups</strong>: If your cluster requires
+low-latency networking via a Cluster Placement Group, the individual
+Capacity Reservations can be associated with placement groups, or you
+can specify the placement group at launch time alongside the Capacity
+Reservation resource group ARN.</li>
+<li><strong>IAM Permissions</strong>: You need permissions for both EC2
+(<code>ec2:CreateCapacityReservation</code>,
+<code>ec2:RunInstances</code>) and AWS Resource Groups
+(<code>resource-groups:CreateGroup</code>,
+<code>resource-groups:PutGroupConfiguration</code>,
+<code>resource-groups:GroupResources</code>).</li>
+</ul>
+<h2 id="step-1-create-individual-ec2-capacity-reservations">Step 1:
+Create Individual EC2 Capacity Reservations</h2>
+<p>First, create the individual Capacity Reservations that will make up
+your cluster's compute pool. For cluster deployments that only allow
+specific workloads to consume the reserved capacity, set the
+<code>--instance-match-criteria</code> to <code>targeted</code>.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 create-capacity-reservation <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> c6i.4xlarge <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-platform</span> Linux/UNIX <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--availability-zone</span> us-east-1a <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-count</span> 10 <span class="dt">\</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-match-criteria</span> targeted <span class="dt">\</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--tag-specifications</span> <span class="st">&#39;ResourceType=capacity-reservation,Tags=[{Key=Cluster,Value=HPC-Production}]&#39;</span></span></code></pre></div>
+<p>Create any additional Capacity Reservations needed for your cluster
+(such as different instance types or secondary Availability Zones) and
+note their Amazon Resource Names (ARNs), which follow the format
+<code>arn:aws:ec2:region:account-id:capacity-reservation/cr-xxxxxxxxxxxxxxxxx</code>.</p>
+<h2 id="step-2-create-a-capacity-reservation-resource-group">Step 2:
+Create a Capacity Reservation Resource Group</h2>
+<p>Use the AWS Resource Groups API
+(<code>aws resource-groups create-group</code>) to create a logical
+group dedicated to EC2 Capacity Reservations. You must include the
+<code>--configuration</code> parameter specifying
+<code>AWS::EC2::CapacityReservation</code> as the group configuration
+type and <code>AWS::EC2::CapacityReservation</code> in the
+<code>AllowedResourceTypes</code> parameter of
+<code>AWS::ResourceGroups::Generic</code>.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> resource-groups create-group <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--name</span> MyClusterCapacityGroup <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--description</span> <span class="st">&quot;Capacity Reservations for HPC cluster deployment&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--configuration</span> <span class="st">&#39;[</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="st">        {</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="st">            &quot;Type&quot;: &quot;AWS::EC2::CapacityReservation&quot;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="st">        },</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="st">        {</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="st">            &quot;Type&quot;: &quot;AWS::ResourceGroups::Generic&quot;,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="st">            &quot;Parameters&quot;: [</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="st">                {</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="st">                    &quot;Name&quot;: &quot;allowed-resource-types&quot;,</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="st">                    &quot;Values&quot;: [&quot;AWS::EC2::CapacityReservation&quot;]</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="st">                }</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="st">            ]</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="st">        }</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="st">    ]&#39;</span></span></code></pre></div>
+<p>Save the <code>GroupArn</code> returned in the command output, which
+looks like
+<code>arn:aws:resource-groups:us-east-1:123456789012:group/MyClusterCapacityGroup</code>.</p>
+<h2 id="step-3-add-capacity-reservations-to-the-resource-group">Step 3:
+Add Capacity Reservations to the Resource Group</h2>
+<p>Once the group is created, register your individual Capacity
+Reservation ARNs into the resource group using the
+<code>group-resources</code> command:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> resource-groups group-resources <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--group</span> MyClusterCapacityGroup <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--resource-arns</span> <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        arn:aws:ec2:us-east-1:123456789012:capacity-reservation/cr-0123456789abcdef0 <span class="dt">\</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        arn:aws:ec2:us-east-1:123456789012:capacity-reservation/cr-0fedcba9876543210</span></code></pre></div>
+<p>If the total number of reservations is <span
+class="math inline">\(N\)</span> and each reservation <span
+class="math inline">\(i\)</span> provides <span
+class="math inline">\(c_i\)</span> instances, the total reserved cluster
+capacity <span class="math inline">\(C_{\text{total}}\)</span> managed
+by the resource group is:</p>
+<p><span class="math display">\[C_{\text{total}} = \sum_{i=1}^{N}
+c_i\]</span></p>
+<p>To verify which Capacity Reservations are currently active inside
+your group, run:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> resource-groups list-group-resources <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--group</span> MyClusterCapacityGroup</span></code></pre></div>
+<h2 id="step-4-target-the-resource-group-in-cluster-deployments">Step 4:
+Target the Resource Group in Cluster Deployments</h2>
+<p>With the Capacity Reservations grouped, you can direct cluster nodes
+to consume capacity from the group by referencing the resource group ARN
+in your launch configurations.</p>
+<h3 id="launching-standalone-cluster-instances">Launching Standalone
+Cluster Instances</h3>
+<p>When launching instances directly with <code>run-instances</code>,
+pass the <code>CapacityReservationResourceGroupArn</code> inside the
+<code>--capacity-reservation-specification</code> parameter. You can
+also combine this with a Cluster Placement Group for tightly coupled
+node-to-node communication:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 run-instances <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image-id</span> ami-0abcdef1234567890 <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--instance-type</span> c6i.4xlarge <span class="dt">\</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--count</span> 10 <span class="dt">\</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--placement</span> GroupName=MyHPCClusterPlacementGroup <span class="dt">\</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--capacity-reservation-specification</span> <span class="dt">\</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        CapacityReservationTarget={CapacityReservationResourceGroupArn=arn:aws:resource-groups:us-east-1:123456789012:group/MyClusterCapacityGroup}</span></code></pre></div>
+<h3
+id="using-launch-templates-with-ec2-fleet-or-auto-scaling-groups">Using
+Launch Templates with EC2 Fleet or Auto Scaling Groups</h3>
+<p>For automated cluster scaling across multiple instance types or
+Availability Zones, define the Capacity Reservation resource group
+target inside an EC2 Launch Template:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 create-launch-template <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--launch-template-name</span> ClusterNodeTemplate <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--version-description</span> <span class="st">&quot;Targets MyClusterCapacityGroup&quot;</span> <span class="dt">\</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--launch-template-data</span> <span class="st">&#39;{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;ImageId&quot;: &quot;ami-0abcdef1234567890&quot;,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;CapacityReservationSpecification&quot;: {</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="st">            &quot;CapacityReservationTarget&quot;: {</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="st">                &quot;CapacityReservationResourceGroupArn&quot;: &quot;arn:aws:resource-groups:us-east-1:123456789012:group/MyClusterCapacityGroup&quot;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="st">            }</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="st">        }</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="st">    }&#39;</span></span></code></pre></div>
+<p>When an Auto Scaling group or EC2 Fleet uses this Launch Template,
+EC2 automatically matches the requested instance attributes against the
+reservations in <code>MyClusterCapacityGroup</code> and fulfills the
+launch from the appropriate reservation in the group.</p>
+<h2 id="removing-reservations-from-a-group">Removing Reservations from a
+Group</h2>
+<p>As your cluster requirements evolve, you can remove individual
+Capacity Reservations from the group without modifying your Launch
+Templates or cluster orchestration scripts:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> resource-groups ungroup-resources <span class="dt">\</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--group</span> MyClusterCapacityGroup <span class="dt">\</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--resource-arns</span> arn:aws:ec2:us-east-1:123456789012:capacity-reservation/cr-0fedcba9876543210</span></code></pre></div></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-do-you-group-ec-2-capacity-reservations-for-clusters';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

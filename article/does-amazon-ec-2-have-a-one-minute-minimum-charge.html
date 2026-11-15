@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Does Amazon EC2 Have a One-Minute Minimum Charge? - ec2</title>
+    <meta name="description" content="Amazon EC2 applies a one-minute minimum charge each time an On-Demand instance transitions into the running state for instances billed per second. However, not all Amazon EC2 instances use per-second billing. The minimum charge depends entirely on the ope">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/does-amazon-ec-2-have-a-one-minute-minimum-charge">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Does Amazon EC2 Have a One-Minute Minimum Charge? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/does-amazon-ec-2-have-a-one-minute-minimum-charge" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="Amazon EC2 applies a one-minute minimum charge each time an On-Demand instance transitions into the running state for instances billed per second. However, not all Amazon EC2 instances use per-second billing. The minimum charge depends entirely on the ope" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="does-amazon-ec2-have-a-one-minute-minimum-charge">Does Amazon
+EC2 Have a One-Minute Minimum Charge?</h1>
+<p>Amazon EC2 applies a one-minute minimum charge each time an On-Demand
+instance transitions into the running state for instances billed per
+second. However, not all Amazon EC2 instances use per-second billing.
+The minimum charge depends entirely on the operating system, licensing
+model, and instance family selected when launching the virtual machine.
+This article explains how Amazon EC2 billing granularity works, when the
+60-second minimum applies, and which instances are subject to hourly or
+24-hour minimums instead.</p>
+<h2 id="how-per-second-billing-works-in-amazon-ec2">How Per-Second
+Billing Works in Amazon EC2</h2>
+<p>For eligible Amazon EC2 On-Demand instances, billing is calculated in
+one-second increments after an initial 60-second minimum period.
+Whenever you launch a new instance or start a previously stopped
+instance, the billing clock begins the moment the instance enters the
+<code>running</code> state and stops as soon as it transitions to the
+<code>stopping</code> or <code>terminated</code> state.</p>
+<p>If an eligible instance runs for less than 60 seconds before being
+stopped or terminated, Amazon Web Services (AWS) rounds the billable
+duration up to a full 60 seconds. Once the instance exceeds one minute
+of runtime, you are billed strictly for the exact number of seconds the
+instance remains running.</p>
+<p>Using the hourly On-Demand rate <span
+class="math inline">\(R\)</span>, the total compute cost <span
+class="math inline">\(C\)</span> for a single launch and runtime session
+of <span class="math inline">\(t\)</span> seconds (under per-second
+billing) is calculated as:</p>
+<p><span class="math display">\[C = R \times \frac{\max(60,
+t)}{3600}\]</span></p>
+<p>For example, if an instance runs for 35 seconds, <span
+class="math inline">\(\max(60, 35) = 60\)</span>, meaning you are
+charged for 60 seconds (or <span
+class="math inline">\(\frac{1}{60}\)</span> of the hourly rate). If it
+runs for 125 seconds, you are charged for <span
+class="math inline">\(\frac{125}{3600}\)</span> of the hourly rate.</p>
+<h2 id="repeated-stops-and-starts">Repeated Stops and Starts</h2>
+<p>The minimum charge applies each time an instance enters the
+<code>running</code> state, not just once per instance lifetime. If you
+stop an instance and start it again a few minutes later, that new start
+triggers a separate billing cycle with its own minimum charge
+requirement.</p>
+<p>For instance, if you start a Linux instance, run it for 20 seconds,
+stop it, and repeat this process three times within an hour, each of the
+three runs incurs the 60-second minimum charge, resulting in 180
+billable seconds total rather than 60 seconds.</p>
+<h2
+id="operating-systems-and-instances-eligible-for-the-one-minute-minimum">Operating
+Systems and Instances Eligible for the One-Minute Minimum</h2>
+<p>Per-second billing with a 60-second minimum applies to On-Demand,
+Reserved, and Spot instances running the following operating
+systems:</p>
+<ul>
+<li><strong>Open-Source Linux Distributions:</strong> Amazon Linux,
+Ubuntu, Debian, CentOS, and Fedora (when launched without paid AWS
+Marketplace subscriptions).</li>
+<li><strong>Microsoft Windows Server:</strong> Windows Server instances
+that include the license from AWS (License Included), as well as Windows
+instances using Bring Your Own License (BYOL).</li>
+<li><strong>Red Hat Enterprise Linux (RHEL) and SUSE Linux Enterprise
+Server (SLES):</strong> AWS transitioned On-Demand RHEL and SLES
+instances (including RHEL for SAP) from hourly to per-second billing
+with a one-minute minimum.</li>
+</ul>
+<h2 id="exceptions-to-the-one-minute-minimum">Exceptions to the
+One-Minute Minimum</h2>
+<p>While most modern workloads on EC2 benefit from per-second billing
+and the one-minute minimum, two major exceptions enforce longer minimum
+billing durations:</p>
+<h3 id="1-aws-marketplace-instances-one-hour-minimum">1. AWS Marketplace
+Instances (One-Hour Minimum)</h3>
+<p>Many commercial third-party software images offered through the AWS
+Marketplace are billed by the hour rather than by the second. If you
+launch an On-Demand instance using an Amazon Machine Image (AMI) that
+carries an hourly software licensing fee not eligible for per-second
+billing, the minimum charge is one full hour (3,600 seconds) each time
+the instance is started. Even if the instance is terminated after 45
+seconds, a full instance-hour is billed.</p>
+<h3 id="2-amazon-ec2-mac-instances-24-hour-minimum">2. Amazon EC2 Mac
+Instances (24-Hour Minimum)</h3>
+<p>Amazon EC2 Mac instances (<code>mac1</code>, <code>mac2</code>, and
+<code>mac2-m2</code> families) are built on physical Apple Mac mini
+computers hosted as Amazon EC2 Dedicated Hosts. To comply with the Apple
+macOS Software License Agreement, which requires a minimum lease
+constraint on underlying hardware, EC2 Mac Dedicated Hosts enforce a
+strict 24-hour minimum allocation period.</p>
+<p>Once you allocate a Mac Dedicated Host to run an EC2 Mac instance,
+you cannot release that host until a full 24 hours have passed. After
+the initial 24-hour period is met, the host transitions to per-second
+billing for as long as it remains allocated.</p>
+<h2 id="summary-of-ec2-minimum-billing-durations">Summary of EC2 Minimum
+Billing Durations</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance / OS Type</th>
+<th style="text-align: left;">Billing Granularity</th>
+<th style="text-align: left;">Minimum Charge per Start</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Amazon Linux, Ubuntu, Free Linux</td>
+<td style="text-align: left;">Per-second</td>
+<td style="text-align: left;">1 minute (60 seconds)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Windows Server (License Included)</td>
+<td style="text-align: left;">Per-second</td>
+<td style="text-align: left;">1 minute (60 seconds)</td>
+</tr>
+<tr>
+<td style="text-align: left;">RHEL &amp; SLES</td>
+<td style="text-align: left;">Per-second</td>
+<td style="text-align: left;">1 minute (60 seconds)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Hourly AWS Marketplace AMIs</td>
+<td style="text-align: left;">Per-hour</td>
+<td style="text-align: left;">1 hour (3,600 seconds)</td>
+</tr>
+<tr>
+<td style="text-align: left;">Amazon EC2 Mac (Dedicated Host)</td>
+<td style="text-align: left;">Per-second (after minimum)</td>
+<td style="text-align: left;">24 hours</td>
+</tr>
+</tbody>
+</table></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/does-amazon-ec-2-have-a-one-minute-minimum-charge';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

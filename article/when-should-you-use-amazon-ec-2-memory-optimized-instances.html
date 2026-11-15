@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When Should You Use Amazon EC2 Memory Optimized Instances? - ec2</title>
+    <meta name="description" content="The primary use case for the Memory Optimized instance family in Amazon Elastic Compute Cloud is running workloads that process massive datasets directly in random access memory. These instances are engineered to deliver fast performance for applications">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/when-should-you-use-amazon-ec-2-memory-optimized-instances">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="When Should You Use Amazon EC2 Memory Optimized Instances? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/when-should-you-use-amazon-ec-2-memory-optimized-instances" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The primary use case for the Memory Optimized instance family in Amazon Elastic Compute Cloud is running workloads that process massive datasets directly in random access memory. These instances are engineered to deliver fast performance for applications" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="when-should-you-use-amazon-ec2-memory-optimized-instances">When
+Should You Use Amazon EC2 Memory Optimized Instances?</h1>
+<p>The primary use case for the Memory Optimized instance family in
+Amazon Elastic Compute Cloud is running workloads that process massive
+datasets directly in random access memory. These instances are
+engineered to deliver fast performance for applications where memory
+capacity and memory bandwidth are the main bottlenecks rather than
+processor speed or disk input and output. Organizations use this
+instance family for high performance relational and non-relational
+databases, distributed web scale in-memory caches, real-time big data
+analytics engines, and enterprise applications that require rapid access
+to large amounts of data.</p>
+<h2
+id="understanding-memory-architecture-in-cloud-computing">Understanding
+Memory Architecture in Cloud Computing</h2>
+<p>Standard computing architectures often experience performance
+degradation when applications frequently read from and write to
+solid-state drives or hard disk drives. Even the fastest Non-Volatile
+Memory Express storage introduces microseconds of latency, whereas
+accessing system memory takes only nanoseconds. Memory Optimized
+instances bridge this performance gap by offering high ratios of random
+access memory to virtual central processing units.</p>
+<p>In Amazon Elastic Compute Cloud, instance families are categorized by
+their resource ratios. General Purpose instances typically provide <span
+class="math inline">\(4\text{ GiB}\)</span> of memory per virtual
+central processing unit, while Compute Optimized instances provide <span
+class="math inline">\(2\text{ GiB}\)</span> per virtual central
+processing unit. Memory Optimized instances start at <span
+class="math inline">\(8\text{ GiB}\)</span> of memory per virtual
+central processing unit and scale up to <span
+class="math inline">\(32\text{ GiB}\)</span> or even <span
+class="math inline">\(128\text{ GiB}\)</span> per virtual central
+processing unit in specialized configurations. We can express the
+memory-to-compute ratio <span class="math inline">\(R\)</span> as:</p>
+<p><span class="math display">\[R =
+\frac{M_{\text{total}}}{N_{\text{vCPU}}}\]</span></p>
+<p>Where <span class="math inline">\(M_{\text{total}}\)</span>
+represents the total memory in gibibytes and <span
+class="math inline">\(N_{\text{vCPU}}\)</span> represents the number of
+virtual central processing units. For Memory Optimized instances, the
+condition <span class="math inline">\(R \ge 8\)</span> holds true across
+the standard sub-families.</p>
+<h2 id="primary-workloads-and-use-cases">Primary Workloads and Use
+Cases</h2>
+<h3
+id="high-performance-relational-and-nosql-databases">High-Performance
+Relational and NoSQL Databases</h3>
+<p>Database management systems rely heavily on memory buffers to cache
+frequently accessed tables, indexes, and query execution plans. When the
+working set of a database fits entirely within random access memory, the
+database engine avoids expensive disk read operations, resulting in
+predictable low-latency query responses and high transaction
+throughput.</p>
+<ul>
+<li><strong>Relational Databases:</strong> Production deployments of
+PostgreSQL, MySQL, Oracle, and Microsoft SQL Server use large buffer
+pools to maintain high cache hit ratios during complex join operations
+and concurrent transactional workloads.</li>
+<li><strong>NoSQL Databases:</strong> Document, key-value, and
+wide-column stores such as MongoDB, Apache Cassandra, and Couchbase
+depend on abundant system memory to hold active indexes and working
+documents in memory before flushing changes asynchronously to disk.</li>
+</ul>
+<h3 id="distributed-in-memory-caches-and-data-stores">Distributed
+In-Memory Caches and Data Stores</h3>
+<p>In-memory data stores keep the entire dataset in random access memory
+at all times, using persistent storage only for snapshots or append-only
+durability logs. Because every read and write operation happens in
+memory, these systems can handle millions of requests per second with
+sub-millisecond latency.</p>
+<ul>
+<li><strong>Redis and Memcached:</strong> Used for session management,
+gaming leaderboards, real-time bidding, and caching database queries at
+web scale.</li>
+<li><strong>In-Memory Grids:</strong> Enterprise data grids like
+Hazelcast and Apache Ignite distribute large state objects across
+clusters of Memory Optimized instances to support high-throughput
+microservices and financial transaction processing.</li>
+</ul>
+<h3 id="in-memory-databases-and-enterprise-resource-planning">In-Memory
+Databases and Enterprise Resource Planning</h3>
+<p>Mission-critical enterprise applications often combine transactional
+processing and analytical processing in a single in-memory platform.</p>
+<ul>
+<li><strong>SAP HANA:</strong> Certified EC2 Memory Optimized instances,
+including the High Memory and X-series families, are built specifically
+to host SAP HANA workloads that require several terabytes of memory on a
+single node.</li>
+<li><strong>Real-Time Business Intelligence:</strong> Financial
+modeling, supply chain optimization, and risk analysis systems run
+complex multidimensional queries directly against in-memory columnar
+tables.</li>
+</ul>
+<h3 id="real-time-big-data-analytics-and-stream-processing">Real-Time
+Big Data Analytics and Stream Processing</h3>
+<p>Modern big data frameworks process data in memory across distributed
+clusters rather than writing intermediate results to disk between
+stages, as older MapReduce paradigms did.</p>
+<ul>
+<li><strong>Apache Spark and Presto:</strong> Spark executors require
+substantial memory allocations to perform in-memory transformations,
+aggregations, and machine learning training iterations without spilling
+data to local storage.</li>
+<li><strong>Stream Processing:</strong> Engines such as Apache Flink and
+Apache Kafka Streams maintain large stateful windows in memory to
+aggregate and correlate streaming events in real time.</li>
+</ul>
+<h2 id="key-ec2-memory-optimized-instance-sub-families">Key EC2 Memory
+Optimized Instance Sub-Families</h2>
+<p>Amazon EC2 divides the Memory Optimized category into several series
+based on processor architecture, memory-to-compute ratio, and local
+storage options:</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Instance Series</th>
+<th style="text-align: left;">Processor Architecture</th>
+<th style="text-align: left;">Memory per vCPU</th>
+<th style="text-align: left;">Target Workload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>R Series (R6i, R7i, R6a,
+R7a)</strong></td>
+<td style="text-align: left;">Intel Xeon or AMD EPYC</td>
+<td style="text-align: left;"><span class="math inline">\(8\text{
+GiB}\)</span></td>
+<td style="text-align: left;">Mainstream relational databases,
+distributed caches, and analytics</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>R7g and R8g Series</strong></td>
+<td style="text-align: left;">AWS Graviton (ARM64)</td>
+<td style="text-align: left;"><span class="math inline">\(8\text{
+GiB}\)</span></td>
+<td style="text-align: left;">Cost-optimized open-source databases,
+Redis, and containerized workloads</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>X Series (X2idn, X2iedn,
+X2gd)</strong></td>
+<td style="text-align: left;">Intel Xeon or AWS Graviton2</td>
+<td style="text-align: left;"><span class="math inline">\(16\text{
+GiB}\)</span> to <span class="math inline">\(32\text{ GiB}\)</span></td>
+<td style="text-align: left;">Large-scale in-memory databases,
+electronic design automation, and SAP HANA</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>z1d Series</strong></td>
+<td style="text-align: left;">High-frequency Intel Xeon</td>
+<td style="text-align: left;"><span class="math inline">\(8\text{
+GiB}\)</span></td>
+<td style="text-align: left;">Single-threaded database workloads with
+high per-core licensing costs</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>High Memory (U-1)</strong></td>
+<td style="text-align: left;">Intel Xeon Scalable</td>
+<td style="text-align: left;">Up to <span
+class="math inline">\(128\text{ GiB}\)</span></td>
+<td style="text-align: left;">Multi-terabyte enterprise in-memory
+databases (<span class="math inline">\(6\text{ TiB}\)</span> to <span
+class="math inline">\(24\text{ TiB}\)</span>)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="evaluating-memory-capacity-and-cost-efficiency">Evaluating
+Memory Capacity and Cost Efficiency</h2>
+<p>To determine whether an application belongs on a Memory Optimized
+instance, engineers evaluate the working set size and the effective
+latency of data access. If <span class="math inline">\(p\)</span>
+represents the probability of a memory cache Miss (requiring a disk
+read), <span class="math inline">\(T_{\text{mem}}\)</span> is the memory
+access latency, and <span class="math inline">\(T_{\text{disk}}\)</span>
+is the storage access latency, the expected effective access time <span
+class="math inline">\(T_{\text{eff}}\)</span> is defined as:</p>
+<p><span class="math display">\[T_{\text{eff}} = (1 - p) \cdot
+T_{\text{mem}} + p \cdot T_{\text{disk}}\]</span></p>
+<p>Because <span class="math inline">\(T_{\text{disk}}\)</span> is
+orders of magnitude larger than <span
+class="math inline">\(T_{\text{mem}}\)</span>, even a small increase in
+the cache miss rate <span class="math inline">\(p\)</span> causes a
+massive spike in <span class="math inline">\(T_{\text{eff}}\)</span>.
+Scaling up to a Memory Optimized instance reduces <span
+class="math inline">\(p\)</span> toward <span
+class="math inline">\(0\)</span> by fitting the entire working set into
+random access memory.</p>
+<p>Furthermore, selecting a Memory Optimized instance is often much more
+cost-effective than over-provisioning General Purpose or Compute
+Optimized instances just to acquire enough memory. If a database
+requires <span class="math inline">\(256\text{ GiB}\)</span> of memory
+but only utilizes <span class="math inline">\(12\)</span> virtual
+central processing units, provisioning a General Purpose instance with
+<span class="math inline">\(256\text{ GiB}\)</span> of memory would
+force you to pay for <span class="math inline">\(64\)</span> virtual
+central processing units (<span class="math inline">\(48\)</span> of
+which remain idle). Provisioning an R-series Memory Optimized instance
+supplies the exact <span class="math inline">\(256\text{ GiB}\)</span>
+of memory with only <span class="math inline">\(32\)</span> virtual
+central processing units, or just <span class="math inline">\(8\)</span>
+virtual central processing units on an X2iedn instance, substantially
+lowering both infrastructure spend and per-core commercial software
+licensing fees.</p></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/when-should-you-use-amazon-ec-2-memory-optimized-instances';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

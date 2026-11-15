@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Is an Amazon EC2 On-Demand Capacity Reservation? - ec2</title>
+    <meta name="description" content="An Amazon EC2 On-Demand Capacity Reservation enables you to reserve compute capacity for your Amazon EC2 instances in a specific Availability Zone for any duration. By creating a reservation, you ensure that you always have access to EC2 capacity when you">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-on-demand-capacity-reservation">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What Is an Amazon EC2 On-Demand Capacity Reservation? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-on-demand-capacity-reservation" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="An Amazon EC2 On-Demand Capacity Reservation enables you to reserve compute capacity for your Amazon EC2 instances in a specific Availability Zone for any duration. By creating a reservation, you ensure that you always have access to EC2 capacity when you" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1 id="what-is-an-amazon-ec2-on-demand-capacity-reservation">What Is an
+Amazon EC2 On-Demand Capacity Reservation?</h1>
+<p>An Amazon EC2 On-Demand Capacity Reservation enables you to reserve
+compute capacity for your Amazon EC2 instances in a specific
+Availability Zone for any duration. By creating a reservation, you
+ensure that you always have access to EC2 capacity when you need it,
+protecting critical workloads from capacity constraints during peak
+demand or regional scaling events. Unlike standard Savings Plans or
+Reserved Instances that primarily offer billing discounts, On-Demand
+Capacity Reservations strictly guarantee physical hardware availability
+and can be created, modified, or canceled at any time without a
+long-term commitment.</p>
+<h2 id="how-capacity-reservations-guarantee-compute-availability">How
+Capacity Reservations Guarantee Compute Availability</h2>
+<p>When you launch a standard On-Demand EC2 instance without a
+reservation, your request competes for available hardware in the AWS
+data center pool. During periods of high demand, an Availability Zone
+can occasionally run out of specific instance types, resulting in an
+<code>InsufficientInstanceCapacity</code> error.</p>
+<p>An On-Demand Capacity Reservation eliminates this risk through a
+straightforward allocation mechanism:</p>
+<ol type="1">
+<li><strong>Attribute Specification</strong>: You request a reservation
+by specifying the exact attributes of the capacity you need: the
+<strong>Availability Zone</strong>, <strong>instance type</strong> (such
+as <code>m6i.xlarge</code>), <strong>platform/operating system</strong>
+(Linux/UNIX, Windows, RHEL, etc.), and <strong>tenancy</strong> (default
+shared tenancy or dedicated tenancy).</li>
+<li><strong>Immediate Hardware Provisioning</strong>: Before confirming
+the reservation, AWS verifies that sufficient physical hardware exists
+in the target Availability Zone. Once the reservation enters the
+<code>active</code> state, AWS physically sets aside and locks those
+exact compute resources exclusively for your account.</li>
+<li><strong>Protected Capacity Pool</strong>: No other AWS customer can
+consume those reserved slots. Whether you launch an instance into that
+capacity immediately or leave it idle for weeks as a disaster recovery
+standby, the underlying physical host capacity remains waiting for your
+launch API call.</li>
+</ol>
+<h2 id="open-vs-targeted-capacity-reservations">Open vs. Targeted
+Capacity Reservations</h2>
+<p>When creating an On-Demand Capacity Reservation, you can control how
+newly launched or existing running instances consume the reserved
+capacity by selecting one of two instance matching criteria:</p>
+<ul>
+<li><strong>Open Capacity Reservations</strong>: Any new or already
+running On-Demand instance in your account that matches the
+reservation's attributes (Availability Zone, instance type, platform,
+and tenancy) automatically runs in the reserved capacity. You do not
+need to modify your launch scripts or Auto Scaling groups; AWS
+automatically binds matching instances to the open reservation until the
+reserved slot count is full.</li>
+<li><strong>Targeted Capacity Reservations</strong>: Capacity is
+strictly held for instances that explicitly specify the Capacity
+Reservation ID or belong to a targeted Capacity Reservation group at
+launch time. If another team or service in your account launches an
+instance with matching attributes without specifying the reservation ID,
+it will draw from the public On-Demand pool instead of consuming your
+reserved slots. This is ideal for isolating capacity for
+mission-critical applications or disaster recovery failovers.</li>
+</ul>
+<h2 id="pricing-and-billing-mechanics">Pricing and Billing
+Mechanics</h2>
+<p>When an On-Demand Capacity Reservation is active, you pay the
+standard On-Demand rate for the reserved capacity whether you run
+instances in it or not. There is no upfront fee and no extra surcharge
+for the reservation itself.</p>
+<p>If the total number of reserved instance slots is <span
+class="math inline">\(N_{\text{reserved}}\)</span> and the number of
+matching running instances using the reservation is <span
+class="math inline">\(N_{\text{used}}\)</span> (where <span
+class="math inline">\(N_{\text{used}} \le N_{\text{reserved}}\)</span>),
+the number of unused slots billed to your account is:</p>
+<p><span class="math display">\[N_{\text{unused}} = N_{\text{reserved}}
+- N_{\text{used}}\]</span></p>
+<p>Your total hourly compute cost <span
+class="math inline">\(C_{\text{total}}\)</span> at an hourly On-Demand
+rate <span class="math inline">\(R\)</span> is simply:</p>
+<p><span class="math display">\[C_{\text{total}} = R \times
+N_{\text{used}} + R \times N_{\text{unused}} = R \times
+N_{\text{reserved}}\]</span></p>
+<p>To optimize costs, you can combine On-Demand Capacity Reservations
+with <strong>Regional Reserved Instances</strong> or <strong>Compute/EC2
+Instance Savings Plans</strong>. In this pairing:</p>
+<ul>
+<li>The <strong>On-Demand Capacity Reservation</strong> guarantees the
+physical compute availability in a specific Availability Zone.</li>
+<li>The <strong>Savings Plan</strong> or <strong>Regional Reserved
+Instance</strong> automatically applies its discounted billing rate to
+both used (<span class="math inline">\(N_{\text{used}}\)</span>) and
+unused (<span class="math inline">\(N_{\text{unused}}\)</span>) capacity
+reservation slots that match the commitment.</li>
+</ul>
+<h2 id="key-use-cases-for-on-demand-capacity-reservations">Key Use Cases
+for On-Demand Capacity Reservations</h2>
+<p>Organizations typically deploy On-Demand Capacity Reservations in
+several key scenarios:</p>
+<ul>
+<li><strong>Disaster Recovery and Failover</strong>: Maintaining warm or
+cold standby architectures in a secondary Availability Zone or Region
+where compute capacity must be 100% guaranteed during an emergency
+failover event.</li>
+<li><strong>High-Demand Event Scaling</strong>: Securing compute
+capacity days ahead of product launches, seasonal retail events, or
+scheduled batch processing windows without committing to a 1-year or
+3-year contract.</li>
+<li><strong>Specialized or Scarce Hardware</strong>: Retaining access to
+high-demand GPU, machine learning, or bare-metal instance types when
+stopping and restarting instances for maintenance, ensuring no other
+customer claims the hardware while your instance is stopped.</li>
+<li><strong>Cross-Account Capacity Sharing</strong>: Using AWS Resource
+Access Manager (AWS RAM) to share a centralized pool of reserved
+capacity across multiple member accounts within an AWS Organization,
+allowing different workloads to share and maximize reserved slot
+utilization.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/what-is-an-amazon-ec-2-on-demand-capacity-reservation';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>

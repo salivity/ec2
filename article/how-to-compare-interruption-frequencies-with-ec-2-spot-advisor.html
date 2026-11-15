@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Compare Interruption Frequencies with EC2 Spot Advisor? - ec2</title>
+    <meta name="description" content="The Amazon EC2 Spot Instance advisor is a free web tool provided by AWS that helps cloud architects and developers evaluate the cost savings and stability of Spot Instances before deploying workloads. By analyzing historical data over the trailing thirty">
+    <link rel="canonical" href="https://salivity.github.io/ec2/article/how-to-compare-interruption-frequencies-with-ec-2-spot-advisor">
+    <link rel="search" type="application/opensearchdescription+xml" title="ec2" href="/ec2/opensearch.xml">
+    <link rel="icon" href="/ec2/favicon.ico">
+    <link rel="stylesheet" href="/ec2/css/style.css">
+    <link media="print" rel="stylesheet" href="/ec2/css/print.css">
+    <script src="/ec2/js/fuse.min.js"></script>
+    <script src="/ec2/js/script.js"></script>
+    <script id="MathJax-script" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" defer></script>
+    <script src="/monetize/monetize.js"></script>
+    <script src="/social/social.js"></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="How to Compare Interruption Frequencies with EC2 Spot Advisor? - ec2" />
+    <meta property="og:url" content="https://salivity.github.io/ec2/article/how-to-compare-interruption-frequencies-with-ec-2-spot-advisor" />
+    <meta property="og:image" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:secure_url" content="https://salivity.github.io/ec2/images/open-graph/default.webp" />
+    <meta property="og:image:width" content="1120" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="The Amazon EC2 Spot Instance advisor is a free web tool provided by AWS that helps cloud architects and developers evaluate the cost savings and stability of Spot Instances before deploying workloads. By analyzing historical data over the trailing thirty" />
+    <link rel="manifest" href="/ec2/pwa/manifest.json" />
+</head>
+<body>
+    <header>
+        <a href="/ec2/" aria-label="Go To Home Page" title="Go To Home Page" id="logo">
+            <span>salivity.github.io/</span><span>ec2</span>
+        </a>
+        <nav>
+            <ul class="header-links">
+                <li><a href="/ec2/search" title="Search" aria-label="Go To Search Page"><svg class="svg-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"></path></svg></a></li>
+                <li><a id="theme-toggle" title="Theme" href="javascript:void(0);" aria-label="Toggle Website Theme"></a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        
+    <div class="article-layout">
+        <aside id="profile-sidebar" class="profile-column" aria-label="Author Profile"></aside>
+        <div class="article-main-column">
+            <article><h1
+id="how-to-compare-interruption-frequencies-with-ec2-spot-advisor">How
+to Compare Interruption Frequencies with EC2 Spot Advisor?</h1>
+<p>The Amazon EC2 Spot Instance advisor is a free web tool provided by
+AWS that helps cloud architects and developers evaluate the cost savings
+and stability of Spot Instances before deploying workloads. By analyzing
+historical data over the trailing thirty days, the tool displays the
+average discount compared to On-Demand pricing alongside the expected
+frequency of interruption for every Spot-eligible EC2 instance type
+across global regions and operating systems. Using this tool allows you
+to filter by hardware specifications like vCPUs and memory, sort
+instance families by their reclamation likelihood, and build resilient,
+diversified Spot fleets that minimize unplanned downtime while
+maximizing cloud compute savings.</p>
+<h2
+id="understanding-spot-instance-interruption-frequencies">Understanding
+Spot Instance Interruption Frequencies</h2>
+<p>Amazon EC2 Spot Instances let you take advantage of unused EC2
+capacity in the AWS cloud at up to a 90% discount compared to On-Demand
+prices. Because AWS can reclaim this capacity whenever demand for
+On-Demand instances rises, Spot Instances are subject to interruptions
+with a two-minute warning.</p>
+<p>Rather than providing an exact real-time probability, the Spot
+Instance advisor groups historical interruption rates over the trailing
+30 days into five distinct frequency brackets:</p>
+<ul>
+<li><strong>Less than 5%:</strong> The most stable tier, where less than
+1 in 20 instances experience a reclamation event over a month.</li>
+<li><strong>5% to 10%:</strong> Low interruption frequency, suitable for
+most fault-tolerant batch jobs and containerized workloads.</li>
+<li><strong>10% to 15%:</strong> Moderate interruption frequency,
+requiring reliable checkpointing or fast instance replacement
+mechanisms.</li>
+<li><strong>15% to 20%:</strong> Elevated interruption frequency,
+indicating higher contention for the underlying hardware capacity
+pool.</li>
+<li><strong>Greater than 20%:</strong> High interruption frequency, best
+avoided unless your workload is completely stateless and can handle
+frequent node churn.</li>
+</ul>
+<h2 id="step-by-step-guide-to-comparing-instance-types">Step-by-Step
+Guide to Comparing Instance Types</h2>
+<p>Comparing interruption frequencies across instance families takes
+only a few minutes using the public Spot Instance advisor web
+interface.</p>
+<h3 id="1-select-your-target-aws-region-and-os">1. Select Your Target
+AWS Region and OS</h3>
+<p>Capacity pools are isolated by Region, Availability Zone, and
+Operating System. An instance type that rarely experiences interruptions
+in <code>us-east-2</code> (Ohio) might have a &gt;20% interruption rate
+in <code>us-east-1</code> (N. Virginia). Start by selecting your
+deployment <strong>Region</strong> and <strong>OS</strong> (Linux/UNIX
+or Windows) from the top dropdown menus in the Spot Instance
+advisor.</p>
+<h3 id="2-filter-by-minimum-hardware-requirements">2. Filter by Minimum
+Hardware Requirements</h3>
+<p>Instead of manually scrolling through hundreds of EC2 instance types,
+use the resource sliders and filters to narrow down candidates that fit
+your workload profile:</p>
+<ul>
+<li><strong>vCPU:</strong> Set the minimum and maximum virtual CPU cores
+required per node.</li>
+<li><strong>Memory (GiB):</strong> Define the RAM boundaries for your
+application.</li>
+<li><strong>Instance Type / Family:</strong> Use the search bar to
+filter by specific families (such as <code>m5</code>, <code>c6i</code>,
+or <code>r6g</code>) or processor architectures (such as AWS Graviton,
+Intel, or AMD).</li>
+</ul>
+<h3 id="3-sort-by-frequency-of-interruption">3. Sort by Frequency of
+Interruption</h3>
+<p>Click the <strong>Frequency of interruption</strong> column header in
+the comparison table to sort the filtered results in ascending order.
+This immediately brings the most stable instance types (&lt;5%
+interruption rate) to the top of your view, paired alongside their
+<strong>Savings over On-Demand</strong> percentage.</p>
+<h3 id="4-compare-generations-and-architectures">4. Compare Generations
+and Architectures</h3>
+<p>Look across different generations and CPU architectures that meet the
+same vCPU and memory specifications. You will often find that:</p>
+<ul>
+<li><strong>Previous-generation instances</strong> (e.g.,
+<code>m5</code> or <code>c5</code>) and <strong>newest-generation
+instances</strong> (e.g., <code>m7i</code> or <code>c7g</code>) have
+different demand profiles depending on regional adoption.</li>
+<li><strong>Graviton-based instances</strong> (such as <code>m6g</code>,
+<code>c6g</code>, and <code>r6g</code>) frequently offer both lower
+interruption frequencies and higher percentage savings compared to
+equivalent x86 instances.</li>
+<li><strong>Different sizes within the same family</strong> vary
+significantly. For example, an <code>m5.2xlarge</code> might sit in the
+10–15% bracket, while two <code>m5.xlarge</code> instances sit in the
+&lt;5% bracket.</li>
+</ul>
+<h2 id="calculating-expected-fleet-availability-and-cost">Calculating
+Expected Fleet Availability and Cost</h2>
+<p>When designing a multi-instance pool, you can model expected cost and
+interruption exposure mathematically. If an instance type has an
+On-Demand hourly price <span class="math inline">\(P_{OD}\)</span> and a
+Spot discount fraction <span class="math inline">\(D\)</span>, the
+effective hourly Spot price <span
+class="math inline">\(P_{Spot}\)</span> is:</p>
+<p><span class="math display">\[P_{Spot} = P_{OD} \times (1 -
+D)\]</span></p>
+<p>Furthermore, if you distribute stateless workloads across <span
+class="math inline">\(N\)</span> independent capacity pools where each
+pool <span class="math inline">\(i\)</span> has an independent
+interruption probability <span class="math inline">\(p_i\)</span> over a
+given window, the probability <span
+class="math inline">\(P_{\text{all}}\)</span> that all pools experience
+simultaneous interruptions is reduced exponentially:</p>
+<p><span class="math display">\[P_{\text{all}} = \prod_{i=1}^{N}
+p_i\]</span></p>
+<p>For example, combining <span class="math inline">\(N = 3\)</span>
+distinct instance pools that each fall into the <span
+class="math inline">\(&lt;5\%\)</span> bracket (<span
+class="math inline">\(p_i \le 0.05\)</span>) lowers the theoretical
+likelihood of simultaneous pool exhaustion to at most <span
+class="math inline">\(0.05^3 = 0.000125\)</span>, or <span
+class="math inline">\(0.0125\%\)</span>.</p>
+<h2 id="best-practices-for-acting-on-spot-advisor-data">Best Practices
+for Acting on Spot Advisor Data</h2>
+<ul>
+<li><strong>Diversify Across Multiple Instance Families:</strong> Never
+rely on a single instance type based on Spot Instance advisor data
+alone. Select at least 5 to 10 compatible instance types in the &lt;5%
+and 5–10% brackets to include in your EC2 Auto Scaling group or Amazon
+EKS node group.</li>
+<li><strong>Use the <code>price-capacity-optimized</code> Allocation
+Strategy:</strong> While the Spot Instance advisor shows trailing 30-day
+regional averages, EC2 Auto Scaling and Karpenter can use real-time
+capacity data at launch time. Pairing your advisor-curated instance list
+with the <code>price-capacity-optimized</code> strategy ensures AWS
+automatically provisions from the deepest, least-interrupted
+Availability Zone pool available at that exact moment.</li>
+<li><strong>Re-evaluate Periodically:</strong> Spot capacity supply and
+On-Demand demand shift over time due to seasonal traffic and new
+hardware rollouts. Review the Spot Instance advisor quarterly to refresh
+the instance types defined in your launch templates.</li>
+</ul></article>
+        <div id='disqus_thread'></div>
+        <script>
+
+            var disqus_config = function () {
+                this.page.url =         'https://salivity.github.io/ec2/article/how-to-compare-interruption-frequencies-with-ec-2-spot-advisor';  
+                //this.page.identifier =  PAGE_IDENTIFIER; 
+            };
+            
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://salivity-github-io.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    
+        </div>
+    </div>
+    
+    </main>
+    <footer>
+        <nav>
+            <ul class="social-links">
+            </ul>
+        </nav>
+        <nav>
+            <ul class="footer-links">
+                <li><a href="https://smvc.dev/contact">Contact</a></li>
+                <li><a href="/ec2/privacy-policy">Privacy Policy</a></li>
+                <li><a href="/ec2/terms-and-conditions">Terms and Conditions</a></li>
+            </ul>
+        </nav>
+        <div class="copyright">
+            Copyright &copy; <span id="current-year"></span>
+        </div>
+    </footer>
+</body>
+</html>
